@@ -4,7 +4,7 @@ import tableausdk.HyperExtract as hpe
 
 
 # pandas type in, tableau type, tab->pan type
-type_mappings = (
+_type_mappings = (
     ('int16', ttypes.INTEGER, 'int64'),    
     ('int32', ttypes.INTEGER, 'int64'),    
     ('int64', ttypes.INTEGER, 'int64'),
@@ -17,23 +17,6 @@ type_mappings = (
 )
 
 
-def pandas_to_tableau_type(typ):
-    for ptype, ttype, _ in type_mappings:
-        if typ == ptype:
-            return ttype
-
-    raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
-
-
-def tableau_to_pandas_type(typ):
-    for _, ttype, ret_type in type_mappings:
-        if typ == ttype:
-            return ret_type
-
-    # Fallback to object
-    return 'object'
-
-
 _type_accessors = {
     ttypes.BOOLEAN: 'setBoolean',
     ttypes.DATETIME: 'setDateTime',
@@ -41,7 +24,57 @@ _type_accessors = {
     ttypes.DURATION: 'setDuration',
     ttypes.INTEGER: 'setInteger',
     ttypes.UNICODE_STRING: 'setString'
-}
+}    
+
+
+def pandas_to_tableau_type(typ):
+    for ptype, ttype, _ in _type_mappings:
+        if typ == ptype:
+            return ttype
+
+    raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
+
+
+def tableau_to_pandas_type(typ):
+    for _, ttype, ret_type in _type_mappings:
+        if typ == ttype:
+            return ret_type
+
+    # Fallback to object
+    return 'object'
+
+
+def _types_for_columns(df):
+    """
+    Return a tuple of Tableau types matching the ordering of `df.columns`.
+    """
+    return tuple(pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
+    
+def _accessor_for_tableau_type(typ):
+    return _type_accessors[typ]
+
+
+def _append_args_for_val_and_accessor(args, val, accessor):
+    """
+    Dynamically append to args depending on the needs of `accessor`
+    """
+    # Conditional branch can certainly be refactored, but going the
+    # easy route for the time being
+    if accessor == 'setDateTime':
+        for window in ('year', 'month', 'day', 'hour', 'minute',
+                       'second'):
+            args.append(getattr(val, window))
+        # last positional arg to func must be in tenth of ms
+        # will lose precision compared to pandas type
+        args.append(val.microsecond // 100)
+    elif accessor == 'setDuration':
+        for window in ('days', 'hours', 'minutes', 'seconds'):
+            args.append(getattr(val.components, window))
+        # last positional arg to func must be in tenth of ms
+        # will lose precision compared to pandas type
+        args.append(val.microseconds // 100)
+    else:
+        args.append(val)
 
 
 def frame_to_hyper(df, fn, table_nm):
@@ -49,36 +82,18 @@ def frame_to_hyper(df, fn, table_nm):
     Convert a DataFrame to a .hyper extract.
     """
     schema = hpe.TableDefinition()
-    ttype_l = []
-    for col in df.columns:
-        ttype = _pandas_to_tab_type(df[col].dtype)
-        ttype_l.append(ttype)
+    ttypes = [pandas_to_tableau_type(df[col].dtype.name) for col in df.columns]
+    for col, ttype in zip(list(df.columns), ttypes):
         schema.addColumn(col, ttype)
 
     rows = []
-    accessors = tuple(_type_accessors[ttype] for ttype in ttype_l)
+    accessors = tuple(_accessor_for_tableau_type(ttype) for ttype in ttype_l)
     for tup in df.itertuples(index=False):
         row = hpe.Row(schema)
         for index, accessor in enumerate(accessors):
             val = tup[index]
             args = [index]
-            # Conditional branch can certainly be refactored, but going the
-            # easy route for the time being
-            if accessor == 'setDateTime':
-                for window in ('year', 'month', 'day', 'hour', 'minute',
-                               'second'):
-                    args.append(getattr(val, window))
-                # last positional arg to func must be in tenth of ms
-                # will lose precision compared to pandas type
-                func.args.append(val.microsecond // 100)
-            elif accessor == 'setDuration':
-                for window in ('day', 'hour', 'minute', 'second'):
-                    args.append(getattr(val, window))
-                # last positional arg to func must be in tenth of ms
-                # will lose precision compared to pandas type
-                args.append(val.microseconds // 100)
-            else:
-                args.append(val)
+            _append_args_for_val_and_accessor(args, val, accessor)
             getattr(row, accessor)(*args)
 
         rows.append(row)
