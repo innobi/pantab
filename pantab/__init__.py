@@ -12,7 +12,7 @@ _type_mappings = (
     ('float64', ttypes.DOUBLE, 'float64'),
     ('bool', ttypes.BOOLEAN, 'bool'),
     ('datetime64[ns]', ttypes.DATETIME, 'datetime64[ns]'),
-    ('timedelta64[ns]', ttypes.DURATION, 'timedelta64[ns]'),
+    #('timedelta64[ns]', ttypes.DURATION, 'timedelta64[ns]'),
     ('object', ttypes.UNICODE_STRING, 'object')
 )
 
@@ -54,7 +54,7 @@ def _accessor_for_tableau_type(typ):
     return _type_accessors[typ]
 
 
-def _append_args_for_val_and_accessor(args, val, accessor):
+def _append_args_for_val_and_accessor(arg_l, val, accessor):
     """
     Dynamically append to args depending on the needs of `accessor`
     """
@@ -63,18 +63,20 @@ def _append_args_for_val_and_accessor(args, val, accessor):
     if accessor == 'setDateTime':
         for window in ('year', 'month', 'day', 'hour', 'minute',
                        'second'):
-            args.append(getattr(val, window))
+            arg_l.append(getattr(val, window))
         # last positional arg to func must be in tenth of ms
         # will lose precision compared to pandas type
-        args.append(val.microsecond // 100)
-    elif accessor == 'setDuration':
-        for window in ('days', 'hours', 'minutes', 'seconds'):
-            args.append(getattr(val.components, window))
-        # last positional arg to func must be in tenth of ms
-        # will lose precision compared to pandas type
-        args.append(val.microseconds // 100)
+        arg_l.append(val.microsecond // 100)
+        """  Durations weren't working; may be an SDK bug?
+        elif accessor == 'setDuration':
+            for window in ('days', 'hours', 'minutes', 'seconds'):
+                arg_l.append(getattr(val.components, window))
+            # last positional arg to func must be in tenth of ms
+            # will lose precision compared to pandas type
+            arg_l.append(val.microseconds // 100)
+        """
     else:
-        args.append(val)
+        arg_l.append(val)
 
 
 def frame_to_hyper(df, fn, table_nm):
@@ -82,19 +84,19 @@ def frame_to_hyper(df, fn, table_nm):
     Convert a DataFrame to a .hyper extract.
     """
     schema = hpe.TableDefinition()
-    ttypes = [pandas_to_tableau_type(df[col].dtype.name) for col in df.columns]
+    ttypes = _types_for_columns(df)
     for col, ttype in zip(list(df.columns), ttypes):
         schema.addColumn(col, ttype)
 
     rows = []
-    accessors = tuple(_accessor_for_tableau_type(ttype) for ttype in ttype_l)
+    accessors = tuple(_accessor_for_tableau_type(ttype) for ttype in ttypes)
     for tup in df.itertuples(index=False):
         row = hpe.Row(schema)
         for index, accessor in enumerate(accessors):
             val = tup[index]
-            args = [index]
-            _append_args_for_val_and_accessor(args, val, accessor)
-            getattr(row, accessor)(*args)
+            fn_args = [index]
+            _append_args_for_val_and_accessor(fn_args, val, accessor)
+            getattr(row, accessor)(*fn_args)
 
         rows.append(row)
     
