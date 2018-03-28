@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pandas as pd
 from tableausdk.Types import Type as ttypes
 import tableausdk.HyperExtract as hpe
@@ -79,10 +81,14 @@ def _append_args_for_val_and_accessor(arg_l, val, accessor):
         arg_l.append(val)
 
 
-def frame_to_hyper(df, fn, table_nm):
+def frame_to_hyper(df, fn, table='Extract'):
     """
     Convert a DataFrame to a .hyper extract.
     """
+    if table != "Extract":
+        raise ValueError("The Tableau SDK currently only supports a table name "
+                         "of 'Extract'")
+
     schema = hpe.TableDefinition()
     ttypes = _types_for_columns(df)
     for col, ttype in zip(list(df.columns), ttypes):
@@ -101,13 +107,36 @@ def frame_to_hyper(df, fn, table_nm):
         rows.append(row)
     
     with hpe.Extract(fn) as extract:
-        table = extract.addTable(table_nm, schema)
+        table = extract.addTable(table, schema)
         for row in rows:
             table.insert(row)
 
 
-def hyper_to_frame(fn):
+def frame_from_hyper(fn, table='Extract'):
     """
     Extracts a DataFrame from a .hyper extract.
     """
-    raise NotImplementedError("Coming soon!")
+    if table != "Extract":
+        raise ValueError("The Tableau SDK currently only supports a table name "
+                         "of 'Extract'")
+
+    raise NotImplementedError("Not possible with current SDK")
+
+    with hpe.Extract(fn) as extract:
+        tbl = extract.openTable(table)
+
+    schema = tbl.getTableDefinition()
+    col_types = OrderedDict()
+
+    # __iter__ support would be ideal here...
+    col_cnt = schema.getColumnCount()
+    for i in range(col_cnt):
+        col_types[schema.getColumnName(i)] = tableau_to_pandas_type(
+            schema.getColumnType(i)
+        )
+
+    # Let's now build out our frame
+    df = pd.DataFrame(columns=col_types.keys()).astype(col_types)
+
+    # It's not yet available in the SDK, but below is where we would
+    # iterate the rows and populate our DataFrame

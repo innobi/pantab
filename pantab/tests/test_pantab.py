@@ -1,6 +1,10 @@
+import os
+import tempfile
+
 from tableausdk.Types import Type as ttypes
 import numpy as np
 import pandas as pd
+import pandas.util.testing as tm
 import pytest
 
 import pantab
@@ -54,7 +58,7 @@ class TestPanTab():
         (ttypes.UNICODE_STRING, 'object')
     ])
     def test_pan_to_tab_types(self, typ_in, typ_out):
-        assert pantab.tableau_to_pandas_type(typ_in) == typ_out        
+        assert pantab.tableau_to_pandas_type(typ_in) == typ_out
 
     def test_types_for_columns(self, df):
         exp = (ttypes.INTEGER, ttypes.INTEGER, ttypes.INTEGER, ttypes.DOUBLE,
@@ -93,8 +97,51 @@ class TestPanTab():
         Still wanted to keep track of this however as it is important."""
         pass
 
+    def test_frame_to_file_raises_extract(self, df):
+        with pytest.raises(ValueError, message="The Tableau SDK currently only"
+                           " supports a table name of 'Extract'"):
+            pantab.frame_to_hyper(df, 'foo.hyper', table='foo')
 
+    def test_frame_from_file_raises_extract(self, df):
+        with pytest.raises(ValueError, message="The Tableau SDK currently only"
+                           " supports a table name of 'Extract'"):
+            pantab.frame_from_hyper('foo.hyper', table='foo')
+
+    def test_frame_from_file_raises(self, df):
+        with pytest.raises(NotImplementedError, message="Not possible with "
+                           "current SDK"):
+            pantab.frame_from_hyper('foo.hyper')
+
+
+@pytest.mark.skip("Not yet implemented...")
 class TestIntegrations():
 
-    def test_to_hyper(self, df):
-        pass
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        file_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(file_dir, 'data')
+        self.data_dir = data_dir
+
+    def test_roundtrip(self, df):
+        test_data = os.path.join(self.data_dir, 'test.hyper')
+        with open(test_data, 'rb') as infile:
+            data = infile.read()
+
+        # Ideally we could just use a buffer, but the Tableau SDK
+        # requires a physical string to be passed to the Extract object
+        # Because it creates more than just the .hyper file, we need to
+        # create a temporary directory for it to write to
+        with tempfile.TemporaryDirectory() as tmp:
+            fn = os.path.join(tmp, 'test.hyper')
+            pantab.frame_to_hyper(df, fn)
+            comp = pantab.frame_from_hyper(fn)
+
+        # Because Tableau only supports the 64 bit variants, upcast the
+        # particular df dtypes that are lower bit
+        df = df.astype({
+            'foo' : np.int64,
+            'bar': np.int64,
+            'qux': np.float64,
+        })
+
+        tm.assert_frame_equal(df, comp)
