@@ -77,6 +77,11 @@ def _append_args_for_val_and_accessor(arg_l, val, accessor):
             # will lose precision compared to pandas type
             arg_l.append(val.microseconds // 100)
         """
+    elif accessor == 'setString':
+        if not val or not isinstance(val, str):
+            arg_l.append('')
+        else:
+            arg_l.append(val)
     else:
         arg_l.append(val)
 
