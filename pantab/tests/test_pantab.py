@@ -57,7 +57,7 @@ class TestPanTab():
         (ttypes.BOOLEAN, 'bool'), (ttypes.DATETIME, 'datetime64[ns]'),
         (ttypes.UNICODE_STRING, 'object')
     ])
-    def test_pan_to_tab_types(self, typ_in, typ_out):
+    def test_tab_to_pan_types(self, typ_in, typ_out):
         assert pantab.tableau_to_pandas_type(typ_in) == typ_out
 
     def test_types_for_columns(self, df):
@@ -145,3 +145,4 @@ class TestIntegrations():
         })
 
         tm.assert_frame_equal(df, comp)
+

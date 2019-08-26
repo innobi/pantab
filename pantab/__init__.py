@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from typing import cast, List, Tuple, Union
 
 import pandas as pd
 from tableausdk.Types import Type as ttypes
@@ -29,7 +30,7 @@ _type_accessors = {
 }    
 
 
-def pandas_to_tableau_type(typ):
+def pandas_to_tableau_type(typ: str) -> int:
     for ptype, ttype, _ in _type_mappings:
         if typ == ptype:
             return ttype
@@ -37,7 +38,7 @@ def pandas_to_tableau_type(typ):
     raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
 
 
-def tableau_to_pandas_type(typ):
+def tableau_to_pandas_type(typ: int) -> str:
     for _, ttype, ret_type in _type_mappings:
         if typ == ttype:
             return ret_type
@@ -46,23 +47,24 @@ def tableau_to_pandas_type(typ):
     return 'object'
 
 
-def _types_for_columns(df):
+def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
     return tuple(pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
     
-def _accessor_for_tableau_type(typ):
+def _accessor_for_tableau_type(typ: int) -> str:
     return _type_accessors[typ]
 
 
-def _append_args_for_val_and_accessor(arg_l, val, accessor):
+def _append_args_for_val_and_accessor(arg_l: List, val: Union[str, pd.Timestamp], accessor: str) -> None:
     """
     Dynamically append to args depending on the needs of `accessor`
     """
     # Conditional branch can certainly be refactored, but going the
     # easy route for the time being
     if accessor == 'setDateTime':
+        val = cast(pd.Timestamp, val)
         for window in ('year', 'month', 'day', 'hour', 'minute',
                        'second'):
             arg_l.append(getattr(val, window))
@@ -81,11 +83,11 @@ def _append_args_for_val_and_accessor(arg_l, val, accessor):
         arg_l.append(val)
 
 
-def frame_to_hyper(df, fn, table='Extract'):
+def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str='Extract') -> None:
     """
     Convert a DataFrame to a .hyper extract.
     """
-    if table != "Extract":
+    if table_name != "Extract":
         raise ValueError("The Tableau SDK currently only supports a table name "
                          "of 'Extract'")
 
@@ -107,23 +109,23 @@ def frame_to_hyper(df, fn, table='Extract'):
         rows.append(row)
     
     with hpe.Extract(fn) as extract:
-        table = extract.addTable(table, schema)
+        table = extract.addTable(table_name, schema)
         for row in rows:
             table.insert(row)
 
 
-def frame_from_hyper(fn, table='Extract'):
+def frame_from_hyper(fn: str, table_name: str = 'Extract') -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
     """
-    if table != "Extract":
+    if table_name != "Extract":
         raise ValueError("The Tableau SDK currently only supports a table name "
                          "of 'Extract'")
 
     raise NotImplementedError("Not possible with current SDK")
 
     with hpe.Extract(fn) as extract:
-        tbl = extract.openTable(table)
+        tbl = extract.openTable(table_name)
 
     schema = tbl.getTableDefinition()
     col_types = OrderedDict()
