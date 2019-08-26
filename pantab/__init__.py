@@ -8,26 +8,26 @@ import tableausdk.HyperExtract as hpe
 
 # pandas type in, tableau type, tab->pan type
 _type_mappings = (
-    ('int16', ttypes.INTEGER, 'int64'),    
-    ('int32', ttypes.INTEGER, 'int64'),    
-    ('int64', ttypes.INTEGER, 'int64'),
-    ('float32', ttypes.DOUBLE, 'float64'),    
-    ('float64', ttypes.DOUBLE, 'float64'),
-    ('bool', ttypes.BOOLEAN, 'bool'),
-    ('datetime64[ns]', ttypes.DATETIME, 'datetime64[ns]'),
-    #('timedelta64[ns]', ttypes.DURATION, 'timedelta64[ns]'),
-    ('object', ttypes.UNICODE_STRING, 'object')
+    ("int16", ttypes.INTEGER, "int64"),
+    ("int32", ttypes.INTEGER, "int64"),
+    ("int64", ttypes.INTEGER, "int64"),
+    ("float32", ttypes.DOUBLE, "float64"),
+    ("float64", ttypes.DOUBLE, "float64"),
+    ("bool", ttypes.BOOLEAN, "bool"),
+    ("datetime64[ns]", ttypes.DATETIME, "datetime64[ns]"),
+    # ('timedelta64[ns]', ttypes.DURATION, 'timedelta64[ns]'),
+    ("object", ttypes.UNICODE_STRING, "object"),
 )
 
 
 _type_accessors = {
-    ttypes.BOOLEAN: 'setBoolean',
-    ttypes.DATETIME: 'setDateTime',
-    ttypes.DOUBLE: 'setDouble',
-    ttypes.DURATION: 'setDuration',
-    ttypes.INTEGER: 'setInteger',
-    ttypes.UNICODE_STRING: 'setString'
-}    
+    ttypes.BOOLEAN: "setBoolean",
+    ttypes.DATETIME: "setDateTime",
+    ttypes.DOUBLE: "setDouble",
+    ttypes.DURATION: "setDuration",
+    ttypes.INTEGER: "setInteger",
+    ttypes.UNICODE_STRING: "setString",
+}
 
 
 def pandas_to_tableau_type(typ: str) -> int:
@@ -44,7 +44,7 @@ def tableau_to_pandas_type(typ: int) -> str:
             return ret_type
 
     # Fallback to object
-    return 'object'
+    return "object"
 
 
 def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
@@ -52,21 +52,23 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
     return tuple(pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
-    
+
+
 def _accessor_for_tableau_type(typ: int) -> str:
     return _type_accessors[typ]
 
 
-def _append_args_for_val_and_accessor(arg_l: List, val: Union[str, pd.Timestamp], accessor: str) -> None:
+def _append_args_for_val_and_accessor(
+    arg_l: List, val: Union[str, pd.Timestamp], accessor: str
+) -> None:
     """
     Dynamically append to args depending on the needs of `accessor`
     """
     # Conditional branch can certainly be refactored, but going the
     # easy route for the time being
-    if accessor == 'setDateTime':
+    if accessor == "setDateTime":
         val = cast(pd.Timestamp, val)
-        for window in ('year', 'month', 'day', 'hour', 'minute',
-                       'second'):
+        for window in ("year", "month", "day", "hour", "minute", "second"):
             arg_l.append(getattr(val, window))
         # last positional arg to func must be in tenth of ms
         # will lose precision compared to pandas type
@@ -83,13 +85,14 @@ def _append_args_for_val_and_accessor(arg_l: List, val: Union[str, pd.Timestamp]
         arg_l.append(val)
 
 
-def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str='Extract') -> None:
+def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str = "Extract") -> None:
     """
     Convert a DataFrame to a .hyper extract.
     """
     if table_name != "Extract":
-        raise ValueError("The Tableau SDK currently only supports a table name "
-                         "of 'Extract'")
+        raise ValueError(
+            "The Tableau SDK currently only supports a table name " "of 'Extract'"
+        )
 
     schema = hpe.TableDefinition()
     ttypes = _types_for_columns(df)
@@ -107,20 +110,21 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str='Extract') -> None
             getattr(row, accessor)(*fn_args)
 
         rows.append(row)
-    
+
     with hpe.Extract(fn) as extract:
         table = extract.addTable(table_name, schema)
         for row in rows:
             table.insert(row)
 
 
-def frame_from_hyper(fn: str, table_name: str = 'Extract') -> pd.DataFrame:
+def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
     """
     if table_name != "Extract":
-        raise ValueError("The Tableau SDK currently only supports a table name "
-                         "of 'Extract'")
+        raise ValueError(
+            "The Tableau SDK currently only supports a table name " "of 'Extract'"
+        )
 
     raise NotImplementedError("Not possible with current SDK")
 
