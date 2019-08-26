@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 
 from tableausdk.Types import Type as ttypes
@@ -48,8 +49,8 @@ class TestPanTab():
 
     ])
     def test_pan_to_tab_types_raises(self, typ_in):
-        with pytest.raises(TypeError, message="Conversion of '{}' dtypes "
-                                    "not yet supported!".format(typ_in)):
+        with pytest.raises(TypeError, match="Conversion of '{}' dtypes "
+                                    "not yet supported!".format(re.escape(typ_in))):
             pantab.pandas_to_tableau_type(typ_in)
 
     @pytest.mark.parametrize("typ_in,typ_out", [
@@ -98,17 +99,17 @@ class TestPanTab():
         pass
 
     def test_frame_to_file_raises_extract(self, df):
-        with pytest.raises(ValueError, message="The Tableau SDK currently only"
+        with pytest.raises(ValueError, match="The Tableau SDK currently only"
                            " supports a table name of 'Extract'"):
-            pantab.frame_to_hyper(df, 'foo.hyper', table='foo')
+            pantab.frame_to_hyper(df, 'foo.hyper', table_name='foo')
 
     def test_frame_from_file_raises_extract(self, df):
-        with pytest.raises(ValueError, message="The Tableau SDK currently only"
+        with pytest.raises(ValueError, match="The Tableau SDK currently only"
                            " supports a table name of 'Extract'"):
-            pantab.frame_from_hyper('foo.hyper', table='foo')
+            pantab.frame_from_hyper('foo.hyper', table_name='foo')
 
     def test_frame_from_file_raises(self, df):
-        with pytest.raises(NotImplementedError, message="Not possible with "
+        with pytest.raises(NotImplementedError, match="Not possible with "
                            "current SDK"):
             pantab.frame_from_hyper('foo.hyper')
 
