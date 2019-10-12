@@ -1,33 +1,29 @@
-from collections import OrderedDict
 from typing import cast, List, Tuple, Union
 
 import pandas as pd
-from tableausdk.Types import Type as ttypes
-import tableausdk.HyperExtract as hpe
+from tableauhyperapi import (
+    Connection,
+    CreateMode,
+    HyperProcess,
+    Inserter,
+    TableDefinition,
+    TableName,
+    Telemetry,
+    TypeTag,
+)
 
 
 # pandas type in, tableau type, tab->pan type
 _type_mappings = (
-    ("int16", ttypes.INTEGER, "int64"),
-    ("int32", ttypes.INTEGER, "int64"),
-    ("int64", ttypes.INTEGER, "int64"),
-    ("float32", ttypes.DOUBLE, "float64"),
-    ("float64", ttypes.DOUBLE, "float64"),
-    ("bool", ttypes.BOOLEAN, "bool"),
-    ("datetime64[ns]", ttypes.DATETIME, "datetime64[ns]"),
-    # ('timedelta64[ns]', ttypes.DURATION, 'timedelta64[ns]'),
-    ("object", ttypes.UNICODE_STRING, "object"),
+    ("int16", TypeTag.SMALL_INT, "int16"),
+    ("int32", TypeTag.INT, "int32"),
+    ("int64", TypeTag.BIG_INT, "int64"),
+    ("float32", TypeTag.DOUBLE, "float64"),
+    ("float64", TypeTag.DOUBLE, "float64"),
+    ("bool", TypeTag.BOOL, "bool"),
+    ("datetime64[ns]", TypeTag.TIMESTAMP, "datetime64[ns]"),
+    ("object", TypeTag.TEXT, "object"),
 )
-
-
-_type_accessors = {
-    ttypes.BOOLEAN: "setBoolean",
-    ttypes.DATETIME: "setDateTime",
-    ttypes.DOUBLE: "setDouble",
-    ttypes.DURATION: "setDuration",
-    ttypes.INTEGER: "setInteger",
-    ttypes.UNICODE_STRING: "setString",
-}
 
 
 def pandas_to_tableau_type(typ: str) -> int:
@@ -54,8 +50,27 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
     return tuple(pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
 
 
-def _accessor_for_tableau_type(typ: int) -> str:
-    return _type_accessors[typ]
+# Vendored from tableauhypersdk source
+insert_functions = {
+    TypeTag.UNSUPPORTED: "__write_raw_bytes",
+    TypeTag.BOOL: "__write_bool",
+    TypeTag.BIG_INT: "__write_big_int",
+    TypeTag.SMALL_INT: "__write_small_int",
+    TypeTag.INT: "__write_int",
+    TypeTag.DOUBLE: "__write_double",
+    TypeTag.OID: "__write_uint",
+    TypeTag.BYTES: "__write_bytes",
+    TypeTag.TEXT: "__write_text",
+    TypeTag.VARCHAR: "__write_text",
+    TypeTag.CHAR: "__write_text",
+    TypeTag.JSON: "__write_text",
+    TypeTag.DATE: "__write_date",
+    TypeTag.INTERVAL: "__write_interval",
+    TypeTag.TIME: "__write_time",
+    TypeTag.TIMESTAMP: "__write_timestamp",
+    TypeTag.TIMESTAMP_TZ: "__write_timestamp",
+    TypeTag.GEOGRAPHY: "__write_bytes",
+}
 
 
 def _append_args_for_val_and_accessor(
@@ -85,64 +100,32 @@ def _append_args_for_val_and_accessor(
         arg_l.append(val)
 
 
-def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str = "Extract") -> None:
+def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
     """
     Convert a DataFrame to a .hyper extract.
     """
-    if table_name != "Extract":
-        raise ValueError(
-            "The Tableau SDK currently only supports a table name " "of 'Extract'"
-        )
+    with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, "myapp") as hpe:
+        with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
+            table_def = TableDefinition(name=TableName(table_name, table_name))
 
-    schema = hpe.TableDefinition()
-    ttypes = _types_for_columns(df)
-    for col, ttype in zip(list(df.columns), ttypes):
-        schema.addColumn(col, ttype)
+            ttypes = _types_for_columns(df)
+            for col_name, ttype in zip(list(df.columns), ttypes):
+                col = TableDefinition.Column(col_name, ttype)
+            table_def.add_column(col)
 
-    rows = []
-    accessors = tuple(_accessor_for_tableau_type(ttype) for ttype in ttypes)
-    for tup in df.itertuples(index=False):
-        row = hpe.Row(schema)
-        for index, accessor in enumerate(accessors):
-            val = tup[index]
-            fn_args = [index]
-            _append_args_for_val_and_accessor(fn_args, val, accessor)
-            getattr(row, accessor)(*fn_args)
+            conn.catalog.create_table(table_def)
 
-        rows.append(row)
+            with Inserter(conn, table_def) as inserter:
+                insert_funcs = tuple(insert_functions[ttype] for ttype in ttypes)
+                for row in df.itertuples(index=False):
+                    for index, val in enumerate(row):
+                        getattr(inserter, insert_funcs[index])(val)
 
-    with hpe.Extract(fn) as extract:
-        table = extract.addTable(table_name, schema)
-        for row in rows:
-            table.insert(row)
+                inserter.execute()
 
 
 def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
     """
-    if table_name != "Extract":
-        raise ValueError(
-            "The Tableau SDK currently only supports a table name " "of 'Extract'"
-        )
-
     raise NotImplementedError("Not possible with current SDK")
-
-    with hpe.Extract(fn) as extract:
-        tbl = extract.openTable(table_name)
-
-    schema = tbl.getTableDefinition()
-    col_types = OrderedDict()
-
-    # __iter__ support would be ideal here...
-    col_cnt = schema.getColumnCount()
-    for i in range(col_cnt):
-        col_types[schema.getColumnName(i)] = tableau_to_pandas_type(
-            schema.getColumnType(i)
-        )
-
-    # Let's now build out our frame
-    df = pd.DataFrame(columns=col_types.keys()).astype(col_types)
-
-    # It's not yet available in the SDK, but below is where we would
-    # iterate the rows and populate our DataFrame

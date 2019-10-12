@@ -2,7 +2,7 @@ import os
 import re
 import tempfile
 
-from tableausdk.Types import Type as ttypes
+from tableauhyperapi import TypeTag
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -30,7 +30,7 @@ def df():
             "quux": np.float64,
             "quuuz": np.bool,
             "corge": "datetime64[ns]",
-            #'grault': 'timedelta64[ns]',
+            # 'grault': 'timedelta64[ns]',
             "garply": "object",
         }
     )
@@ -42,14 +42,14 @@ class TestPanTab:
     @pytest.mark.parametrize(
         "typ_in,typ_out",
         [
-            ("int16", ttypes.INTEGER),
-            ("int32", ttypes.INTEGER),
-            ("int64", ttypes.INTEGER),
-            ("float32", ttypes.DOUBLE),
-            ("float64", ttypes.DOUBLE),
-            ("bool", ttypes.BOOLEAN),
-            ("datetime64[ns]", ttypes.DATETIME),
-            ("object", ttypes.UNICODE_STRING),
+            ("int16", TypeTag.SMALL_INT),
+            ("int32", TypeTag.INT),
+            ("int64", TypeTag.BIG_INT),
+            ("float32", TypeTag.DOUBLE),
+            ("float64", TypeTag.DOUBLE),
+            ("bool", TypeTag.BOOL),
+            ("datetime64[ns]", TypeTag.TIMESTAMP),
+            ("object", TypeTag.TEXT),
         ],
     )
     def test_pan_to_tab_types(self, typ_in, typ_out):
@@ -70,11 +70,11 @@ class TestPanTab:
     @pytest.mark.parametrize(
         "typ_in,typ_out",
         [
-            (ttypes.INTEGER, "int64"),
-            (ttypes.DOUBLE, "float64"),
-            (ttypes.BOOLEAN, "bool"),
-            (ttypes.DATETIME, "datetime64[ns]"),
-            (ttypes.UNICODE_STRING, "object"),
+            (TypeTag.BIG_INT, "int64"),
+            (TypeTag.DOUBLE, "float64"),
+            (TypeTag.BOOL, "bool"),
+            (TypeTag.TIMESTAMP, "datetime64[ns]"),
+            (TypeTag.TEXT, "object"),
         ],
     )
     def test_tab_to_pan_types(self, typ_in, typ_out):
@@ -82,30 +82,17 @@ class TestPanTab:
 
     def test_types_for_columns(self, df):
         exp = (
-            ttypes.INTEGER,
-            ttypes.INTEGER,
-            ttypes.INTEGER,
-            ttypes.DOUBLE,
-            ttypes.DOUBLE,
-            ttypes.BOOLEAN,
-            ttypes.DATETIME,
-            ttypes.UNICODE_STRING,
+            TypeTag.SMALL_INT,
+            TypeTag.INT,
+            TypeTag.BIG_INT,
+            TypeTag.DOUBLE,
+            TypeTag.DOUBLE,
+            TypeTag.BOOL,
+            TypeTag.TIMESTAMP,
+            TypeTag.TEXT,
         )
 
         assert pantab._types_for_columns(df) == exp
-
-    @pytest.mark.parametrize(
-        "typ,exp",
-        [
-            (ttypes.INTEGER, "setInteger"),
-            (ttypes.DOUBLE, "setDouble"),
-            (ttypes.BOOLEAN, "setBoolean"),
-            (ttypes.DATETIME, "setDateTime"),
-            (ttypes.UNICODE_STRING, "setString"),
-        ],
-    )
-    def test_accessors_for_tableau_type(self, typ, exp):
-        assert pantab._accessor_for_tableau_type(typ) == exp
 
     @pytest.mark.parametrize(
         "val,accsr,exp",
@@ -134,22 +121,6 @@ class TestPanTab:
         Still wanted to keep track of this however as it is important."""
         pass
 
-    def test_frame_to_file_raises_extract(self, df):
-        with pytest.raises(
-            ValueError,
-            match="The Tableau SDK currently only"
-            " supports a table name of 'Extract'",
-        ):
-            pantab.frame_to_hyper(df, "foo.hyper", table_name="foo")
-
-    def test_frame_from_file_raises_extract(self, df):
-        with pytest.raises(
-            ValueError,
-            match="The Tableau SDK currently only"
-            " supports a table name of 'Extract'",
-        ):
-            pantab.frame_from_hyper("foo.hyper", table_name="foo")
-
     def test_frame_from_file_raises(self, df):
         with pytest.raises(
             NotImplementedError, match="Not possible with " "current SDK"
@@ -168,7 +139,7 @@ class TestIntegrations:
     def test_roundtrip(self, df):
         test_data = os.path.join(self.data_dir, "test.hyper")
         with open(test_data, "rb") as infile:
-            data = infile.read()
+            infile.read()
 
         # Ideally we could just use a buffer, but the Tableau SDK
         # requires a physical string to be passed to the Extract object
