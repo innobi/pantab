@@ -6,6 +6,7 @@ from tableauhyperapi import (
     CreateMode,
     HyperProcess,
     Inserter,
+    SqlType,
     TableDefinition,
     TableName,
     Telemetry,
@@ -52,52 +53,25 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
 
 # Vendored from tableauhypersdk source
 insert_functions = {
-    TypeTag.UNSUPPORTED: "__write_raw_bytes",
-    TypeTag.BOOL: "__write_bool",
-    TypeTag.BIG_INT: "__write_big_int",
-    TypeTag.SMALL_INT: "__write_small_int",
-    TypeTag.INT: "__write_int",
-    TypeTag.DOUBLE: "__write_double",
-    TypeTag.OID: "__write_uint",
-    TypeTag.BYTES: "__write_bytes",
-    TypeTag.TEXT: "__write_text",
-    TypeTag.VARCHAR: "__write_text",
-    TypeTag.CHAR: "__write_text",
-    TypeTag.JSON: "__write_text",
-    TypeTag.DATE: "__write_date",
-    TypeTag.INTERVAL: "__write_interval",
-    TypeTag.TIME: "__write_time",
-    TypeTag.TIMESTAMP: "__write_timestamp",
-    TypeTag.TIMESTAMP_TZ: "__write_timestamp",
-    TypeTag.GEOGRAPHY: "__write_bytes",
+    TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
+    TypeTag.BOOL: "_Inserter__write_bool",
+    TypeTag.BIG_INT: "_Inserter__write_big_int",
+    TypeTag.SMALL_INT: "_Inserter__write_small_int",
+    TypeTag.INT: "_Inserter__write_int",
+    TypeTag.DOUBLE: "_Inserter__write_double",
+    TypeTag.OID: "_Inserter__write_uint",
+    TypeTag.BYTES: "_Inserter__write_bytes",
+    TypeTag.TEXT: "_Inserter__write_text",
+    TypeTag.VARCHAR: "_Inserter__write_text",
+    TypeTag.CHAR: "_Inserter__write_text",
+    TypeTag.JSON: "_Inserter__write_text",
+    TypeTag.DATE: "_Inserter__write_date",
+    TypeTag.INTERVAL: "_Inserter__write_interval",
+    TypeTag.TIME: "_Inserter__write_time",
+    TypeTag.TIMESTAMP: "_Inserter__write_timestamp",
+    TypeTag.TIMESTAMP_TZ: "_Inserter__write_timestamp",
+    TypeTag.GEOGRAPHY: "_Inserter__write_bytes",
 }
-
-
-def _append_args_for_val_and_accessor(
-    arg_l: List, val: Union[str, pd.Timestamp], accessor: str
-) -> None:
-    """
-    Dynamically append to args depending on the needs of `accessor`
-    """
-    # Conditional branch can certainly be refactored, but going the
-    # easy route for the time being
-    if accessor == "setDateTime":
-        val = cast(pd.Timestamp, val)
-        for window in ("year", "month", "day", "hour", "minute", "second"):
-            arg_l.append(getattr(val, window))
-        # last positional arg to func must be in tenth of ms
-        # will lose precision compared to pandas type
-        arg_l.append(val.microsecond // 100)
-        """  Durations weren't working; may be an SDK bug?
-        elif accessor == 'setDuration':
-            for window in ('days', 'hours', 'minutes', 'seconds'):
-                arg_l.append(getattr(val.components, window))
-            # last positional arg to func must be in tenth of ms
-            # will lose precision compared to pandas type
-            arg_l.append(val.microseconds // 100)
-        """
-    else:
-        arg_l.append(val)
 
 
 def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
@@ -110,9 +84,10 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
 
             ttypes = _types_for_columns(df)
             for col_name, ttype in zip(list(df.columns), ttypes):
-                col = TableDefinition.Column(col_name, ttype)
-            table_def.add_column(col)
+                col = TableDefinition.Column(col_name, SqlType(ttype))
+                table_def.add_column(col)
 
+            conn.catalog.create_schema(schema=table_def.table_name.schema_name)
             conn.catalog.create_table(table_def)
 
             with Inserter(conn, table_def) as inserter:
