@@ -27,7 +27,7 @@ _type_mappings = (
 )
 
 
-def pandas_to_tableau_type(typ: str) -> int:
+def pandas_to_tableau_type(typ: str) -> TypeTag:
     for ptype, ttype, _ in _type_mappings:
         if typ == ptype:
             return ttype
@@ -35,7 +35,7 @@ def pandas_to_tableau_type(typ: str) -> int:
     raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
 
 
-def tableau_to_pandas_type(typ: int) -> str:
+def tableau_to_pandas_type(typ: TypeTag) -> str:
     for _, ttype, ret_type in _type_mappings:
         if typ == ttype:
             return ret_type
@@ -78,16 +78,15 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
     """
     Convert a DataFrame to a .hyper extract.
     """
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, "myapp") as hpe:
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
-            table_def = TableDefinition(name=TableName(table_name, table_name))
+            table_def = TableDefinition(name=TableName(table_name))
 
             ttypes = _types_for_columns(df)
             for col_name, ttype in zip(list(df.columns), ttypes):
                 col = TableDefinition.Column(col_name, SqlType(ttype))
                 table_def.add_column(col)
 
-            conn.catalog.create_schema(schema=table_def.table_name.schema_name)
             conn.catalog.create_table(table_def)
 
             with Inserter(conn, table_def) as inserter:
@@ -103,4 +102,24 @@ def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
     """
-    raise NotImplementedError("Not possible with current SDK")
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+        with Connection(hpe.endpoint, fn) as conn:
+            with conn.execute_query(f"SELECT * from {table_name}") as result:
+                schema = result.schema
+                # Create list containing column name as key, pandas dtype as value
+                dtypes = {}  # Dict[str, str]
+                for column in schema.columns:
+                    dtypes[column.name.unescaped] = tableau_to_pandas_type(column.type.tag)
+
+                df = pd.DataFrame(result)
+
+    df.columns = dtypes.keys()
+    # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
+    # so we need to run an apply against applicable types
+    for key, val in dtypes.items():
+        if val == "datetime64[ns]":
+            df[key] = df[key].apply(lambda x: x._to_datetime())
+
+    df = df.astype(dtypes)
+
+    return df

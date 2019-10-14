@@ -102,7 +102,8 @@ class TestPanTab:
         assert pantab._types_for_columns(df) == exp
 
     def test_read_hyper(self, datapath):
-        result = pantab.frame_from_hyper(datapath / "test.hyper", "the_table")
+        fn = (datapath / "test.hyper").resolve()
+        result = pantab.frame_from_hyper(fn, "the_table")
         expected = pd.DataFrame(
             [[1, 2, 3, 4., 5., True, pd.to_datetime('1/1/18'), 'foo'],
              [6, 7, 8, 9., 10., True, pd.to_datetime('1/1/19'), 'foo']
