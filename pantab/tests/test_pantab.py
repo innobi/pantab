@@ -94,22 +94,6 @@ class TestPanTab:
 
         assert pantab._types_for_columns(df) == exp
 
-    @pytest.mark.skip("Not possible with Tableau API...")
-    def test_frame_to_rows(self):
-        """Ideally we would have an individual function / unit test to convert
-        a DataFrame to a list of Rows. However, from what I can tell there is
-        no way in the Tableau SDK to "get" attributes of a ``Row`` object
-        (only setters are exposed) so I am not sure on how to implement this.
-
-        Still wanted to keep track of this however as it is important."""
-        pass
-
-    def test_frame_from_file_raises(self, df):
-        with pytest.raises(
-            NotImplementedError, match="Not possible with " "current SDK"
-        ):
-            pantab.frame_from_hyper("foo.hyper")
-
 
 @pytest.mark.skip("Not yet implemented...")
 class TestIntegrations:
