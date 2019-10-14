@@ -14,6 +14,9 @@ from tableauhyperapi import (
 )
 
 
+__all__ = ["frame_to_hyper", "frame_from_hyper"]
+
+
 # pandas type in, tableau type, tab->pan type
 _type_mappings = (
     ("int16", TypeTag.SMALL_INT, "int16"),
@@ -27,7 +30,7 @@ _type_mappings = (
 )
 
 
-def pandas_to_tableau_type(typ: str) -> TypeTag:
+def _pandas_to_tableau_type(typ: str) -> TypeTag:
     for ptype, ttype, _ in _type_mappings:
         if typ == ptype:
             return ttype
@@ -35,7 +38,7 @@ def pandas_to_tableau_type(typ: str) -> TypeTag:
     raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
 
 
-def tableau_to_pandas_type(typ: TypeTag) -> str:
+def _tableau_to_pandas_type(typ: TypeTag) -> str:
     for _, ttype, ret_type in _type_mappings:
         if typ == ttype:
             return ret_type
@@ -48,11 +51,11 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
-    return tuple(pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
+    return tuple(_pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
 
 
 # Vendored from tableauhypersdk source
-insert_functions = {
+_insert_functions = {
     TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
     TypeTag.BOOL: "_Inserter__write_bool",
     TypeTag.BIG_INT: "_Inserter__write_big_int",
@@ -77,6 +80,15 @@ insert_functions = {
 def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
     """
     Convert a DataFrame to a .hyper extract.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Data to be written out.
+    fn : str
+        Name / location of the Hyper file to be written to.
+    table_name : str
+        Name of the table to write to in the Hyper extract.
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
@@ -90,7 +102,7 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
             conn.catalog.create_table(table_def)
 
             with Inserter(conn, table_def) as inserter:
-                insert_funcs = tuple(insert_functions[ttype] for ttype in ttypes)
+                insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
                 for row in df.itertuples(index=False):
                     for index, val in enumerate(row):
                         getattr(inserter, insert_funcs[index])(val)
@@ -101,6 +113,17 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
 def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
+
+    Parameters
+    ----------
+    fn : str
+        Name / location of the Hyper file to be read.
+    table_name : str
+        Name of the table to read.
+
+    Returns
+    -------
+    DataFrame
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, fn) as conn:
@@ -109,7 +132,7 @@ def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
                 # Create list containing column name as key, pandas dtype as value
                 dtypes = {}  # Dict[str, str]
                 for column in schema.columns:
-                    dtypes[column.name.unescaped] = tableau_to_pandas_type(column.type.tag)
+                    dtypes[column.name.unescaped] = _tableau_to_pandas_type(column.type.tag)
 
                 df = pd.DataFrame(result)
 
