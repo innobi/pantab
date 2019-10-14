@@ -78,7 +78,7 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
     """
     Convert a DataFrame to a .hyper extract.
     """
-    with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, "myapp") as hpe:
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, "myapp") as hpe:
         with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
             table_def = TableDefinition(name=TableName(table_name, table_name))
 

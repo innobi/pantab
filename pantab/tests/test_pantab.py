@@ -94,23 +94,6 @@ class TestPanTab:
 
         assert pantab._types_for_columns(df) == exp
 
-    @pytest.mark.parametrize(
-        "val,accsr,exp",
-        [
-            (
-                pd.to_datetime("1/2/18 01:23:45.6789"),
-                "setDateTime",
-                [2018, 1, 2, 1, 23, 45, 6789],
-            ),
-            (1, "setInteger", [1]),
-            ("foo", "setString", ["foo"]),
-        ],
-    )
-    def test_append_args_for_val_and_accessor(self, val, accsr, exp):
-        arg_l = list()
-        pantab._append_args_for_val_and_accessor(arg_l, val, accsr)
-        assert arg_l == exp
-
     @pytest.mark.skip("Not possible with Tableau API...")
     def test_frame_to_rows(self):
         """Ideally we would have an individual function / unit test to convert
