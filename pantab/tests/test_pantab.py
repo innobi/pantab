@@ -101,14 +101,19 @@ class TestPanTab:
 
         assert pantab._types_for_columns(df) == exp
 
-    def test_read_hyper(self, datapath):
+    def test_test_roundtrip(self, datapath):
         fn = (datapath / "test.hyper").resolve()
-        result = pantab.frame_from_hyper(fn, "the_table")
-        expected = pd.DataFrame(
+        table_name = "some_table"
+
+        df =  pd.DataFrame(
             [[1, 2, 3, 4., 5., True, pd.to_datetime('1/1/18'), 'foo'],
              [6, 7, 8, 9., 10., True, pd.to_datetime('1/1/19'), 'foo']
              ], columns=['foo', 'bar', 'baz', 'qux', 'quux', 'quuuz', 'corge',
                          'garply'])
+
+        pantab.frame_to_hyper(df, fn, table_name)
+        result = pantab.frame_from_hyper(fn, table_name)
+        expected = df
 
         tm.assert_frame_equal(result, expected)
 
