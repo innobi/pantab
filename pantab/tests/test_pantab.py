@@ -1,4 +1,5 @@
 import os
+import pathlib
 import re
 import tempfile
 
@@ -36,6 +37,12 @@ def df():
     )
 
     return df
+
+
+@pytest.fixture
+def datapath():
+    """Path to directory containing test data"""
+    yield pathlib.Path(__file__) / "../data"
 
 
 class TestPanTab:
@@ -94,31 +101,13 @@ class TestPanTab:
 
         assert pantab._types_for_columns(df) == exp
 
+    def test_read_hyper(self, datapath):
+        result = pantab.frame_from_hyper(datapath / "test.hyper", "the_table")
+        expected = pd.DataFrame(
+            [[1, 2, 3, 4., 5., True, pd.to_datetime('1/1/18'), 'foo'],
+             [6, 7, 8, 9., 10., True, pd.to_datetime('1/1/19'), 'foo']
+             ], columns=['foo', 'bar', 'baz', 'qux', 'quux', 'quuuz', 'corge',
+                         'garply'])
 
-@pytest.mark.skip("Not yet implemented...")
-class TestIntegrations:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        file_dir = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(file_dir, "data")
-        self.data_dir = data_dir
+        tm.assert_frame_equal(result, expected)
 
-    def test_roundtrip(self, df):
-        test_data = os.path.join(self.data_dir, "test.hyper")
-        with open(test_data, "rb") as infile:
-            infile.read()
-
-        # Ideally we could just use a buffer, but the Tableau SDK
-        # requires a physical string to be passed to the Extract object
-        # Because it creates more than just the .hyper file, we need to
-        # create a temporary directory for it to write to
-        with tempfile.TemporaryDirectory() as tmp:
-            fn = os.path.join(tmp, "test.hyper")
-            pantab.frame_to_hyper(df, fn)
-            comp = pantab.frame_from_hyper(fn)
-
-        # Because Tableau only supports the 64 bit variants, upcast the
-        # particular df dtypes that are lower bit
-        df = df.astype({"foo": np.int64, "bar": np.int64, "qux": np.float64})
-
-        tm.assert_frame_equal(df, comp)
