@@ -78,7 +78,9 @@ _insert_functions = {
 }
 
 
-def frame_to_hyper(df: pd.DataFrame, fn: str, table: str, schema: Optional[str] = None) -> None:
+def frame_to_hyper(
+    df: pd.DataFrame, database: str, *, table: str, schema: Optional[str] = None
+) -> None:
     """
     Convert a DataFrame to a .hyper extract.
 
@@ -86,16 +88,16 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table: str, schema: Optional[str] 
     ----------
     df : DataFrame
         Data to be written out.
-    fn : str
+    database : str
         Name / location of the Hyper file to be written to.
     table : str
-        Name of the table to write to in the Hyper extract.
+        Name of the table to write to. Must be supplied as a keyword argument.
     schema : str, optional
-        Schema name to write to.
+        Schema name to write to. Must be supplied as a keyword argument.
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
-            
+        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
+
             table_def = TableDefinition(name=TableName(schema, table))
 
             ttypes = _types_for_columns(df)
@@ -104,7 +106,7 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table: str, schema: Optional[str] 
                 table_def.add_column(col)
 
             if schema:
-                conn.catalog.create_schema_if_not_exists(schema)                
+                conn.catalog.create_schema_if_not_exists(schema)
             conn.catalog.create_table_if_not_exists(table_def)
 
             with Inserter(conn, table_def) as inserter:
@@ -120,18 +122,20 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table: str, schema: Optional[str] 
                 inserter.execute()
 
 
-def frame_from_hyper(fn: str, table: str, schema: Optional[str] = None) -> pd.DataFrame:
+def frame_from_hyper(
+    database: str, table: str, schema: Optional[str] = None
+) -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
 
     Parameters
     ----------
-    fn : str
+    database : str
         Name / location of the Hyper file to be read.
     table : str
-        Name of the table to read.
+        Name of the table to read. Must be supplied as a keyword argument.
     schema : str, optional
-        Schema to read table froml
+        Schema to read table from. Must be supplied as a keyword argument.
 
     Returns
     -------
@@ -140,15 +144,17 @@ def frame_from_hyper(fn: str, table: str, schema: Optional[str] = None) -> pd.Da
     target = table
     if schema:
         target = f"{schema}.{target}"
-        
+
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, fn) as conn:
+        with Connection(hpe.endpoint, database) as conn:
             with conn.execute_query(f"SELECT * from {target}") as result:
                 schema = result.schema
                 # Create list containing column name as key, pandas dtype as value
                 dtypes = {}  # Dict[str, str]
                 for column in schema.columns:
-                    dtypes[column.name.unescaped] = _tableau_to_pandas_type(column.type.tag)
+                    dtypes[column.name.unescaped] = _tableau_to_pandas_type(
+                        column.type.tag
+                    )
 
                 df = pd.DataFrame(result)
 
