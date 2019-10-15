@@ -1,4 +1,4 @@
-from typing import cast, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -151,7 +151,7 @@ def frame_from_hyper(
             with conn.execute_query(f"SELECT * from {target}") as result:
                 schema = result.schema
                 # Create list containing column name as key, pandas dtype as value
-                dtypes = {}  # Dict[str, str]
+                dtypes: Dict[str, str] = {}
                 for column in schema.columns:
                     dtypes[column.name.unescaped] = _tableau_to_pandas_type(
                         column.type.tag
@@ -170,3 +170,35 @@ def frame_from_hyper(
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df
+
+
+def frames_to_hyper(
+    dict_of_frames: Dict[str, pd.DataFrame], database: str, *, table: str, schema: Optional[str] = None
+) -> None:
+    """See api.rst for documentation."""
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
+            if schema:
+                conn.catalog.create_schema_if_not_exists(schema)
+
+            for table, df in dict_of_frames.items():
+                table_def = TableDefinition(name=TableName(schema, table))
+
+                ttypes = _types_for_columns(df)
+                for col_name, ttype in zip(list(df.columns), ttypes):
+                    col = TableDefinition.Column(col_name, SqlType(ttype))
+                    table_def.add_column(col)
+
+                conn.catalog.create_table_if_not_exists(table_def)
+
+                with Inserter(conn, table_def) as inserter:
+                    insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
+                    for row in df.itertuples(index=False):
+                        for index, val in enumerate(row):
+                            # Missing value handling
+                            if val is None or val != val:
+                                inserter._Inserter__write_null()
+                            else:
+                                getattr(inserter, insert_funcs[index])(val)
+
+                    inserter.execute()
