@@ -46,30 +46,38 @@ def schema(request):
     return request.param
 
 
-def test_roundtrip(df, tmp_path, schema):
-    fn = tmp_path / "test.hyper"
+@pytest.fixture
+def tmp_hyper(tmp_path):
+    """A temporary file name to write / read a Hyper extract from."""
+    return tmp_path / "test.hyper"
+
+
+def test_roundtrip(df, tmp_hyper, schema):
     table_name = "some_table"
 
-    pantab.frame_to_hyper(df, fn, table=table_name, schema=schema)
-    result = pantab.frame_from_hyper(fn, table=table_name, schema=schema)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, schema=schema)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name, schema=schema)
     expected = df.copy()
     expected["float32"] = expected["float32"].astype(np.float64)
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_roundtrip_missing_data(tmp_path):
-    fn = tmp_path / "test.hyper"
+def test_roundtrip_missing_data(tmp_hyper, schema):
     table_name = "some_table"
 
     df = pd.DataFrame([[np.nan], [1]], columns=list("a"))
     df["b"] = pd.Series([None, np.nan], dtype=object)  # no inference
     df["c"] = pd.Series([np.nan, "c"])
 
-    pantab.frame_to_hyper(df, fn, table=table_name)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, schema=schema)
 
-    result = pantab.frame_from_hyper(fn, table=table_name)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name, schema=schema)
     expected = pd.DataFrame(
         [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
     )
     tm.assert_frame_equal(result, expected)
+
+
+
+    
