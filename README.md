@@ -2,7 +2,7 @@
 
 ## What is it?
 
-**pantab** is a tool to help generate Hyper extracts (available with Tableau 10.5+) from a pandas DataFrame.
+**pantab** is a tool to help read and write Hyper extracts (available with Tableau 10.5+) from a pandas DataFrame.
 
 
 ```python
