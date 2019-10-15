@@ -40,16 +40,23 @@ def df():
     return df
 
 
-def test_roundtrip(df, tmp_path):
+@pytest.fixture(params=[None, "schema"])
+def schema(request):
+    """Domain values for schema argument."""
+    return request.param
+
+
+def test_roundtrip(df, tmp_path, schema):
     fn = tmp_path / "test.hyper"
     table_name = "some_table"
 
-    pantab.frame_to_hyper(df, fn, table=table_name)
-    result = pantab.frame_from_hyper(fn, table=table_name)
+    pantab.frame_to_hyper(df, fn, table=table_name, schema=schema)
+    result = pantab.frame_from_hyper(fn, table=table_name, schema=schema)
     expected = df.copy()
     expected["float32"] = expected["float32"].astype(np.float64)
 
     tm.assert_frame_equal(result, expected)
+
 
 def test_roundtrip_missing_data(tmp_path):
     fn = tmp_path / "test.hyper"
@@ -65,16 +72,4 @@ def test_roundtrip_missing_data(tmp_path):
     expected = pd.DataFrame(
         [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
     )
-    tm.assert_frame_equal(result, expected)
-
-def test_roundtrip_schema(df, tmp_path):
-    fn = tmp_path / "test.hyper"
-    table_name = "some_table"
-    schema = "a_schema"
-
-    pantab.frame_to_hyper(df, fn, schema=schema, table=table_name)
-    result = pantab.frame_from_hyper(fn, schema=schema, table=table_name)
-    expected = df.copy()
-    expected["float32"] = expected["float32"].astype(np.float64)
-
     tm.assert_frame_equal(result, expected)
