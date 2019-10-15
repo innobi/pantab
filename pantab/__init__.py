@@ -1,4 +1,4 @@
-from typing import cast, List, Tuple, Union
+from typing import cast, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -78,7 +78,7 @@ _insert_functions = {
 }
 
 
-def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
+def frame_to_hyper(df: pd.DataFrame, fn: str, table: str, schema: Optional[str] = None) -> None:
     """
     Convert a DataFrame to a .hyper extract.
 
@@ -88,19 +88,24 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
         Data to be written out.
     fn : str
         Name / location of the Hyper file to be written to.
-    table_name : str
+    table : str
         Name of the table to write to in the Hyper extract.
+    schema : str, optional
+        Schema name to write to.
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, fn, CreateMode.CREATE_AND_REPLACE) as conn:
-            table_def = TableDefinition(name=TableName(table_name))
+            
+            table_def = TableDefinition(name=TableName(schema, table))
 
             ttypes = _types_for_columns(df)
             for col_name, ttype in zip(list(df.columns), ttypes):
                 col = TableDefinition.Column(col_name, SqlType(ttype))
                 table_def.add_column(col)
 
-            conn.catalog.create_table(table_def)
+            if schema:
+                conn.catalog.create_schema_if_not_exists(schema)                
+            conn.catalog.create_table_if_not_exists(table_def)
 
             with Inserter(conn, table_def) as inserter:
                 insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
@@ -115,7 +120,7 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
                 inserter.execute()
 
 
-def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
+def frame_from_hyper(fn: str, table: str, schema: Optional[str] = None) -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
 
@@ -123,16 +128,22 @@ def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
     ----------
     fn : str
         Name / location of the Hyper file to be read.
-    table_name : str
+    table : str
         Name of the table to read.
+    schema : str, optional
+        Schema to read table froml
 
     Returns
     -------
     DataFrame
     """
+    target = table
+    if schema:
+        target = f"{schema}.{target}"
+        
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, fn) as conn:
-            with conn.execute_query(f"SELECT * from {table_name}") as result:
+            with conn.execute_query(f"SELECT * from {target}") as result:
                 schema = result.schema
                 # Create list containing column name as key, pandas dtype as value
                 dtypes = {}  # Dict[str, str]
