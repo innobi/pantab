@@ -1,5 +1,6 @@
 from typing import cast, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from tableauhyperapi import (
     Connection,
@@ -105,7 +106,11 @@ def frame_to_hyper(df: pd.DataFrame, fn: str, table_name: str) -> None:
                 insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
                 for row in df.itertuples(index=False):
                     for index, val in enumerate(row):
-                        getattr(inserter, insert_funcs[index])(val)
+                        # Missing value handling
+                        if val is None or val != val:
+                            inserter._Inserter__write_null()
+                        else:
+                            getattr(inserter, insert_funcs[index])(val)
 
                 inserter.execute()
 
@@ -144,5 +149,6 @@ def frame_from_hyper(fn: str, table_name: str = "Extract") -> pd.DataFrame:
             df[key] = df[key].apply(lambda x: x._to_datetime())
 
     df = df.astype(dtypes)
+    df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df

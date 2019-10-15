@@ -39,12 +39,6 @@ def df():
     return df
 
 
-@pytest.fixture
-def datapath():
-    """Path to directory containing test data"""
-    yield pathlib.Path(__file__) / "../data"
-
-
 class TestPanTab:
     @pytest.mark.parametrize(
         "typ_in,typ_out",
@@ -60,7 +54,7 @@ class TestPanTab:
         ],
     )
     def test_pan_to_tab_types(self, typ_in, typ_out):
-        assert pantab.pandas_to_tableau_type(typ_in) == typ_out
+        assert pantab._pandas_to_tableau_type(typ_in) == typ_out
 
     @pytest.mark.parametrize(
         "typ_in",
@@ -72,7 +66,7 @@ class TestPanTab:
             match="Conversion of '{}' dtypes "
             "not yet supported!".format(re.escape(typ_in)),
         ):
-            pantab.pandas_to_tableau_type(typ_in)
+            pantab._pandas_to_tableau_type(typ_in)
 
     @pytest.mark.parametrize(
         "typ_in,typ_out",
@@ -85,7 +79,7 @@ class TestPanTab:
         ],
     )
     def test_tab_to_pan_types(self, typ_in, typ_out):
-        assert pantab.tableau_to_pandas_type(typ_in) == typ_out
+        assert pantab._tableau_to_pandas_type(typ_in) == typ_out
 
     def test_types_for_columns(self, df):
         exp = (
@@ -101,8 +95,8 @@ class TestPanTab:
 
         assert pantab._types_for_columns(df) == exp
 
-    def test_test_roundtrip(self, datapath):
-        fn = (datapath / "test.hyper").resolve()
+    def test_roundtrip(self, tmp_path):
+        fn = tmp_path / "test.hyper"
         table_name = "some_table"
 
         df =  pd.DataFrame(
@@ -117,3 +111,16 @@ class TestPanTab:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_roundtrip_missing_data(self, tmp_path):
+        fn = tmp_path / "test.hyper"
+        table_name = "some_table"
+
+        df = pd.DataFrame([[np.nan], [1]], columns=list("a"))
+        df["b"] = pd.Series([None, np.nan], dtype=object)  # no inference
+        df["c"] = pd.Series([np.nan, "c"])
+
+        pantab.frame_to_hyper(df, fn, table_name)
+
+        result = pantab.frame_from_hyper(fn, table_name)
+        expected = pd.DataFrame([[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc"))
+        tm.assert_frame_equal(result, expected)
