@@ -55,7 +55,8 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
     return tuple(_pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
 
 
-# Vendored from tableauhypersdk source
+# The Hyper API doesn't expose these functions directly and wraps them with
+# validation; we can skip the validation because the column dtypes enforce that
 _insert_functions = {
     TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
     TypeTag.BOOL: "_Inserter__write_bool",
