@@ -79,5 +79,18 @@ def test_roundtrip_missing_data(tmp_hyper, schema):
     tm.assert_frame_equal(result, expected)
 
 
+def test_roundtrip_multiple_tables(df, tmp_hyper, schema):
+    pantab.frames_to_hyper({
+        "table1": df,
+        "table2": df,
+    }, tmp_hyper, schema=schema)
 
+    result = pantab.frames_from_hyper(tmp_hyper, schema=schema)
+    expected = df.copy()
+    expected["float32"] = expected["float32"].astype(np.float64)    
+
+    assert result.keys() == ("table1", "table2")
+    for val in result.values():
+        tm.assert_frame_equal(val, expected)
+    
     
