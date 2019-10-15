@@ -85,7 +85,7 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, schema):
         "table2": df,
     }, tmp_hyper, schema=schema)
 
-    result = pantab.frames_from_hyper(tmp_hyper, schema=schema)
+    result = pantab.frames_from_hyper(tmp_hyper, tables=["table1", "table2"], schema=schema)
     expected = df.copy()
     expected["float32"] = expected["float32"].astype(np.float64)    
 

@@ -79,6 +79,61 @@ _insert_functions = {
 }
 
 
+def _insert_frame(df: pd.DataFrame, *, conn: Connection, table: str, schema: Optional[str]):
+    table_def = TableDefinition(name=TableName(schema, table))
+
+    ttypes = _types_for_columns(df)
+    for col_name, ttype in zip(list(df.columns), ttypes):
+        col = TableDefinition.Column(col_name, SqlType(ttype))
+        table_def.add_column(col)
+
+    if schema:
+        conn.catalog.create_schema_if_not_exists(schema)
+
+    conn.catalog.create_table_if_not_exists(table_def)
+
+    with Inserter(conn, table_def) as inserter:
+        insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
+        for row in df.itertuples(index=False):
+            for index, val in enumerate(row):
+                # Missing value handling
+                if val is None or val != val:
+                    inserter._Inserter__write_null()
+                else:
+                    getattr(inserter, insert_funcs[index])(val)
+
+        inserter.execute()
+
+
+def _read_table(*, conn: Connection, table: str, schema: Optional[str]) -> pd.DataFrame:
+    target = table
+    if schema:
+        target = f"{schema}.{target}"    
+
+    with conn.execute_query(f"SELECT * from {target}") as result:
+        schema = result.schema
+        # Create list containing column name as key, pandas dtype as value
+        dtypes: Dict[str, str] = {}
+        for column in schema.columns:
+            dtypes[column.name.unescaped] = _tableau_to_pandas_type(
+                column.type.tag
+            )
+
+        df = pd.DataFrame(result)
+
+    df.columns = dtypes.keys()
+    # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
+    # so we need to run an apply against applicable types
+    for key, val in dtypes.items():
+        if val == "datetime64[ns]":
+            df[key] = df[key].apply(lambda x: x._to_datetime())
+
+    df = df.astype(dtypes)
+    df = df.fillna(value=np.nan)  # Replace any appearances of None
+
+    return df
+
+
 def frame_to_hyper(
     df: pd.DataFrame, database: str, *, table: str, schema: Optional[str] = None
 ) -> None:
@@ -98,29 +153,7 @@ def frame_to_hyper(
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
-
-            table_def = TableDefinition(name=TableName(schema, table))
-
-            ttypes = _types_for_columns(df)
-            for col_name, ttype in zip(list(df.columns), ttypes):
-                col = TableDefinition.Column(col_name, SqlType(ttype))
-                table_def.add_column(col)
-
-            if schema:
-                conn.catalog.create_schema_if_not_exists(schema)
-            conn.catalog.create_table_if_not_exists(table_def)
-
-            with Inserter(conn, table_def) as inserter:
-                insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
-                for row in df.itertuples(index=False):
-                    for index, val in enumerate(row):
-                        # Missing value handling
-                        if val is None or val != val:
-                            inserter._Inserter__write_null()
-                        else:
-                            getattr(inserter, insert_funcs[index])(val)
-
-                inserter.execute()
+            _insert_frame(df, conn=conn, table=table, schema=schema)
 
 
 def frame_from_hyper(
@@ -142,63 +175,30 @@ def frame_from_hyper(
     -------
     DataFrame
     """
-    target = table
-    if schema:
-        target = f"{schema}.{target}"
-
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, database) as conn:
-            with conn.execute_query(f"SELECT * from {target}") as result:
-                schema = result.schema
-                # Create list containing column name as key, pandas dtype as value
-                dtypes: Dict[str, str] = {}
-                for column in schema.columns:
-                    dtypes[column.name.unescaped] = _tableau_to_pandas_type(
-                        column.type.tag
-                    )
-
-                df = pd.DataFrame(result)
-
-    df.columns = dtypes.keys()
-    # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
-    # so we need to run an apply against applicable types
-    for key, val in dtypes.items():
-        if val == "datetime64[ns]":
-            df[key] = df[key].apply(lambda x: x._to_datetime())
-
-    df = df.astype(dtypes)
-    df = df.fillna(value=np.nan)  # Replace any appearances of None
-
-    return df
+            return _read_table(conn=conn, table=table, schema=schema)
 
 
 def frames_to_hyper(
-    dict_of_frames: Dict[str, pd.DataFrame], database: str, *, table: str, schema: Optional[str] = None
+    dict_of_frames: Dict[str, pd.DataFrame], database: str, *, schema: Optional[str] = None
 ) -> None:
     """See api.rst for documentation."""
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
-            if schema:
-                conn.catalog.create_schema_if_not_exists(schema)
-
             for table, df in dict_of_frames.items():
-                table_def = TableDefinition(name=TableName(schema, table))
+                _insert_frame(df, conn=conn, table=table, schema=schema)
 
-                ttypes = _types_for_columns(df)
-                for col_name, ttype in zip(list(df.columns), ttypes):
-                    col = TableDefinition.Column(col_name, SqlType(ttype))
-                    table_def.add_column(col)
 
-                conn.catalog.create_table_if_not_exists(table_def)
+def frames_from_hyper(
+        database: str, tables: List[str], schema: Optional[str] = None
+) -> Dict[str, pd.DataFrame]:
+    """See api.rst for documentation."""
+    result: Dict[str, pd.DataFrame] = {}    
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:    
 
-                with Inserter(conn, table_def) as inserter:
-                    insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
-                    for row in df.itertuples(index=False):
-                        for index, val in enumerate(row):
-                            # Missing value handling
-                            if val is None or val != val:
-                                inserter._Inserter__write_null()
-                            else:
-                                getattr(inserter, insert_funcs[index])(val)
+            for table in tables:
+                result[table] = _read_table(conn=conn, table=table, schema=schema)
 
-                    inserter.execute()
+    return result
