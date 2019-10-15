@@ -22,6 +22,12 @@ The above will generate a Hyper extract in the specified location, which you can
 
 ![Hyper Extract in Tableau](samples/demo.png)
 
+You can also read the same extract back in as follows:
+
+```python
+df = pantab.frame_from_hyper("foo.hyper", table="the_table")
+```
+
 ## Requirements & Installation
 
 * Python >= 3.6
