@@ -1,3 +1,9 @@
+Official documentation for the project and all of its features is hosted at:
+
+https://pantab.readthedocs.io/en/latest/index.html
+
+A quick summary is provided for convenience below.
+
 # pantab: Connecting pandas with Tableau
 
 ## What is it?
@@ -39,9 +45,3 @@ The preferred way to install this package is from pip. Note that this will resol
 ```sh
 pip install pantab
 ```
-
-If you want to run the test suite for this application, you will also need to install [pytest](https://pytest.org).
-
-## Contributing
-
-Want to make this package better? Awesome - any and all contributions are appreciated! With that said, any code contributions **must** contain test cases to be considered for merging.
