@@ -15,7 +15,7 @@ df = pd.DataFrame(
      ], columns=['foo', 'bar', 'baz', 'qux', 'quux', 'quuuz', 'corge',
                  'garply'])
 
-pantab.frame_to_hyper(df, "foo.hyper", "the_table")
+pantab.frame_to_hyper(df, "foo.hyper", table="the_table")
 ```
 
 The above will generate a Hyper extract in the specified location, which you can then open in Tableau.
