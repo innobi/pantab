@@ -1,3 +1,4 @@
+import pathlib
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -7,6 +8,7 @@ from tableauhyperapi import (
     CreateMode,
     HyperProcess,
     Inserter,
+    Name,
     SqlType,
     TableDefinition,
     TableName,
@@ -31,6 +33,9 @@ _type_mappings = (
 )
 
 
+TableType = Union[str, Name, TableName]
+
+
 def _pandas_to_tableau_type(typ: str) -> TypeTag:
     for ptype, ttype, _ in _type_mappings:
         if typ == ptype:
@@ -48,7 +53,7 @@ def _tableau_to_pandas_type(typ: TypeTag) -> str:
     return "object"
 
 
-def _types_for_columns(df: pd.DataFrame) -> Tuple[int, ...]:
+def _types_for_columns(df: pd.DataFrame) -> Tuple[TypeTag, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
@@ -79,20 +84,21 @@ _insert_functions = {
 }
 
 
-def _insert_frame(df: pd.DataFrame, *, conn: Connection, table: str, schema: Optional[str]):
-    table_def = TableDefinition(name=TableName(schema, table))
+def _insert_frame(df: pd.DataFrame, *, connection: Connection, table: TableType) -> None:
+    if isinstance(table, str):
+        table = TableName(table)
 
+    table_def = TableDefinition(name=table)
     ttypes = _types_for_columns(df)
     for col_name, ttype in zip(list(df.columns), ttypes):
         col = TableDefinition.Column(col_name, SqlType(ttype))
         table_def.add_column(col)
 
-    if schema:
-        conn.catalog.create_schema_if_not_exists(schema)
+    if table.schema_name:
+        connection.catalog.create_schema_if_not_exists(table.schema_name)
+    connection.catalog.create_table_if_not_exists(table_def)
 
-    conn.catalog.create_table_if_not_exists(table_def)
-
-    with Inserter(conn, table_def) as inserter:
+    with Inserter(connection, table_def) as inserter:
         insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
         for row in df.itertuples(index=False):
             for index, val in enumerate(row):
@@ -105,10 +111,11 @@ def _insert_frame(df: pd.DataFrame, *, conn: Connection, table: str, schema: Opt
         inserter.execute()
 
 
-def _read_table(*, conn: Connection, table: str, schema: Optional[str]) -> pd.DataFrame:
-    table_name = TableName(schema, table)
+def _read_table(*, connection: Connection, table: TableType) -> pd.DataFrame:
+    if isinstance(table, str):
+        table = TableName(table)
 
-    with conn.execute_query(f"SELECT * from {table_name}") as result:
+    with connection.execute_query(f"SELECT * from {table}") as result:
         schema = result.schema
         # Create list containing column name as key, pandas dtype as value
         dtypes: Dict[str, str] = {}
@@ -133,7 +140,7 @@ def _read_table(*, conn: Connection, table: str, schema: Optional[str]) -> pd.Da
 
 
 def frame_to_hyper(
-    df: pd.DataFrame, database: str, *, table: str, schema: Optional[str] = None
+        df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType
 ) -> None:
     """
     Convert a DataFrame to a .hyper extract.
@@ -144,18 +151,16 @@ def frame_to_hyper(
         Data to be written out.
     database : str
         Name / location of the Hyper file to be written to.
-    table : str
+    table : str, Name or TableName
         Name of the table to write to. Must be supplied as a keyword argument.
-    schema : str, optional
-        Schema name to write to. Must be supplied as a keyword argument.
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
-            _insert_frame(df, conn=conn, table=table, schema=schema)
+        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as connection:
+            _insert_frame(df, connection=connection, table=table)
 
 
 def frame_from_hyper(
-    database: str, table: str, schema: Optional[str] = None
+        database: Union[str, pathlib.Path], *, table: TableType
 ) -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
@@ -166,36 +171,33 @@ def frame_from_hyper(
         Name / location of the Hyper file to be read.
     table : str
         Name of the table to read. Must be supplied as a keyword argument.
-    schema : str, optional
-        Schema to read table from. Must be supplied as a keyword argument.
 
     Returns
     -------
     DataFrame
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database) as conn:
-            return _read_table(conn=conn, table=table, schema=schema)
+        with Connection(hpe.endpoint, database) as connection:
+            return _read_table(connection=connection, table=table)
 
 
 def frames_to_hyper(
-    dict_of_frames: Dict[str, pd.DataFrame], database: str, *, schema: Optional[str] = None
+    dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
 ) -> None:
     """See api.rst for documentation."""
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:
+        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as connection:
             for table, df in dict_of_frames.items():
-                _insert_frame(df, conn=conn, table=table, schema=schema)
+                _insert_frame(df, connection=connection, table=table)
 
 
-def frames_from_hyper(
-        database: str, tables: List[str], schema: Optional[str] = None
-) -> Dict[str, pd.DataFrame]:
+def frames_from_hyper(database: Union[str, pathlib.Path]) -> Dict[TableType, pd.DataFrame]:
     """See api.rst for documentation."""
-    result: Dict[str, pd.DataFrame] = {}    
+    result: Dict[TableType, pd.DataFrame] = {}    
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.NONE) as conn:    
-            for table in tables:
-                result[table] = _read_table(conn=conn, table=table, schema=schema)
+        with Connection(hpe.endpoint, database, CreateMode.NONE) as connection:
+            for schema in connection.catalog.get_schema_names():
+                for table in connection.catalog.get_table_names(schema=schema):
+                    result[table] = _read_table(connection=connection, table=table)
 
     return result
