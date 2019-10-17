@@ -89,7 +89,7 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, schema):
     expected = df.copy()
     expected["float32"] = expected["float32"].astype(np.float64)    
 
-    assert result.keys() == ("table1", "table2")
+    assert tuple(result.keys()) == ("table1", "table2")
     for val in result.values():
         tm.assert_frame_equal(val, expected)
     

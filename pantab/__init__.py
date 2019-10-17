@@ -106,11 +106,9 @@ def _insert_frame(df: pd.DataFrame, *, conn: Connection, table: str, schema: Opt
 
 
 def _read_table(*, conn: Connection, table: str, schema: Optional[str]) -> pd.DataFrame:
-    target = table
-    if schema:
-        target = f"{schema}.{target}"    
+    table_name = TableName(schema, table)
 
-    with conn.execute_query(f"SELECT * from {target}") as result:
+    with conn.execute_query(f"SELECT * from {table_name}") as result:
         schema = result.schema
         # Create list containing column name as key, pandas dtype as value
         dtypes: Dict[str, str] = {}
@@ -196,8 +194,7 @@ def frames_from_hyper(
     """See api.rst for documentation."""
     result: Dict[str, pd.DataFrame] = {}    
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as conn:    
-
+        with Connection(hpe.endpoint, database, CreateMode.NONE) as conn:    
             for table in tables:
                 result[table] = _read_table(conn=conn, table=table, schema=schema)
 
