@@ -3,11 +3,11 @@ import pathlib
 import re
 import tempfile
 
-from tableauhyperapi import Name, TableName, TypeTag
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
+from tableauhyperapi import Name, TableName, TypeTag
 
 import pantab
 
@@ -20,7 +20,16 @@ def df():
             [1, 2, 3, 4.0, 5.0, True, pd.to_datetime("1/1/18"), "foo"],
             [6, 7, 8, 9.0, 10.0, True, pd.to_datetime("1/1/19"), "foo"],
         ],
-        columns=["int16", "int32", "int64", "float32", "float64", "bool", "datetime64", "object"],
+        columns=[
+            "int16",
+            "int32",
+            "int64",
+            "float32",
+            "float64",
+            "bool",
+            "datetime64",
+            "object",
+        ],
     )
 
     df = df.astype(
@@ -46,7 +55,15 @@ def tmp_hyper(tmp_path):
     return tmp_path / "test.hyper"
 
 
-@pytest.fixture(params=["table", Name("table"), TableName("table"), TableName("public", "table"), TableName("nonpublic", "table")])
+@pytest.fixture(
+    params=[
+        "table",
+        Name("table"),
+        TableName("table"),
+        TableName("public", "table"),
+        TableName("nonpublic", "table"),
+    ]
+)
 def table_name(request):
     """Various ways to represent a table in Tableau."""
     return request.param
@@ -76,14 +93,11 @@ def test_roundtrip_missing_data(tmp_hyper, table_name):
 
 
 def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
-    pantab.frames_to_hyper({
-        table_name: df,
-        "table2": df,
-    }, tmp_hyper)
+    pantab.frames_to_hyper({table_name: df, "table2": df}, tmp_hyper)
 
     result = pantab.frames_from_hyper(tmp_hyper)
     expected = df.copy()
-    expected["float32"] = expected["float32"].astype(np.float64)    
+    expected["float32"] = expected["float32"].astype(np.float64)
 
     # some test trickery here
     if not isinstance(table_name, TableName) or table_name.schema_name is None:

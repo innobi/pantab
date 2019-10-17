@@ -16,7 +16,6 @@ from tableauhyperapi import (
     TypeTag,
 )
 
-
 __all__ = ["frame_to_hyper", "frame_from_hyper"]
 
 
@@ -84,7 +83,9 @@ _insert_functions = {
 }
 
 
-def _insert_frame(df: pd.DataFrame, *, connection: Connection, table: TableType) -> None:
+def _insert_frame(
+    df: pd.DataFrame, *, connection: Connection, table: TableType
+) -> None:
     if isinstance(table, str):
         table = TableName(table)
 
@@ -121,9 +122,7 @@ def _read_table(*, connection: Connection, table: TableType) -> pd.DataFrame:
         # Create list containing column name as key, pandas dtype as value
         dtypes: Dict[str, str] = {}
         for column in schema.columns:
-            dtypes[column.name.unescaped] = _tableau_to_pandas_type(
-                column.type.tag
-            )
+            dtypes[column.name.unescaped] = _tableau_to_pandas_type(column.type.tag)
 
         df = pd.DataFrame(result)
 
@@ -141,7 +140,7 @@ def _read_table(*, connection: Connection, table: TableType) -> pd.DataFrame:
 
 
 def frame_to_hyper(
-        df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType
+    df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType
 ) -> None:
     """
     Convert a DataFrame to a .hyper extract.
@@ -156,12 +155,14 @@ def frame_to_hyper(
         Name of the table to write to. Must be supplied as a keyword argument.
     """
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as connection:
+        with Connection(
+            hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE
+        ) as connection:
             _insert_frame(df, connection=connection, table=table)
 
 
 def frame_from_hyper(
-        database: Union[str, pathlib.Path], *, table: TableType
+    database: Union[str, pathlib.Path], *, table: TableType
 ) -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
@@ -187,14 +188,18 @@ def frames_to_hyper(
 ) -> None:
     """See api.rst for documentation."""
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE) as connection:
+        with Connection(
+            hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE
+        ) as connection:
             for table, df in dict_of_frames.items():
                 _insert_frame(df, connection=connection, table=table)
 
 
-def frames_from_hyper(database: Union[str, pathlib.Path]) -> Dict[TableType, pd.DataFrame]:
+def frames_from_hyper(
+    database: Union[str, pathlib.Path]
+) -> Dict[TableType, pd.DataFrame]:
     """See api.rst for documentation."""
-    result: Dict[TableType, pd.DataFrame] = {}    
+    result: Dict[TableType, pd.DataFrame] = {}
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
         with Connection(hpe.endpoint, database, CreateMode.NONE) as connection:
             for schema in connection.catalog.get_schema_names():
