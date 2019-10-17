@@ -1,6 +1,12 @@
 Usage Limitations
 =================
 
+Partial Updates to Extracts
+---------------------------
+The API currently only supports complete read and writes of a Hyper extract. You can therefore not currently write only to say one table in an extract while preserving all others. Nor can you append rows to existing tables.
+
+As a workaround you can read the entire extract, make the updates you'd like to do in Python and then write the entire extract back. Depending on the size of your dataset this may not scale particularly well, but it is the best option until this functionality gets explicitly implemented.
+
 Missing Value Handling
 ----------------------
 In the scientific Python community missing values are often notated as ``np.nan``, which is a float value implementing the `IEEE 754 <https://en.wikipedia.org/wiki/IEEE_754>`_ standard for missing value handling. Because NumPy stores homogenous arrays, there has been a long standing issue in pandas where integers could not store missing records, as noted in the `pandas documentation on missing values <https://pandas.pydata.org/pandas-docs/stable/user_guide/missing_data.html#working-with-missing-data>`_.

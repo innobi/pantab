@@ -30,24 +30,56 @@ Reading a Hyper Extract
    df = pantab.frame_from_hyper("example.hyper", table="animals")
    print(df)
 
-Specifying a Schema
--------------------
+Working with Schemas
+--------------------
+
+By default tables will be written to the "public" schema. You can control this behavior however by specifying a ``tableauhyperapi.TableName`` when reading / writing extracts.
 
 .. code-block:: python
 
    import pandas as pd
    import pantab
+   from tableauhyperapi import TableName
+
+   # Let's write somewhere besides the default public schema
+   table = TableName("not_the_public_schema", "a_table")
 
    df = pd.DataFrame([
        ["dog", 4],
        ["cat", 4],
    ], columns=["animal", "num_of_legs"])
 
-   pantab.frame_to_hyper(df, "example.hyper", schema="a_schema", table="animals")
+   pantab.frame_to_hyper(df, "example.hyper", table=table)
 
    # Can also be round-tripped
-   df2 = pantab.frame_from_hyper(df, "example.hyper", schema="a_schema", table="animals")
+   df2 = pantab.frame_from_hyper(df, "example.hyper", table=table)
 
-.. todo::
+Reading and Writing Multiple Tables
+-----------------------------------
 
-   Support for reading / writing multiple tables
+``frames_to_hyper`` and ``frames_from_hyper`` can write and return a dictionary of DataFrames for Hyper extract, respectively.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+   from tableauhyperapi import TableName
+
+   dict_of_frames = {
+       "table1": pd.DataFrame([[1, 2]], columns=list("ab")),
+       TableName("non_public_schema", "table2"): pd.DataFrame([[3, 4]], columns=list("cd")),
+   }
+
+   pantab.frames_to_hyper(dict_of_frames, "example.hyper")
+
+   # Can also be round-tripped
+   result = pantab.frames_from_hyper("example.hyper")
+
+
+.. note::
+
+   While you can write using ``str``, ``tableauhyperapi.Name`` or ``tableauhyperapi.TableName`` instances, the keys of the dict returned by ``frames_from_hyper`` will always be ``tableauhyperapi.TableName`` instances
+
+.. warning::
+
+   pantab currently supports on complete read and writes of a hyper extract. Partial updates are not currently implemented. See :doc:`caveats`
