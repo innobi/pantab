@@ -24,7 +24,7 @@ copyright = '2019, Will Ayd, innobi, LLC'
 author = 'Will Ayd, innobi, LLC'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.0.2a'
 
 
 # -- General configuration ---------------------------------------------------
@@ -55,6 +55,9 @@ todo_include_todos = True
 #
 html_theme = 'sphinx_rtd_theme'
 master_doc = "index"  # see RTD GH issue 2569
+html_context = {
+    "display_github": True,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
