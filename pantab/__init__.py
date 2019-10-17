@@ -94,8 +94,9 @@ def _insert_frame(df: pd.DataFrame, *, connection: Connection, table: TableType)
         col = TableDefinition.Column(col_name, SqlType(ttype))
         table_def.add_column(col)
 
-    if table.schema_name:
+    if isinstance(table, TableName) and table.schema_name:
         connection.catalog.create_schema_if_not_exists(table.schema_name)
+
     connection.catalog.create_table_if_not_exists(table_def)
 
     with Inserter(connection, table_def) as inserter:
