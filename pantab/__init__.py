@@ -197,7 +197,7 @@ def frames_to_hyper(
 
 def frames_from_hyper(
     database: Union[str, pathlib.Path]
-) -> Dict[TableType, pd.DataFrame]:
+) -> Dict[TableName, pd.DataFrame]:
     """See api.rst for documentation."""
     result: Dict[TableType, pd.DataFrame] = {}
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:

@@ -1,23 +1,35 @@
 API Reference
 =============
 
-.. py:function:: frame_to_hyper(df: pd.DataFrame, database: str, *, table: str, schema[Optional[str]] = None) -> None:
+.. py:function:: frame_to_hyper(df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName]) -> None:
 
    Convert a DataFrame to a .hyper extract.
 
-   :param pd.DataFrame df: Data to be written out.
-   :param str database: Name / location of the Hyper file to write to.
-   :param str table: Table to write to. Must be supplied as a keyword argument.
-   :param schema: Schema to write to. Must be supplied as a keyword argument.
-   :type schema: str, optional
+   :param df: Data to be written out.
+   :param database: Name / location of the Hyper file to write to.
+   :param table: Table to write to. Must be supplied as a keyword argument.
 
 
-.. py:function:: frame_from_hyper(database: str, *, table: str, schema: str) -> pd.DataFrame:
+.. py:function:: frame_from_hyper(database: Union[str, pathlib.Path], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName]) -> pd.DataFrame:
 
    Extracts a DataFrame from a .hyper extract.
 
-   :param str database: Name / location of the Hyper file to be read.
-   :param str table: Table to read. Must be supplied as a keyword argument.
-   :param schema: Schema to read from. Must be supplied as a keyword argument.
-   :type schema: str, optional
+   :param database: Name / location of the Hyper file to be read.
+   :param table: Table to read. Must be supplied as a keyword argument.
    :rtype: pd.DataFrame
+
+
+.. py:function:: frames_to_hyper(dict_of_frames: Dict[Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], pd.DataFrame], database: Union[str, pathlib.Path]) -> None:
+
+   Writes multiple DataFrames to a .hyper extract.
+
+   :param dict_of_frames: A dictionary whose keys are valid table identifiers and values are dataframes
+   :param database: Name / location of the Hyper file to write to.
+
+
+.. py:function:: frames_from_hyper(database: Union[str, pathlib.Path]) -> Dict[tableauhyperapi.TableName, pd.DataFrame]:
+
+   Extracts tables from a .hyper extract.
+
+   :param database: Name / location of the Hyper file to read from.
+   :rtype: Dict[tableauhyperapi.TableName, pd.DataFrame]

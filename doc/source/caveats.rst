@@ -33,6 +33,12 @@ Datetime Read Performance
 .. todo::
    Document datetime read performance degredation
 
+Datetime Timezone Handling
+--------------------------
+
+.. todo::
+   Validate that this works. Talk about fixed vs non-fixed offsets.
+
 float32 Type Preservation
 -------------------------
 
