@@ -183,3 +183,19 @@ def test_unsupported_dtype_raises(dtype, tmp_hyper):
     msg = re.escape(f"Conversion of '{dtype}' dtypes not supported!")
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+
+def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
+    # Monkeypatch a new constructor that hard codes months
+    def __init__(self, months: int, days: int, microseconds: int):
+        self.months = 1
+        self.days = days
+        self.microseconds = microseconds
+
+    monkeypatch.setattr(pantab._pantab.tab_api.Interval, "__init__", __init__)
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    with pytest.raises(ValueError, match=r"Cannot read Intervals with month componenets\."):
+        pantab.frame_from_hyper(tmp_hyper, table="test")
+
+    with pytest.raises(ValueError, match=r"Cannot read Intervals with month componenets\."):
+        pantab.frames_from_hyper(tmp_hyper)

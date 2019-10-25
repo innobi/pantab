@@ -89,7 +89,6 @@ def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
 def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
     """Converts a tableau Hyper API Interval to a pandas Timedelta."""
     if interval.months != 0:
-        # TODO: Need to test this somehow
         raise ValueError("Cannot read Intervals with month componenets.")
 
     return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
