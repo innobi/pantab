@@ -26,12 +26,12 @@ Datetime Timezone Handling
 
 Timezones are not supported in Hyper Extracts. Attempting to write a timezone aware array to an extract will result in an error that the dtype is not supported. The only option to write dates with timezone information would be to make the data timezone naive. You may also consider storing the timezone in a separate column as part of the extract to avoid losing information.
 
-float32 Type Preservation
--------------------------
-
-The Hyper API does not offer SINGLE precision storage. As such, any float32 objects will be upcast to 64 bits when writing to an extract. When reading, no attempt is made to downsize for you, so you will always get float64 back from a Hyper extract.
-
 Timedelta Components
 --------------------
 
 The `pd.Timedelta`` and the ``Interval`` exposed by the Hyper API have similar but different storage mechanisms that may cause inconsistencies. Specifically, a `pd.Timedelta` does not have a month component to it, so reading ``Interval`` objects from a Hyper Extract that have this component will raise a ``TypeError``.  The Hyper API's ``Interval`` only offers storage of days and microseconds (aside from months). pantab will convert hours, minutes, seconds, etc... into microseconds for you, but reading that information back from a Hyper extract is lossy and will only provide back the microsecond storage.
+
+float32 Type Preservation
+-------------------------
+
+The Hyper API does not offer SINGLE precision storage. As such, any float32 objects will be upcast to 64 bits when writing to an extract. When reading, no attempt is made to downsize for you, so you will always get float64 back from a Hyper extract.
