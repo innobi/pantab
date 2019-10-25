@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from tableauhyperapi import Name, TableName, TypeTag
+import tableauhyperapi as tab_api
 
 import pantab
 
@@ -58,10 +58,10 @@ def tmp_hyper(tmp_path):
 @pytest.fixture(
     params=[
         "table",
-        Name("table"),
-        TableName("table"),
-        TableName("public", "table"),
-        TableName("nonpublic", "table"),
+        tab_api.Name("table"),
+        tab_api.TableName("table"),
+        tab_api.TableName("public", "table"),
+        tab_api.TableName("nonpublic", "table"),
     ]
 )
 def table_name(request):
@@ -100,9 +100,33 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
     expected["float32"] = expected["float32"].astype(np.float64)
 
     # some test trickery here
-    if not isinstance(table_name, TableName) or table_name.schema_name is None:
-        table_name = TableName("public", table_name)
+    if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
+        table_name = tab_api.TableName("public", table_name)
 
-    assert set(result.keys()) == set((table_name, TableName("public", "table2")))
+    assert set(result.keys()) == set((table_name, tab_api.TableName("public", "table2")))
     for val in result.values():
         tm.assert_frame_equal(val, expected)
+
+
+def test_read_doesnt_modify_existing_file(df, tmp_hyper):
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    last_modified = tmp_hyper.stat().st_mtime
+    pantab.frame_from_hyper(tmp_hyper, table="test")
+
+    # Should not update file stats
+    assert last_modified == tmp_hyper.stat().st_mtime
+
+
+def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    last_modified = tmp_hyper.stat().st_mtime
+
+    # Let's patch the Inserter to fail on creation
+    def failure(self):
+        raise ValueError
+
+    monkeypatch.setattr(tab_api, "Inserter", failure, raising=True)
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+    # Should not update file stats
+    assert last_modified == tmp_hyper.stat().st_mtime
