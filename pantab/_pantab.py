@@ -32,7 +32,7 @@ def _pandas_to_tableau_type(typ: str) -> tab_api.TypeTag:
         if typ == ptype:
             return ttype
 
-    raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
+    raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
 def _tableau_to_pandas_type(typ: tab_api.TypeTag) -> str:
@@ -48,7 +48,7 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
-    return tuple(_pandas_to_tableau_type(values.dtype.name) for label, values in df.items())
+    return tuple(_pandas_to_tableau_type(x.name) for x in df.dtypes)
 
 
 # The Hyper API doesn't expose these functions directly and wraps them with

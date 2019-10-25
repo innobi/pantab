@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -138,10 +140,25 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
 
 def test_duplicate_columns_raises(tmp_hyper):
     df = pd.DataFrame([[1, 1]], columns=[1, 1])
-    with pytest.raises(tab_api.hyperexception.HyperException,
-                       match="column '1' specified more than once"):
+    with pytest.raises(
+        tab_api.hyperexception.HyperException,
+        match="column '1' specified more than once",
+    ):
         pantab.frame_to_hyper(df, tmp_hyper, table="foo")
 
-    with pytest.raises(tab_api.hyperexception.HyperException,
-                       match="column '1' specified more than once"):
+    with pytest.raises(
+        tab_api.hyperexception.HyperException,
+        match="column '1' specified more than once",
+    ):
         pantab.frames_to_hyper({"test": df}, tmp_hyper)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]", "datetime64[ns, UTC]"]
+)
+def test_unsupported_dtype_raises(dtype, tmp_hyper):
+    df = pd.DataFrame([[1]], dtype=dtype)
+
+    msg = re.escape(f"Conversion of '{dtype}' dtypes not supported!")
+    with pytest.raises(TypeError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test")
