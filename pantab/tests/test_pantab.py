@@ -14,8 +14,28 @@ def df():
     """Fixture to use which should contain all data types."""
     df = pd.DataFrame(
         [
-            [1, 2, 3, 4.0, 5.0, True, pd.to_datetime("1/1/18"), "foo"],
-            [6, 7, 8, 9.0, 10.0, True, pd.to_datetime("1/1/19"), "foo"],
+            [
+                1,
+                2,
+                3,
+                4.0,
+                5.0,
+                True,
+                pd.to_datetime("1/1/18"),
+                pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
+                "foo",
+            ],
+            [
+                6,
+                7,
+                8,
+                9.0,
+                10.0,
+                True,
+                pd.to_datetime("1/1/19"),
+                pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
+                "foo",
+            ],
         ],
         columns=[
             "int16",
@@ -25,6 +45,7 @@ def df():
             "float64",
             "bool",
             "datetime64",
+            "timedelta64",
             "object",
         ],
     )
@@ -38,7 +59,7 @@ def df():
             "float64": np.float64,
             "bool": np.bool,
             "datetime64": "datetime64[ns]",
-            # 'grault': 'timedelta64[ns]',
+            'timedelta64': 'timedelta64[ns]',
             "object": "object",
         }
     )
