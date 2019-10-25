@@ -15,8 +15,8 @@ Complicating factors is the presence of the ``None`` sentinel in Python, which c
 
 Because of the various missing value indicators, serializing to/from a Hyper extract via pantab cannot be lossless. On write, ``None`` and ``np.nan`` values will both be written in as missing data to the Hyper extract. On read, missing values will be read back as ``np.nan``.
 
-Index / Columns
----------------------
+Index / Column Handling
+-----------------------
 A pandas DataFrame always comes with an ``Index`` used to slice / access rows. No such concept exists in Tableau, so this will be implicitly dropped when writing Hyper extracts.
 
 With respect to columns, note that Tableau stores column labels internally as a string. You *may* be able to write non-string objects to the database (this is left to the underlying Hyper API to decide) but reading those objects back is not a lossless operation and will always return strings.
@@ -29,7 +29,7 @@ Timezones are not supported in Hyper Extracts. Attempting to write a timezone aw
 Timedelta Components
 --------------------
 
-The `pd.Timedelta`` and the ``Interval`` exposed by the Hyper API have similar but different storage mechanisms that may cause inconsistencies. Specifically, a `pd.Timedelta` does not have a month component to it, so reading ``Interval`` objects from a Hyper Extract that have this component will raise a ``TypeError``.  The Hyper API's ``Interval`` only offers storage of days and microseconds (aside from months). pantab will convert hours, minutes, seconds, etc... into microseconds for you, but reading that information back from a Hyper extract is lossy and will only provide back the microsecond storage.
+The ``pd.Timedelta`` and the ``Interval`` exposed by the Hyper API have similar but different storage mechanisms that may cause inconsistencies. Specifically, a `pd.Timedelta` does not have a month component to it, so reading ``Interval`` objects from a Hyper Extract that have this component will raise a ``TypeError``.  The Hyper API's ``Interval`` only offers storage of days and microseconds (aside from months). pantab will convert hours, minutes, seconds, etc... into microseconds for you, but reading that information back from a Hyper extract is lossy and will only provide back the microsecond storage.
 
 float32 Type Preservation
 -------------------------

@@ -82,4 +82,4 @@ Reading and Writing Multiple Tables
 
 .. warning::
 
-   pantab currently supports on complete read and writes of a hyper extract. Partial updates are not currently implemented. See :doc:`caveats`
+   pantab currently supports only complete read and writes of a hyper extract. Partial updates are not implemented. See :doc:`caveats`
