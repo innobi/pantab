@@ -125,7 +125,7 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
     def failure(self):
         raise ValueError
 
-    monkeypatch.setattr(tab_api, "Inserter", failure, raising=True)
+    monkeypatch.setattr(pantab.tab_api, "Inserter", failure, raising=True)
 
     # Try out our write methods
     pantab.frame_to_hyper(df, tmp_hyper, table="test")

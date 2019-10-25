@@ -5,30 +5,29 @@ from typing import Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from tableauhyperapi import (Connection, CreateMode, HyperProcess, Inserter,
-                             Name, SqlType, TableDefinition, TableName,
-                             Telemetry, TypeTag)
+import tableauhyperapi as tab_api
+
 
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
 
 # pandas type in, tableau type, tab->pan type
 _type_mappings = (
-    ("int16", TypeTag.SMALL_INT, "int16"),
-    ("int32", TypeTag.INT, "int32"),
-    ("int64", TypeTag.BIG_INT, "int64"),
-    ("float32", TypeTag.DOUBLE, "float64"),
-    ("float64", TypeTag.DOUBLE, "float64"),
-    ("bool", TypeTag.BOOL, "bool"),
-    ("datetime64[ns]", TypeTag.TIMESTAMP, "datetime64[ns]"),
-    ("object", TypeTag.TEXT, "object"),
+    ("int16", tab_api.TypeTag.SMALL_INT, "int16"),
+    ("int32", tab_api.TypeTag.INT, "int32"),
+    ("int64", tab_api.TypeTag.BIG_INT, "int64"),
+    ("float32", tab_api.TypeTag.DOUBLE, "float64"),
+    ("float64", tab_api.TypeTag.DOUBLE, "float64"),
+    ("bool", tab_api.TypeTag.BOOL, "bool"),
+    ("datetime64[ns]", tab_api.TypeTag.TIMESTAMP, "datetime64[ns]"),
+    ("object", tab_api.TypeTag.TEXT, "object"),
 )
 
 
-TableType = Union[str, Name, TableName]
+TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
-def _pandas_to_tableau_type(typ: str) -> TypeTag:
+def _pandas_to_tableau_type(typ: str) -> tab_api.TypeTag:
     for ptype, ttype, _ in _type_mappings:
         if typ == ptype:
             return ttype
@@ -36,7 +35,7 @@ def _pandas_to_tableau_type(typ: str) -> TypeTag:
     raise TypeError("Conversion of '{}' dtypes not yet supported!".format(typ))
 
 
-def _tableau_to_pandas_type(typ: TypeTag) -> str:
+def _tableau_to_pandas_type(typ: tab_api.TypeTag) -> str:
     for _, ttype, ret_type in _type_mappings:
         if typ == ttype:
             return ret_type
@@ -45,7 +44,7 @@ def _tableau_to_pandas_type(typ: TypeTag) -> str:
     return "object"
 
 
-def _types_for_columns(df: pd.DataFrame) -> Tuple[TypeTag, ...]:
+def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
@@ -55,45 +54,45 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[TypeTag, ...]:
 # The Hyper API doesn't expose these functions directly and wraps them with
 # validation; we can skip the validation because the column dtypes enforce that
 _insert_functions = {
-    TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
-    TypeTag.BOOL: "_Inserter__write_bool",
-    TypeTag.BIG_INT: "_Inserter__write_big_int",
-    TypeTag.SMALL_INT: "_Inserter__write_small_int",
-    TypeTag.INT: "_Inserter__write_int",
-    TypeTag.DOUBLE: "_Inserter__write_double",
-    TypeTag.OID: "_Inserter__write_uint",
-    TypeTag.BYTES: "_Inserter__write_bytes",
-    TypeTag.TEXT: "_Inserter__write_text",
-    TypeTag.VARCHAR: "_Inserter__write_text",
-    TypeTag.CHAR: "_Inserter__write_text",
-    TypeTag.JSON: "_Inserter__write_text",
-    TypeTag.DATE: "_Inserter__write_date",
-    TypeTag.INTERVAL: "_Inserter__write_interval",
-    TypeTag.TIME: "_Inserter__write_time",
-    TypeTag.TIMESTAMP: "_Inserter__write_timestamp",
-    TypeTag.TIMESTAMP_TZ: "_Inserter__write_timestamp",
-    TypeTag.GEOGRAPHY: "_Inserter__write_bytes",
+    tab_api.TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
+    tab_api.TypeTag.BOOL: "_Inserter__write_bool",
+    tab_api.TypeTag.BIG_INT: "_Inserter__write_big_int",
+    tab_api.TypeTag.SMALL_INT: "_Inserter__write_small_int",
+    tab_api.TypeTag.INT: "_Inserter__write_int",
+    tab_api.TypeTag.DOUBLE: "_Inserter__write_double",
+    tab_api.TypeTag.OID: "_Inserter__write_uint",
+    tab_api.TypeTag.BYTES: "_Inserter__write_bytes",
+    tab_api.TypeTag.TEXT: "_Inserter__write_text",
+    tab_api.TypeTag.VARCHAR: "_Inserter__write_text",
+    tab_api.TypeTag.CHAR: "_Inserter__write_text",
+    tab_api.TypeTag.JSON: "_Inserter__write_text",
+    tab_api.TypeTag.DATE: "_Inserter__write_date",
+    tab_api.TypeTag.INTERVAL: "_Inserter__write_interval",
+    tab_api.TypeTag.TIME: "_Inserter__write_time",
+    tab_api.TypeTag.TIMESTAMP: "_Inserter__write_timestamp",
+    tab_api.TypeTag.TIMESTAMP_TZ: "_Inserter__write_timestamp",
+    tab_api.TypeTag.GEOGRAPHY: "_Inserter__write_bytes",
 }
 
 
 def _insert_frame(
-    df: pd.DataFrame, *, connection: Connection, table: TableType
+    df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType
 ) -> None:
     if isinstance(table, str):
-        table = TableName(table)
+        table = tab_api.TableName(table)
 
-    table_def = TableDefinition(name=table)
+    table_def = tab_api.TableDefinition(name=table)
     ttypes = _types_for_columns(df)
     for col_name, ttype in zip(list(df.columns), ttypes):
-        col = TableDefinition.Column(col_name, SqlType(ttype))
+        col = tab_api.TableDefinition.Column(col_name, tab_api.SqlType(ttype))
         table_def.add_column(col)
 
-    if isinstance(table, TableName) and table.schema_name:
+    if isinstance(table, tab_api.TableName) and table.schema_name:
         connection.catalog.create_schema_if_not_exists(table.schema_name)
 
     connection.catalog.create_table_if_not_exists(table_def)
 
-    with Inserter(connection, table_def) as inserter:
+    with tab_api.Inserter(connection, table_def) as inserter:
         insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
         for row in df.itertuples(index=False):
             for index, val in enumerate(row):
@@ -106,9 +105,9 @@ def _insert_frame(
         inserter.execute()
 
 
-def _read_table(*, connection: Connection, table: TableType) -> pd.DataFrame:
+def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataFrame:
     if isinstance(table, str):
-        table = TableName(table)
+        table = tab_api.TableName(table)
 
     with connection.execute_query(f"SELECT * from {table}") as result:
         schema = result.schema
@@ -143,15 +142,22 @@ def frame_to_hyper(
     df : DataFrame
         Data to be written out.
     database : str
-        Name / location of the Hyper file to be written to.
-    table : str, Name or TableName
-        Name of the table to write to. Must be supplied as a keyword argument.
+        tab_api.Name / location of the Hyper file to be written to.
+    table : str, tab_api.Name or tab_api.TableName
+        tab_api.Name of the table to write to. Must be supplied as a keyword argument.
     """
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(
-            hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+        try:
+            tmp_db = shutil.copy(database, tmp_dir)
+        except FileNotFoundError:  # dealing with a new file
+            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"        
+
+        with tab_api.Connection(
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_AND_REPLACE
         ) as connection:
             _insert_frame(df, connection=connection, table=table)
+
+        shutil.move(tmp_db, database)
 
 
 def frame_from_hyper(
@@ -163,19 +169,19 @@ def frame_from_hyper(
     Parameters
     ----------
     database : str
-        Name / location of the Hyper file to be read.
+        tab_api.Name / location of the Hyper file to be read.
     table : str
-        Name of the table to read. Must be supplied as a keyword argument.
+        tab_api.Name of the table to read. Must be supplied as a keyword argument.
 
     Returns
     -------
     DataFrame
     """
-    with tempfile.TemporaryDirectory() as tmp_dir, HyperProcess(
-        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
         tmp_db = shutil.copy(database, tmp_dir)
-        with Connection(hpe.endpoint, tmp_db) as connection:
+        with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
             return _read_table(connection=connection, table=table)
 
 
@@ -183,24 +189,31 @@ def frames_to_hyper(
     dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
 ) -> None:
     """See api.rst for documentation."""
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(
-            hpe.endpoint, database, CreateMode.CREATE_AND_REPLACE
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+        try:
+            tmp_db = shutil.copy(database, tmp_dir)
+        except FileNotFoundError:  # dealing with a new file
+            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"
+
+        with tab_api.Connection(
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_AND_REPLACE
         ) as connection:
             for table, df in dict_of_frames.items():
                 _insert_frame(df, connection=connection, table=table)
 
+        shutil.move(tmp_db, database)
+
 
 def frames_from_hyper(
     database: Union[str, pathlib.Path]
-) -> Dict[TableName, pd.DataFrame]:
+) -> Dict[tab_api.TableName, pd.DataFrame]:
     """See api.rst for documentation."""
     result: Dict[TableType, pd.DataFrame] = {}
-    with tempfile.TemporaryDirectory() as tmp_dir, HyperProcess(
-        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
-    ) as hpe:
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hpe:        
         tmp_db = shutil.copy(database, tmp_dir)
-        with Connection(hpe.endpoint, tmp_db, CreateMode.NONE) as connection:
+        with tab_api.Connection(hpe.endpoint, tmp_db, tab_api.CreateMode.NONE) as connection:
             for schema in connection.catalog.get_schema_names():
                 for table in connection.catalog.get_table_names(schema=schema):
                     result[table] = _read_table(connection=connection, table=table)
