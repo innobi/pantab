@@ -59,7 +59,7 @@ def df():
             "float64": np.float64,
             "bool": np.bool,
             "datetime64": "datetime64[ns]",
-            'timedelta64': 'timedelta64[ns]',
+            "timedelta64": "timedelta64[ns]",
             "object": "object",
         }
     )
@@ -194,8 +194,12 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
 
     monkeypatch.setattr(pantab._pantab.tab_api.Interval, "__init__", __init__)
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
-    with pytest.raises(ValueError, match=r"Cannot read Intervals with month componenets\."):
+    with pytest.raises(
+        ValueError, match=r"Cannot read Intervals with month componenets\."
+    ):
         pantab.frame_from_hyper(tmp_hyper, table="test")
 
-    with pytest.raises(ValueError, match=r"Cannot read Intervals with month componenets\."):
+    with pytest.raises(
+        ValueError, match=r"Cannot read Intervals with month componenets\."
+    ):
         pantab.frames_from_hyper(tmp_hyper)
