@@ -1,6 +1,7 @@
 import pathlib
 import shutil
 import tempfile
+import uuid
 from typing import Dict, Tuple, Union
 
 import numpy as np
@@ -145,16 +146,13 @@ def frame_to_hyper(
     table : str, tab_api.Name or tab_api.TableName
         tab_api.Name of the table to write to. Must be supplied as a keyword argument.
     """
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+    with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
-        try:
-            tmp_db = shutil.copy(database, tmp_dir)
-        except FileNotFoundError:  # dealing with a new file
-            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"
+        tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_AND_REPLACE
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
         ) as connection:
             _insert_frame(df, connection=connection, table=table)
 
@@ -190,16 +188,13 @@ def frames_to_hyper(
     dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
 ) -> None:
     """See api.rst for documentation."""
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+    with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
-        try:
-            tmp_db = shutil.copy(database, tmp_dir)
-        except FileNotFoundError:  # dealing with a new file
-            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"
+        tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_AND_REPLACE
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
         ) as connection:
             for table, df in dict_of_frames.items():
                 _insert_frame(df, connection=connection, table=table)
@@ -216,9 +211,7 @@ def frames_from_hyper(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
         tmp_db = shutil.copy(database, tmp_dir)
-        with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.NONE
-        ) as connection:
+        with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
             for schema in connection.catalog.get_schema_names():
                 for table in connection.catalog.get_table_names(schema=schema):
                     result[table] = _read_table(connection=connection, table=table)
