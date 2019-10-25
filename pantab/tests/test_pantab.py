@@ -1,8 +1,3 @@
-import os
-import pathlib
-import re
-import tempfile
-
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -103,7 +98,9 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
     if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
         table_name = tab_api.TableName("public", table_name)
 
-    assert set(result.keys()) == set((table_name, tab_api.TableName("public", "table2")))
+    assert set(result.keys()) == set(
+        (table_name, tab_api.TableName("public", "table2"))
+    )
     for val in result.values():
         tm.assert_frame_equal(val, expected)
 
@@ -111,9 +108,12 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
     last_modified = tmp_hyper.stat().st_mtime
-    pantab.frame_from_hyper(tmp_hyper, table="test")
 
-    # Should not update file stats
+    # Try out our read methods
+    pantab.frame_from_hyper(tmp_hyper, table="test")
+    pantab.frames_from_hyper(tmp_hyper)
+
+    # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
 
 
@@ -126,7 +126,10 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
         raise ValueError
 
     monkeypatch.setattr(tab_api, "Inserter", failure, raising=True)
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
-    # Should not update file stats
+    # Try out our write methods
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    pantab.frames_to_hyper({"test": df}, tmp_hyper)
+
+    # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime

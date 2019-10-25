@@ -1,20 +1,13 @@
 import pathlib
-from typing import Dict, List, Optional, Tuple, Union
+import shutil
+import tempfile
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from tableauhyperapi import (
-    Connection,
-    CreateMode,
-    HyperProcess,
-    Inserter,
-    Name,
-    SqlType,
-    TableDefinition,
-    TableName,
-    Telemetry,
-    TypeTag,
-)
+from tableauhyperapi import (Connection, CreateMode, HyperProcess, Inserter,
+                             Name, SqlType, TableDefinition, TableName,
+                             Telemetry, TypeTag)
 
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
@@ -178,8 +171,11 @@ def frame_from_hyper(
     -------
     DataFrame
     """
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database) as connection:
+    with tempfile.TemporaryDirectory() as tmp_dir, HyperProcess(
+        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hpe:
+        tmp_db = shutil.copy(database, tmp_dir)
+        with Connection(hpe.endpoint, tmp_db) as connection:
             return _read_table(connection=connection, table=table)
 
 
@@ -200,8 +196,11 @@ def frames_from_hyper(
 ) -> Dict[TableName, pd.DataFrame]:
     """See api.rst for documentation."""
     result: Dict[TableType, pd.DataFrame] = {}
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
-        with Connection(hpe.endpoint, database, CreateMode.NONE) as connection:
+    with tempfile.TemporaryDirectory() as tmp_dir, HyperProcess(
+        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hpe:
+        tmp_db = shutil.copy(database, tmp_dir)
+        with Connection(hpe.endpoint, tmp_db, CreateMode.NONE) as connection:
             for schema in connection.catalog.get_schema_names():
                 for table in connection.catalog.get_table_names(schema=schema):
                     result[table] = _read_table(connection=connection, table=table)
