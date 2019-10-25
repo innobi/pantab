@@ -134,3 +134,14 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
+
+
+def test_duplicate_columns_raises(tmp_hyper):
+    df = pd.DataFrame([[1, 1]], columns=[1, 1])
+    with pytest.raises(tab_api.hyperexception.HyperException,
+                       match="column '1' specified more than once"):
+        pantab.frame_to_hyper(df, tmp_hyper, table="foo")
+
+    with pytest.raises(tab_api.hyperexception.HyperException,
+                       match="column '1' specified more than once"):
+        pantab.frames_to_hyper({"test": df}, tmp_hyper)

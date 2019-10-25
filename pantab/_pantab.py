@@ -48,7 +48,7 @@ def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
     """
     Return a tuple of Tableau types matching the ordering of `df.columns`.
     """
-    return tuple(_pandas_to_tableau_type(df[x].dtype.name) for x in df.columns)
+    return tuple(_pandas_to_tableau_type(values.dtype.name) for label, values in df.items())
 
 
 # The Hyper API doesn't expose these functions directly and wraps them with

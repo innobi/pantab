@@ -15,23 +15,12 @@ Complicating factors is the presence of the ``None`` sentinel in Python, which c
 
 Because of the various missing value indicators, serializing to/from a Hyper extract via pantab cannot be lossless. On write, ``None`` and ``np.nan`` values will both be written in as missing data to the Hyper extract. On read, missing values will be read back as ``np.nan``.
 
-Index Usage
------------
-A pandas DataFrame always comes with an index used to slice / access rows. No such concept exists in Tableau, so this will be implicitly dropped when writing Hyper extracts.
+Index / Columns
+---------------------
+A pandas DataFrame always comes with an ``Index`` used to slice / access rows. No such concept exists in Tableau, so this will be implicitly dropped when writing Hyper extracts.
 
-Note that hierarchical column structures (i.e. a ``MultiIndex``) are not supported in Tableau either.
+With respect to columns, note that Tableau stores column labels internally as a string. You *may* be able to write non-string objects to the database (this is left to the underlying Hyper API to decide) but reading those objects back is not a lossless operation and will always return strings.
 
-.. todo::
-
-   Be explicit about MultiIndex column handling
-
-
-Label Handling
---------------
-A pandas DataFrame allows any hashable object to be used as a label. Duplicate labels are also permissible. Neither of those constructs hold true in Tableau.
-
-.. todo::
-   Be explicit about handling of non-string column names
 
 Datetime Read Performance
 -------------------------
