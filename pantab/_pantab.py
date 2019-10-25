@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
-
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
 
@@ -146,11 +145,13 @@ def frame_to_hyper(
     table : str, tab_api.Name or tab_api.TableName
         tab_api.Name of the table to write to. Must be supplied as a keyword argument.
     """
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hpe:
         try:
             tmp_db = shutil.copy(database, tmp_dir)
         except FileNotFoundError:  # dealing with a new file
-            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"        
+            tmp_db = pathlib.Path(tmp_dir) / "new.hyper"
 
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_AND_REPLACE
@@ -189,7 +190,9 @@ def frames_to_hyper(
     dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
 ) -> None:
     """See api.rst for documentation."""
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hpe:
+    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hpe:
         try:
             tmp_db = shutil.copy(database, tmp_dir)
         except FileNotFoundError:  # dealing with a new file
@@ -211,9 +214,11 @@ def frames_from_hyper(
     result: Dict[TableType, pd.DataFrame] = {}
     with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
-    ) as hpe:        
+    ) as hpe:
         tmp_db = shutil.copy(database, tmp_dir)
-        with tab_api.Connection(hpe.endpoint, tmp_db, tab_api.CreateMode.NONE) as connection:
+        with tab_api.Connection(
+            hpe.endpoint, tmp_db, tab_api.CreateMode.NONE
+        ) as connection:
             for schema in connection.catalog.get_schema_names():
                 for table in connection.catalog.get_table_names(schema=schema):
                     result[table] = _read_table(connection=connection, table=table)

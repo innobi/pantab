@@ -122,14 +122,15 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
     last_modified = tmp_hyper.stat().st_mtime
 
     # Let's patch the Inserter to fail on creation
-    def failure(self):
-        raise ValueError
+    def failure(*args, **kwargs):
+        raise ValueError("dummy failure")
 
-    monkeypatch.setattr(pantab.tab_api, "Inserter", failure, raising=True)
+    monkeypatch.setattr(pantab._pantab.tab_api, "Inserter", failure, raising=True)
 
     # Try out our write methods
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
-    pantab.frames_to_hyper({"test": df}, tmp_hyper)
+    with pytest.raises(ValueError, match="dummy failure"):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test")
+        pantab.frames_to_hyper({"test": df}, tmp_hyper)
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
