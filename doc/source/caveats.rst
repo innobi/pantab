@@ -31,8 +31,7 @@ Datetime Read Performance
 Datetime Timezone Handling
 --------------------------
 
-.. todo::
-   Validate that this works. Talk about fixed vs non-fixed offsets.
+Timezones are not supported in Hyper Extracts. Attempting to write a timezone aware array to an extract will result in an error that the dtype is not supported. The only option to write dates with timezone information would be to make the data timezone naive. You may also consider storing the timezone in a separate column as part of the extract to avoid losing information.
 
 float32 Type Preservation
 -------------------------
