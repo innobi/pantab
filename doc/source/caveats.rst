@@ -37,5 +37,4 @@ Datetime Timezone Handling
 float32 Type Preservation
 -------------------------
 
-.. todo::
-   Document float32 preservation limitations
+The Hyper API does not offer SINGLE precision storage. As such, any float32 objects will be upcast to 64 bits when writing to an extract. When reading, no attempt is made to downsize for you, so you will always get float64 back from a Hyper extract.
