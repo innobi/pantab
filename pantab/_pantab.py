@@ -20,6 +20,7 @@ _type_mappings = (
     ("float64", tab_api.TypeTag.DOUBLE, "float64"),
     ("bool", tab_api.TypeTag.BOOL, "bool"),
     ("datetime64[ns]", tab_api.TypeTag.TIMESTAMP, "datetime64[ns]"),
+    ("timedelta64[ns]", tab_api.TypeTag.INTERVAL, "timedelta64[ns]"),
     ("object", tab_api.TypeTag.TEXT, "object"),
 )
 
@@ -75,6 +76,25 @@ _insert_functions = {
 }
 
 
+def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
+    """Converts a pandas Timedelta to tableau Hyper API implementation."""
+    days = td.days
+    without_days = td - pd.Timedelta(days=days)
+    total_seconds = int(without_days.total_seconds())
+    microseconds = total_seconds * 1_000_000
+
+    return tab_api.Interval(months=0, days=days, microseconds=microseconds)
+
+
+def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
+    """Converts a tableau Hyper API Interval to a pandas Timedelta."""
+    if interval.months != 0:
+        # TODO: Need to test this somehow
+        raise ValueError("Cannot read Intervals with month componenets.")
+
+    return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
+
+
 def _insert_frame(
     df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType
 ) -> None:
@@ -91,6 +111,12 @@ def _insert_frame(
         connection.catalog.create_schema_if_not_exists(table.schema_name)
 
     connection.catalog.create_table_if_not_exists(table_def)
+
+    # Special handling for conversions
+    df = df.copy()
+    for index, (_, content) in enumerate(df.items()):
+        if content.dtype == "timedelta64[ns]":
+            df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
         insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
@@ -124,6 +150,8 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     for key, val in dtypes.items():
         if val == "datetime64[ns]":
             df[key] = df[key].apply(lambda x: x._to_datetime())
+        elif val == "timedelta64[ns]":
+            df[key] = df[key].apply(_interval_to_timedelta)
 
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
