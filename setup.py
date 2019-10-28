@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
@@ -9,7 +8,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pantab',
-    version='0.0.1.a3',
+    version='0.0.1.b1',
     description='Converts pandas DataFrames into Tableau Hyper Extracts',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -18,7 +17,7 @@ setup(
     author_email='william.ayd@icloud.com',
     license='BSD',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Office/Business',
         'License :: OSI Approved :: BSD License',
