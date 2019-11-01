@@ -178,9 +178,7 @@ def test_duplicate_columns_raises(tmp_hyper):
         pantab.frames_to_hyper({"test": df}, tmp_hyper)
 
 
-@pytest.mark.parametrize(
-    "dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]"]
-)
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]"])
 def test_unsupported_dtype_raises(dtype, tmp_hyper):
     df = pd.DataFrame([[1]], dtype=dtype)
 
