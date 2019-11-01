@@ -115,7 +115,7 @@ def _insert_frame(
     df = df.copy()
     for index, (_, content) in enumerate(df.items()):
         if content.dtype == "timedelta64[ns]":
-            df.iloc[:, index] = content.apply(_timedelta_to_interval)
+            df.iloc[:, index] = content.apply(_timedelta_to_interval)  
 
     with tab_api.Inserter(connection, table_def) as inserter:
         insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
