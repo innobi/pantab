@@ -20,6 +20,7 @@ _type_mappings = (
     ("float64", tab_api.TypeTag.DOUBLE, "float64"),
     ("bool", tab_api.TypeTag.BOOL, "bool"),
     ("datetime64[ns]", tab_api.TypeTag.TIMESTAMP, "datetime64[ns]"),
+    ("datetime64[ns, UTC]", tab_api.TypeTag.TIMESTAMP_TZ, "datetime64[ns, UTC]"),
     ("timedelta64[ns]", tab_api.TypeTag.INTERVAL, "timedelta64[ns]"),
     ("object", tab_api.TypeTag.TEXT, "object"),
 )
@@ -149,6 +150,8 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     for key, val in dtypes.items():
         if val == "datetime64[ns]":
             df[key] = df[key].apply(lambda x: x._to_datetime())
+        elif val == "datetime64[ns, UTC]":
+            df[key] = df[key].apply(lambda x: x._to_datetime()).dt.tz_localize("UTC")
         elif val == "timedelta64[ns]":
             df[key] = df[key].apply(_interval_to_timedelta)
 

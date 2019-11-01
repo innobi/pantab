@@ -21,7 +21,8 @@ def df():
                 4.0,
                 5.0,
                 True,
-                pd.to_datetime("1/1/18"),
+                pd.to_datetime("2018-01-01"),
+                pd.to_datetime("2018-01-01", utc=True),
                 pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
                 "foo",
             ],
@@ -31,10 +32,11 @@ def df():
                 8,
                 9.0,
                 10.0,
-                True,
+                False,
                 pd.to_datetime("1/1/19"),
+                pd.to_datetime("2019-01-01", utc=True),
                 pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
-                "foo",
+                "bar",
             ],
         ],
         columns=[
@@ -45,6 +47,7 @@ def df():
             "float64",
             "bool",
             "datetime64",
+            "datetime64_utc",
             "timedelta64",
             "object",
         ],
@@ -59,6 +62,7 @@ def df():
             "float64": np.float64,
             "bool": np.bool,
             "datetime64": "datetime64[ns]",
+            "datetime64_utc": "datetime64[ns, UTC]",
             "timedelta64": "timedelta64[ns]",
             "object": "object",
         }
@@ -174,9 +178,7 @@ def test_duplicate_columns_raises(tmp_hyper):
         pantab.frames_to_hyper({"test": df}, tmp_hyper)
 
 
-@pytest.mark.parametrize(
-    "dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]", "datetime64[ns, UTC]"]
-)
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]"])
 def test_unsupported_dtype_raises(dtype, tmp_hyper):
     df = pd.DataFrame([[1]], dtype=dtype)
 
