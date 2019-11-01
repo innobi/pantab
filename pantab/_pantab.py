@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -20,12 +20,21 @@ _column_types = {
     "int16": _ColumnType(tab_api.SqlType.small_int(), tab_api.Nullability.NOT_NULLABLE),
     "int32": _ColumnType(tab_api.SqlType.int(), tab_api.Nullability.NOT_NULLABLE),
     "int64": _ColumnType(tab_api.SqlType.big_int(), tab_api.Nullability.NOT_NULLABLE),
+    "Int16": _ColumnType(tab_api.SqlType.small_int(), tab_api.Nullability.NULLABLE),
+    "Int32": _ColumnType(tab_api.SqlType.int(), tab_api.Nullability.NULLABLE),
+    "Int64": _ColumnType(tab_api.SqlType.big_int(), tab_api.Nullability.NULLABLE),
     "float32": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
     "float64": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
     "bool": _ColumnType(tab_api.SqlType.bool(), tab_api.Nullability.NOT_NULLABLE),
-    "datetime64[ns]": _ColumnType(tab_api.SqlType.timestamp(), tab_api.Nullability.NULLABLE),
-    "datetime64[ns, UTC]": _ColumnType(tab_api.SqlType.timestamp_tz(), tab_api.Nullability.NULLABLE),
-    "timedelta64[ns]": _ColumnType(tab_api.SqlType.interval(), tab_api.Nullability.NULLABLE),
+    "datetime64[ns]": _ColumnType(
+        tab_api.SqlType.timestamp(), tab_api.Nullability.NULLABLE
+    ),
+    "datetime64[ns, UTC]": _ColumnType(
+        tab_api.SqlType.timestamp_tz(), tab_api.Nullability.NULLABLE
+    ),
+    "timedelta64[ns]": _ColumnType(
+        tab_api.SqlType.interval(), tab_api.Nullability.NULLABLE
+    ),
     "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
 }
 
@@ -95,7 +104,9 @@ def _insert_frame(
 
     for col_name, dtype in df.dtypes.items():
         column_type = _pandas_to_tableau_type(dtype.name)
-        col = tab_api.TableDefinition.Column(name=col_name, type=column_type.type_, nullability=column_type.nullability)
+        col = tab_api.TableDefinition.Column(
+            name=col_name, type=column_type.type_, nullability=column_type.nullability
+        )
         insert_funcs.append(_insert_functions[column_type.type_])
         table_def.add_column(col)
 
