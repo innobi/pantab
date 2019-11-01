@@ -100,7 +100,7 @@ def _insert_frame(
     if isinstance(table, str):
         table = tab_api.TableName(table)
 
-    table_def = tab_api.TableDefinition(name=table)
+    table_def = tab_api.TableDefinition(table)
     ttypes = _types_for_columns(df)
     for col_name, ttype in zip(list(df.columns), ttypes):
         col = tab_api.TableDefinition.Column(col_name, tab_api.SqlType(ttype))
