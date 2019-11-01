@@ -1,3 +1,4 @@
+import collections
 import pathlib
 import shutil
 import tempfile
@@ -11,17 +12,21 @@ import tableauhyperapi as tab_api
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
 
+# The Hyper API as of writing doesn't offer great hashability for column comparison
+# so we create out namedtuple for that purpose
+_ColumnType = collections.namedtuple("_ColumnType", ["type_", "nullability"])
+
 _column_types = {
-    "int16": tab_api.SqlType.small_int(),
-    "int32": tab_api.SqlType.int(),
-    "int64": tab_api.SqlType.big_int(),
-    "float32": tab_api.SqlType.double(),
-    "float64": tab_api.SqlType.double(),
-    "bool": tab_api.SqlType.bool(),
-    "datetime64[ns]": tab_api.SqlType.timestamp(),
-    "datetime64[ns, UTC]": tab_api.SqlType.timestamp_tz(),
-    "timedelta64[ns]": tab_api.SqlType.interval(),
-    "object": tab_api.SqlType.text()
+    "int16": _ColumnType(tab_api.SqlType.small_int(), tab_api.Nullability.NOT_NULLABLE),
+    "int32": _ColumnType(tab_api.SqlType.int(), tab_api.Nullability.NOT_NULLABLE),
+    "int64": _ColumnType(tab_api.SqlType.big_int(), tab_api.Nullability.NOT_NULLABLE),
+    "float32": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
+    "float64": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
+    "bool": _ColumnType(tab_api.SqlType.bool(), tab_api.Nullability.NOT_NULLABLE),
+    "datetime64[ns]": _ColumnType(tab_api.SqlType.timestamp(), tab_api.Nullability.NULLABLE),
+    "datetime64[ns, UTC]": _ColumnType(tab_api.SqlType.timestamp_tz(), tab_api.Nullability.NULLABLE),
+    "timedelta64[ns]": _ColumnType(tab_api.SqlType.interval(), tab_api.Nullability.NULLABLE),
+    "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
 }
 
 
@@ -32,25 +37,18 @@ _pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
-def _pandas_to_tableau_type(typ: str) -> tab_api.TypeTag:
+def _pandas_to_tableau_type(typ: str) -> _ColumnType:
     try:
         return _column_types[typ]
     except KeyError:
         raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
-def _tableau_to_pandas_type(typ: tab_api.TypeTag) -> str:
+def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
     try:
         return _pandas_types[typ]
     except KeyError:
         return "object"
-
-
-def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
-    """
-    Return a tuple of Tableau types matching the ordering of `df.columns`.
-    """
-    return tuple(_pandas_to_tableau_type(x.name) for x in df.dtypes)
 
 
 # The Hyper API doesn't expose these functions directly and wraps them with
@@ -93,9 +91,12 @@ def _insert_frame(
         table = tab_api.TableName(table)
 
     table_def = tab_api.TableDefinition(table)
-    ttypes = _types_for_columns(df)
-    for col_name, sql_type in zip(list(df.columns), ttypes):
-        col = tab_api.TableDefinition.Column(col_name, sql_type)
+    insert_funcs: List[str] = []
+
+    for col_name, dtype in df.dtypes.items():
+        column_type = _pandas_to_tableau_type(dtype.name)
+        col = tab_api.TableDefinition.Column(name=col_name, type=column_type.type_, nullability=column_type.nullability)
+        insert_funcs.append(_insert_functions[column_type.type_])
         table_def.add_column(col)
 
     if isinstance(table, tab_api.TableName) and table.schema_name:
@@ -110,7 +111,6 @@ def _insert_frame(
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
         for row in df.itertuples(index=False):
             for index, val in enumerate(row):
                 # Missing value handling
@@ -126,13 +126,15 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     if isinstance(table, str):
         table = tab_api.TableName(table)
 
-    with connection.execute_query(f"SELECT * from {table}") as result:
-        schema = result.schema
-        # Create list containing column name as key, pandas dtype as value
-        dtypes: Dict[str, str] = {}
-        for column in schema.columns:
-            dtypes[column.name.unescaped] = _tableau_to_pandas_type(column.type)
+    table_def = connection.catalog.get_table_definition(table)
+    columns = table_def.columns
 
+    dtypes: Dict[str, str] = {}
+    for column in columns:
+        column_type = _ColumnType(column.type, column.nullability)
+        dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
+
+    with connection.execute_query(f"SELECT * from {table}") as result:
         df = pd.DataFrame(result)
 
     df.columns = dtypes.keys()
