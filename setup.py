@@ -2,6 +2,8 @@ from os import path
 
 from setuptools import find_packages, setup
 
+from pantab import __version__
+
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
@@ -9,7 +11,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="pantab",
-    version="0.0.1.b1",
+    version=__version__,
     description="Converts pandas DataFrames into Tableau Hyper Extracts",
     long_description=long_description,
     long_description_content_type="text/markdown",
