@@ -18,6 +18,9 @@ def df():
                 1,
                 2,
                 3,
+                1,
+                2,
+                3,
                 4.0,
                 5.0,
                 True,
@@ -30,6 +33,9 @@ def df():
                 6,
                 7,
                 8,
+                np.nan,
+                np.nan,
+                np.nan,
                 9.0,
                 10.0,
                 False,
@@ -43,6 +49,9 @@ def df():
             "int16",
             "int32",
             "int64",
+            "Int16",
+            "Int32",
+            "Int64",
             "float32",
             "float64",
             "bool",
@@ -178,7 +187,7 @@ def test_duplicate_columns_raises(tmp_hyper):
         pantab.frames_to_hyper({"test": df}, tmp_hyper)
 
 
-@pytest.mark.parametrize("dtype", ["Int64", "UInt64", "datetime64[ns, US/Eastern]"])
+@pytest.mark.parametrize("dtype", ["UInt64", "datetime64[ns, US/Eastern]"])
 def test_unsupported_dtype_raises(dtype, tmp_hyper):
     df = pd.DataFrame([[1]], dtype=dtype)
 

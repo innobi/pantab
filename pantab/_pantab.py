@@ -1,8 +1,9 @@
+import collections
 import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -11,69 +12,66 @@ import tableauhyperapi as tab_api
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
 
-# pandas type in, tableau type, tab->pan type
-_type_mappings = (
-    ("int16", tab_api.TypeTag.SMALL_INT, "int16"),
-    ("int32", tab_api.TypeTag.INT, "int32"),
-    ("int64", tab_api.TypeTag.BIG_INT, "int64"),
-    ("float32", tab_api.TypeTag.DOUBLE, "float64"),
-    ("float64", tab_api.TypeTag.DOUBLE, "float64"),
-    ("bool", tab_api.TypeTag.BOOL, "bool"),
-    ("datetime64[ns]", tab_api.TypeTag.TIMESTAMP, "datetime64[ns]"),
-    ("datetime64[ns, UTC]", tab_api.TypeTag.TIMESTAMP_TZ, "datetime64[ns, UTC]"),
-    ("timedelta64[ns]", tab_api.TypeTag.INTERVAL, "timedelta64[ns]"),
-    ("object", tab_api.TypeTag.TEXT, "object"),
-)
+# The Hyper API as of writing doesn't offer great hashability for column comparison
+# so we create out namedtuple for that purpose
+_ColumnType = collections.namedtuple("_ColumnType", ["type_", "nullability"])
+
+_column_types = {
+    "int16": _ColumnType(tab_api.SqlType.small_int(), tab_api.Nullability.NOT_NULLABLE),
+    "int32": _ColumnType(tab_api.SqlType.int(), tab_api.Nullability.NOT_NULLABLE),
+    "int64": _ColumnType(tab_api.SqlType.big_int(), tab_api.Nullability.NOT_NULLABLE),
+    "Int16": _ColumnType(tab_api.SqlType.small_int(), tab_api.Nullability.NULLABLE),
+    "Int32": _ColumnType(tab_api.SqlType.int(), tab_api.Nullability.NULLABLE),
+    "Int64": _ColumnType(tab_api.SqlType.big_int(), tab_api.Nullability.NULLABLE),
+    "float32": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
+    "float64": _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NULLABLE),
+    "bool": _ColumnType(tab_api.SqlType.bool(), tab_api.Nullability.NOT_NULLABLE),
+    "datetime64[ns]": _ColumnType(
+        tab_api.SqlType.timestamp(), tab_api.Nullability.NULLABLE
+    ),
+    "datetime64[ns, UTC]": _ColumnType(
+        tab_api.SqlType.timestamp_tz(), tab_api.Nullability.NULLABLE
+    ),
+    "timedelta64[ns]": _ColumnType(
+        tab_api.SqlType.interval(), tab_api.Nullability.NULLABLE
+    ),
+    "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
+}
+
+
+# Invert this, but exclude float32 as that does not roundtrip
+_pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
-def _pandas_to_tableau_type(typ: str) -> tab_api.TypeTag:
-    for ptype, ttype, _ in _type_mappings:
-        if typ == ptype:
-            return ttype
-
-    raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
-
-
-def _tableau_to_pandas_type(typ: tab_api.TypeTag) -> str:
-    for _, ttype, ret_type in _type_mappings:
-        if typ == ttype:
-            return ret_type
-
-    # Fallback to object
-    return "object"
+def _pandas_to_tableau_type(typ: str) -> _ColumnType:
+    try:
+        return _column_types[typ]
+    except KeyError:
+        raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
-def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
-    """
-    Return a tuple of Tableau types matching the ordering of `df.columns`.
-    """
-    return tuple(_pandas_to_tableau_type(x.name) for x in df.dtypes)
+def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
+    try:
+        return _pandas_types[typ]
+    except KeyError:
+        return "object"
 
 
 # The Hyper API doesn't expose these functions directly and wraps them with
 # validation; we can skip the validation because the column dtypes enforce that
 _insert_functions = {
-    tab_api.TypeTag.UNSUPPORTED: "_Inserter__write_raw_bytes",
-    tab_api.TypeTag.BOOL: "_Inserter__write_bool",
-    tab_api.TypeTag.BIG_INT: "_Inserter__write_big_int",
-    tab_api.TypeTag.SMALL_INT: "_Inserter__write_small_int",
-    tab_api.TypeTag.INT: "_Inserter__write_int",
-    tab_api.TypeTag.DOUBLE: "_Inserter__write_double",
-    tab_api.TypeTag.OID: "_Inserter__write_uint",
-    tab_api.TypeTag.BYTES: "_Inserter__write_bytes",
-    tab_api.TypeTag.TEXT: "_Inserter__write_text",
-    tab_api.TypeTag.VARCHAR: "_Inserter__write_text",
-    tab_api.TypeTag.CHAR: "_Inserter__write_text",
-    tab_api.TypeTag.JSON: "_Inserter__write_text",
-    tab_api.TypeTag.DATE: "_Inserter__write_date",
-    tab_api.TypeTag.INTERVAL: "_Inserter__write_interval",
-    tab_api.TypeTag.TIME: "_Inserter__write_time",
-    tab_api.TypeTag.TIMESTAMP: "_Inserter__write_timestamp",
-    tab_api.TypeTag.TIMESTAMP_TZ: "_Inserter__write_timestamp",
-    tab_api.TypeTag.GEOGRAPHY: "_Inserter__write_bytes",
+    tab_api.SqlType.bool(): "_Inserter__write_bool",
+    tab_api.SqlType.big_int(): "_Inserter__write_big_int",
+    tab_api.SqlType.small_int(): "_Inserter__write_small_int",
+    tab_api.SqlType.int(): "_Inserter__write_int",
+    tab_api.SqlType.double(): "_Inserter__write_double",
+    tab_api.SqlType.text(): "_Inserter__write_text",
+    tab_api.SqlType.interval(): "_Inserter__write_interval",
+    tab_api.SqlType.timestamp(): "_Inserter__write_timestamp",
+    tab_api.SqlType.timestamp_tz(): "_Inserter__write_timestamp",
 }
 
 
@@ -102,9 +100,14 @@ def _insert_frame(
         table = tab_api.TableName(table)
 
     table_def = tab_api.TableDefinition(table)
-    ttypes = _types_for_columns(df)
-    for col_name, ttype in zip(list(df.columns), ttypes):
-        col = tab_api.TableDefinition.Column(col_name, tab_api.SqlType(ttype))
+    insert_funcs: List[str] = []
+
+    for col_name, dtype in df.dtypes.items():
+        column_type = _pandas_to_tableau_type(dtype.name)
+        col = tab_api.TableDefinition.Column(
+            name=col_name, type=column_type.type_, nullability=column_type.nullability
+        )
+        insert_funcs.append(_insert_functions[column_type.type_])
         table_def.add_column(col)
 
     if isinstance(table, tab_api.TableName) and table.schema_name:
@@ -119,7 +122,6 @@ def _insert_frame(
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        insert_funcs = tuple(_insert_functions[ttype] for ttype in ttypes)
         for row in df.itertuples(index=False):
             for index, val in enumerate(row):
                 # Missing value handling
@@ -135,13 +137,15 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     if isinstance(table, str):
         table = tab_api.TableName(table)
 
-    with connection.execute_query(f"SELECT * from {table}") as result:
-        schema = result.schema
-        # Create list containing column name as key, pandas dtype as value
-        dtypes: Dict[str, str] = {}
-        for column in schema.columns:
-            dtypes[column.name.unescaped] = _tableau_to_pandas_type(column.type.tag)
+    table_def = connection.catalog.get_table_definition(table)
+    columns = table_def.columns
 
+    dtypes: Dict[str, str] = {}
+    for column in columns:
+        column_type = _ColumnType(column.type, column.nullability)
+        dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
+
+    with connection.execute_query(f"SELECT * from {table}") as result:
         df = pd.DataFrame(result)
 
     df.columns = dtypes.keys()
