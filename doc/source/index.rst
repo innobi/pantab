@@ -7,6 +7,7 @@ pantab
    examples
    caveats
    api
+   changelog
 
 What is it?
 -----------
