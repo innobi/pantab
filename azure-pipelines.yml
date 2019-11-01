@@ -28,14 +28,14 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    pip install pytest pytest-azurepipelines
-    pytest
-  displayName: 'pytest'
-
-- script: |
     pip install flake8 mypy isort black
     black --check pantab
     isort **/*.py -c
     mypy pantab
     flake8 pantab
   displayName: 'code checks'
+
+- script: |
+    pip install pytest pytest-azurepipelines
+    pytest
+  displayName: 'pytest'
