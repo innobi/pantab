@@ -11,39 +11,39 @@ import tableauhyperapi as tab_api
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
 
-# pandas type in, tableau type, tab->pan type
-_type_mappings = (
-    ("int16", tab_api.TypeTag.SMALL_INT, "int16"),
-    ("int32", tab_api.TypeTag.INT, "int32"),
-    ("int64", tab_api.TypeTag.BIG_INT, "int64"),
-    ("float32", tab_api.TypeTag.DOUBLE, "float64"),
-    ("float64", tab_api.TypeTag.DOUBLE, "float64"),
-    ("bool", tab_api.TypeTag.BOOL, "bool"),
-    ("datetime64[ns]", tab_api.TypeTag.TIMESTAMP, "datetime64[ns]"),
-    ("datetime64[ns, UTC]", tab_api.TypeTag.TIMESTAMP_TZ, "datetime64[ns, UTC]"),
-    ("timedelta64[ns]", tab_api.TypeTag.INTERVAL, "timedelta64[ns]"),
-    ("object", tab_api.TypeTag.TEXT, "object"),
-)
+_column_types = {
+    "int16": tab_api.TypeTag.SMALL_INT,
+    "int32": tab_api.TypeTag.INT,
+    "int64": tab_api.TypeTag.BIG_INT,
+    "float32": tab_api.TypeTag.DOUBLE,
+    "float64": tab_api.TypeTag.DOUBLE,
+    "bool": tab_api.TypeTag.BOOL,
+    "datetime64[ns]": tab_api.TypeTag.TIMESTAMP,
+    "datetime64[ns, UTC]": tab_api.TypeTag.TIMESTAMP_TZ,
+    "timedelta64[ns]": tab_api.TypeTag.INTERVAL,
+    "object": tab_api.TypeTag.TEXT,
+}
+
+
+# Invert this, but exclude float32 as that does not roundtrip
+_pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
 def _pandas_to_tableau_type(typ: str) -> tab_api.TypeTag:
-    for ptype, ttype, _ in _type_mappings:
-        if typ == ptype:
-            return ttype
-
-    raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
+    try:
+        return _column_types[typ]
+    except KeyError:
+        raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
 def _tableau_to_pandas_type(typ: tab_api.TypeTag) -> str:
-    for _, ttype, ret_type in _type_mappings:
-        if typ == ttype:
-            return ret_type
-
-    # Fallback to object
-    return "object"
+    try:
+        return _pandas_types[typ]
+    except KeyError:
+        return "object"
 
 
 def _types_for_columns(df: pd.DataFrame) -> Tuple[tab_api.TypeTag, ...]:
