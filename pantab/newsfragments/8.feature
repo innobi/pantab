@@ -1,0 +1,1 @@
+Added support for reading / writing UTC timestamps, rather than only timezone-naive.

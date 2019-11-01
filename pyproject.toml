@@ -1,0 +1,3 @@
+[tool.towncrier]
+    package = "pantab"
+    filename = "NEWS.rst"

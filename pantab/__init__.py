@@ -1,4 +1,4 @@
-__version__ = "0.0.1.b2"
+__version__ = "0.0.1.b3"
 
 
 from ._pantab import (
