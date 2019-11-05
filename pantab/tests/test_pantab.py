@@ -80,14 +80,16 @@ def df():
     return df
 
 
+@pytest.fixture
 def tmp_hyper(tmp_path):
     """A temporary file name to write / read a Hyper extract from."""
     return tmp_path / "test.hyper"
 
 
 @pytest.fixture(params=["w", "a"])
-def table_mode():
+def table_mode(request):
     """Write or append markers for table handling."""
+    return request.param
 
 
 @pytest.fixture(
@@ -158,6 +160,12 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name, table_mode):
     )
     for val in result.values():
         tm.assert_frame_equal(val, expected)
+
+
+def test_bad_table_mode_raises(df, tmp_hyper):
+    msg = "table_mode must be either 'w' or 'a'"
+    with pytest.raises(ValueError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="x")
 
 
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):

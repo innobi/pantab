@@ -94,7 +94,7 @@ def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
 
 
 def _insert_frame(
-    df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType
+        df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType, table_mode: str
 ) -> None:
     if isinstance(table, str):
         table = tab_api.TableName(table)
@@ -166,7 +166,7 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
 
 
 def frame_to_hyper(
-    df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType
+        df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType, table_mode: str = "w"
 ) -> None:
     """
     Convert a DataFrame to a .hyper extract.
@@ -188,13 +188,13 @@ def frame_to_hyper(
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
         ) as connection:
-            _insert_frame(df, connection=connection, table=table)
+            _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
         shutil.move(tmp_db, database)
 
 
 def frame_from_hyper(
-    database: Union[str, pathlib.Path], *, table: TableType
+        database: Union[str, pathlib.Path], *, table: TableType
 ) -> pd.DataFrame:
     """
     Extracts a DataFrame from a .hyper extract.
@@ -219,7 +219,7 @@ def frame_from_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
+        dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path], table_mode: str = "w"
 ) -> None:
     """See api.rst for documentation."""
     with tab_api.HyperProcess(
@@ -231,7 +231,7 @@ def frames_to_hyper(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
         ) as connection:
             for table, df in dict_of_frames.items():
-                _insert_frame(df, connection=connection, table=table)
+                _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
         shutil.move(tmp_db, database)
 
