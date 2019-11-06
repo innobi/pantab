@@ -93,9 +93,16 @@ def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
     return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
 
 
+def _validate_table_mode(table_mode: str) -> None:
+    if table_mode not in {"a", "w"}:
+        raise ValueError("'table_mode' must be either 'w' or 'a'")
+
+
 def _insert_frame(
         df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType, table_mode: str
 ) -> None:
+    _validate_table_mode(table_mode)
+
     if isinstance(table, str):
         table = tab_api.TableName(table)
 
@@ -222,6 +229,8 @@ def frames_to_hyper(
         dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path], table_mode: str = "w"
 ) -> None:
     """See api.rst for documentation."""
+    _validate_table_mode(table_mode)
+
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:

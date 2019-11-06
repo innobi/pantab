@@ -163,9 +163,12 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name, table_mode):
 
 
 def test_bad_table_mode_raises(df, tmp_hyper):
-    msg = "table_mode must be either 'w' or 'a'"
+    msg = "'table_mode' must be either 'w' or 'a'"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="x")
+
+    with pytest.raises(ValueError, match=msg):
+        pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
 
 
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
