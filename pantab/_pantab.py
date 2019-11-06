@@ -155,7 +155,7 @@ def _insert_frame(
 
     # Populate insertion mechanisms dependent on column types
     insert_funcs: List[str] = []
-    column_types: List[str] = []
+    column_types: List[_ColumnType] = []
     columns: List[tab_api.TableDefinition.Column] = []
     for col_name, dtype in df.dtypes.items():
         column_type = _pandas_to_tableau_type(dtype.name)
