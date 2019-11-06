@@ -22,7 +22,7 @@ copyright = '2019, Will Ayd, innobi, LLC'
 author = 'Will Ayd, innobi, LLC'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.2a'
+release = '0.0.1b5'
 
 
 # -- General configuration ---------------------------------------------------
