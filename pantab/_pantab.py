@@ -248,7 +248,7 @@ def frame_to_hyper(
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         if table_mode == "a" and pathlib.Path(database).exists():
-            shutil.move(database, tmp_db)
+            shutil.copy(database, tmp_db)
 
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -284,7 +284,7 @@ def frames_to_hyper(
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         if table_mode == "a" and pathlib.Path(database).exists():
-            shutil.move(database, tmp_db)
+            shutil.copy(database, tmp_db)
 
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
