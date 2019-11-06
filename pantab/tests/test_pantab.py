@@ -115,7 +115,7 @@ def test_roundtrip(df, tmp_hyper, table_name, table_mode):
     expected = df.copy()
 
     if table_mode == "a":
-        expected = pd.concat([expected, expected], axis=1)
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     expected["float32"] = expected["float32"].astype(np.float64)
 
@@ -128,13 +128,14 @@ def test_roundtrip_missing_data(tmp_hyper, table_name, table_mode):
     df["c"] = pd.Series([np.nan, "c"])
 
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)    
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     expected = pd.DataFrame(
         [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
     )
     if table_mode == "a":
-        expected = pd.concat([expected, expected], axis=1)
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
 
@@ -147,7 +148,7 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name, table_mode):
 
     expected = df.copy()
     if table_mode == "a":
-        expected = pd.concat([expected, expected], axis=1)
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     expected["float32"] = expected["float32"].astype(np.float64)
 
@@ -172,11 +173,19 @@ def test_bad_table_mode_raises(df, tmp_hyper):
 
 
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
-    raise NotImplementedError
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+
+    df = df.drop("object", axis=1)
+    with pytest.raises(TypeError):
+        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
 def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name):
-    raise NotImplementedError
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+
+    df["int16"] = df["int16"].astype(np.int64)
+    with pytest.raises(TypeError):
+        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
