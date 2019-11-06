@@ -176,7 +176,8 @@ def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
     df = df.drop("object", axis=1)
-    with pytest.raises(TypeError):
+    msg = "^Mismatched column definitions:"
+    with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
@@ -184,6 +185,7 @@ def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
     df["int16"] = df["int16"].astype(np.int64)
+    msg = "^Mismatched column definitions:"
     with pytest.raises(TypeError):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
