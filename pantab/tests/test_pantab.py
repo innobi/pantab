@@ -206,8 +206,8 @@ def test_read_doesnt_modify_existing_file(df, tmp_hyper):
     assert last_modified == tmp_hyper.stat().st_mtime
 
 
-def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mode):
+    pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode=table_mode)
     last_modified = tmp_hyper.stat().st_mtime
 
     # Let's patch the Inserter to fail on creation
@@ -218,8 +218,8 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch):
 
     # Try out our write methods
     with pytest.raises(ValueError, match="dummy failure"):
-        pantab.frame_to_hyper(df, tmp_hyper, table="test")
-        pantab.frames_to_hyper({"test": df}, tmp_hyper)
+        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode=table_mode)
+        pantab.frames_to_hyper({"test": df}, tmp_hyper, table_mode=table_mode)
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
