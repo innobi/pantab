@@ -86,6 +86,12 @@ def tmp_hyper(tmp_path):
     return tmp_path / "test.hyper"
 
 
+@pytest.fixture(params=["w", "a"])
+def table_mode(request):
+    """Write or append markers for table handling."""
+    return request.param
+
+
 @pytest.fixture(
     params=[
         "table",
@@ -100,34 +106,54 @@ def table_name(request):
     return request.param
 
 
-def test_roundtrip(df, tmp_hyper, table_name):
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+def test_roundtrip(df, tmp_hyper, table_name, table_mode):
+    # Write twice; depending on mode this should either overwrite or duplicate entries
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+
     expected = df.copy()
+
+    if table_mode == "a":
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
+
     expected["float32"] = expected["float32"].astype(np.float64)
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_roundtrip_missing_data(tmp_hyper, table_name):
+def test_roundtrip_missing_data(tmp_hyper, table_name, table_mode):
     df = pd.DataFrame([[np.nan], [1]], columns=list("a"))
     df["b"] = pd.Series([None, np.nan], dtype=object)  # no inference
     df["c"] = pd.Series([np.nan, "c"])
 
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     expected = pd.DataFrame(
         [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
     )
+    if table_mode == "a":
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
+
     tm.assert_frame_equal(result, expected)
 
 
-def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
-    pantab.frames_to_hyper({table_name: df, "table2": df}, tmp_hyper)
-
+def test_roundtrip_multiple_tables(df, tmp_hyper, table_name, table_mode):
+    # Write twice; depending on mode this should either overwrite or duplicate entries
+    pantab.frames_to_hyper(
+        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+    )
+    pantab.frames_to_hyper(
+        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+    )
     result = pantab.frames_from_hyper(tmp_hyper)
+
     expected = df.copy()
+    if table_mode == "a":
+        expected = pd.concat([expected, expected]).reset_index(drop=True)
+
     expected["float32"] = expected["float32"].astype(np.float64)
 
     # some test trickery here
@@ -139,6 +165,33 @@ def test_roundtrip_multiple_tables(df, tmp_hyper, table_name):
     )
     for val in result.values():
         tm.assert_frame_equal(val, expected)
+
+
+def test_bad_table_mode_raises(df, tmp_hyper):
+    msg = "'table_mode' must be either 'w' or 'a'"
+    with pytest.raises(ValueError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="x")
+
+    with pytest.raises(ValueError, match=msg):
+        pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
+
+
+def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+
+    df = df.drop("object", axis=1)
+    msg = "^Mismatched column definitions:"
+    with pytest.raises(TypeError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
+
+
+def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name):
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+
+    df["int16"] = df["int16"].astype(np.int64)
+    msg = "^Mismatched column definitions:"
+    with pytest.raises(TypeError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):

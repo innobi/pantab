@@ -80,6 +80,26 @@ Reading and Writing Multiple Tables
 
    While you can write using ``str``, ``tableauhyperapi.Name`` or ``tableauhyperapi.TableName`` instances, the keys of the dict returned by ``frames_from_hyper`` will always be ``tableauhyperapi.TableName`` instances
 
-.. warning::
+Appending Data to Existing Tables
+---------------------------------
 
-   pantab currently supports only complete read and writes of a hyper extract. Partial updates are not implemented. See :doc:`caveats`
+By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloaded targeted tables. However, you can also append records to existing tables by supplying ``table_mode="a"`` as a keyword argument.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+
+   df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+   ], columns=["animal", "num_of_legs"])
+
+   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+
+   new_data = pd.DataFrame([["moose", 4]], columns=["animal", "num_of_legs"])
+
+   # Instead of overwriting the animals table, we can append via table_mode
+   pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a")
+
+Please note that ``table_mode="a"`` will create the table(s) if they do not already exist.

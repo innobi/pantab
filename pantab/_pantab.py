@@ -1,9 +1,10 @@
 import collections
+import itertools
 import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Union
+from typing import Dict, List, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -93,27 +94,95 @@ def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
     return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
 
 
-def _insert_frame(
-    df: pd.DataFrame, *, connection: tab_api.Connection, table: TableType
+def _validate_table_mode(table_mode: str) -> None:
+    if table_mode not in {"a", "w"}:
+        raise ValueError("'table_mode' must be either 'w' or 'a'")
+
+
+def _assert_columns_equal(
+    left: Sequence[tab_api.TableDefinition.Column],
+    right: Sequence[tab_api.TableDefinition.Column],
 ) -> None:
+    """
+    Helper function to validate if sequences of columns are equal.
+
+    The TableauHyperAPI as of 0.0.8953 does not implement equality operations
+    for Column instances, hence the need for this.
+    """
+
+    class DummyColumn:
+        """Dummy class to match items needed for str repr of columns."""
+
+        @property
+        def name(self):
+            return None
+
+        @property
+        def type(self):
+            return None
+
+        @property
+        def nullability(self):
+            return None
+
+    for c1, c2 in itertools.zip_longest(left, right, fillvalue=DummyColumn()):
+        if c1.name != c2.name or c1.type != c2.type or c1.nullability != c2.nullability:
+            break  # go to error handler
+    else:
+        return None  # everything matched up, so bail out
+
+    c1_str = ", ".join(
+        f"(Name={x.name}, Type={x.type}, Nullability={x.nullability})" for x in left
+    )
+    c2_str = ", ".join(
+        f"(Name={x.name}, Type={x.type}, Nullability={x.nullability})" for x in right
+    )
+
+    raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
+
+
+def _insert_frame(
+    df: pd.DataFrame,
+    *,
+    connection: tab_api.Connection,
+    table: TableType,
+    table_mode: str,
+) -> None:
+    _validate_table_mode(table_mode)
+
     if isinstance(table, str):
         table = tab_api.TableName(table)
 
-    table_def = tab_api.TableDefinition(table)
+    # Populate insertion mechanisms dependent on column types
     insert_funcs: List[str] = []
-
+    column_types: List[_ColumnType] = []
+    columns: List[tab_api.TableDefinition.Column] = []
     for col_name, dtype in df.dtypes.items():
         column_type = _pandas_to_tableau_type(dtype.name)
-        col = tab_api.TableDefinition.Column(
-            name=col_name, type=column_type.type_, nullability=column_type.nullability
-        )
+        column_types.append(column_type)
         insert_funcs.append(_insert_functions[column_type.type_])
-        table_def.add_column(col)
+        columns.append(
+            tab_api.TableDefinition.Column(
+                name=col_name,
+                type=column_type.type_,
+                nullability=column_type.nullability,
+            )
+        )
 
-    if isinstance(table, tab_api.TableName) and table.schema_name:
-        connection.catalog.create_schema_if_not_exists(table.schema_name)
+    # Sanity check for existing table structures
+    if table_mode == "a" and connection.catalog.has_table(table):
+        table_def = connection.catalog.get_table_definition(table)
+        _assert_columns_equal(columns, table_def.columns)
+    else:  # New table, potentially new schema
+        table_def = tab_api.TableDefinition(table)
 
-    connection.catalog.create_table_if_not_exists(table_def)
+        for column, column_type in zip(columns, column_types):
+            table_def.add_column(column)
+
+        if isinstance(table, tab_api.TableName) and table.schema_name:
+            connection.catalog.create_schema_if_not_exists(table.schema_name)
+
+        connection.catalog.create_table_if_not_exists(table_def)
 
     # Special handling for conversions
     df = df.copy()
@@ -166,29 +235,25 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
 
 
 def frame_to_hyper(
-    df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: TableType
+    df: pd.DataFrame,
+    database: Union[str, pathlib.Path],
+    *,
+    table: TableType,
+    table_mode: str = "w",
 ) -> None:
-    """
-    Convert a DataFrame to a .hyper extract.
-
-    Parameters
-    ----------
-    df : DataFrame
-        Data to be written out.
-    database : str
-        tab_api.Name / location of the Hyper file to be written to.
-    table : str, tab_api.Name or tab_api.TableName
-        tab_api.Name of the table to write to. Must be supplied as a keyword argument.
-    """
+    """See api.rst for documentation"""
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
+        if table_mode == "a" and pathlib.Path(database).exists():
+            shutil.move(database, tmp_db)
+
         with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            _insert_frame(df, connection=connection, table=table)
+            _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
         shutil.move(tmp_db, database)
 
@@ -196,20 +261,7 @@ def frame_to_hyper(
 def frame_from_hyper(
     database: Union[str, pathlib.Path], *, table: TableType
 ) -> pd.DataFrame:
-    """
-    Extracts a DataFrame from a .hyper extract.
-
-    Parameters
-    ----------
-    database : str
-        tab_api.Name / location of the Hyper file to be read.
-    table : str
-        tab_api.Name of the table to read. Must be supplied as a keyword argument.
-
-    Returns
-    -------
-    DataFrame
-    """
+    """See api.rst for documentation"""
     with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
@@ -219,19 +271,28 @@ def frame_from_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: Dict[TableType, pd.DataFrame], database: Union[str, pathlib.Path]
+    dict_of_frames: Dict[TableType, pd.DataFrame],
+    database: Union[str, pathlib.Path],
+    table_mode: str = "w",
 ) -> None:
     """See api.rst for documentation."""
+    _validate_table_mode(table_mode)
+
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
+        if table_mode == "a" and pathlib.Path(database).exists():
+            shutil.move(database, tmp_db)
+
         with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE
+            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
             for table, df in dict_of_frames.items():
-                _insert_frame(df, connection=connection, table=table)
+                _insert_frame(
+                    df, connection=connection, table=table, table_mode=table_mode
+                )
 
         shutil.move(tmp_db, database)
 
