@@ -1,8 +1,17 @@
 Changelog
 ^^^^^^^^^
 
+0.0.1.b5 (2019-11-05)
+=====================
+
+Bugfixes
+--------
+
+- Fixed issue where failures during append mode (``table_mode="a"``) would delete original Hyper file. (#17)
+
+
 0.0.1.b4 (2019-11-05)
-============================
+=====================
 
 Features
 --------

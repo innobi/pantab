@@ -1,1 +1,0 @@
-Fixed issue where failures during append mode (``table_mode="a"``) would delete original Hyper file.
