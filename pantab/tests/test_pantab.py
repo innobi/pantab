@@ -128,7 +128,7 @@ def test_roundtrip_missing_data(tmp_hyper, table_name, table_mode):
     df["c"] = pd.Series([np.nan, "c"])
 
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)    
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     expected = pd.DataFrame(
@@ -142,8 +142,12 @@ def test_roundtrip_missing_data(tmp_hyper, table_name, table_mode):
 
 def test_roundtrip_multiple_tables(df, tmp_hyper, table_name, table_mode):
     # Write twice; depending on mode this should either overwrite or duplicate entries
-    pantab.frames_to_hyper({table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode)
-    pantab.frames_to_hyper({table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode)
+    pantab.frames_to_hyper(
+        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+    )
+    pantab.frames_to_hyper(
+        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+    )
     result = pantab.frames_from_hyper(tmp_hyper)
 
     expected = df.copy()
@@ -186,7 +190,7 @@ def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name):
 
     df["int16"] = df["int16"].astype(np.int64)
     msg = "^Mismatched column definitions:"
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
