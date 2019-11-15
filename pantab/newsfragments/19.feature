@@ -1,0 +1,1 @@
+Improved error messaging when attempting to write invalid data.
