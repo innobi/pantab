@@ -1,0 +1,1 @@
+Added a progress bar for writing to Hyper Extracts.
