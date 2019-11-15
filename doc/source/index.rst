@@ -8,6 +8,7 @@ pantab
    caveats
    api
    changelog
+   support
 
 What is it?
 -----------
