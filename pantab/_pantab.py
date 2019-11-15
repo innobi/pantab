@@ -3,6 +3,7 @@ import itertools
 import pathlib
 import shutil
 import tempfile
+import tqdm
 import uuid
 from typing import Dict, List, Sequence, Union
 
@@ -191,7 +192,8 @@ def _insert_frame(
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        for row in df.itertuples(index=False):
+        print(f"Writing {table}...\n")
+        for row in tqdm.tqdm(df.itertuples(index=False), total=len(df)):
             for index, val in enumerate(row):
                 # Missing value handling
                 if val is None or val != val:
