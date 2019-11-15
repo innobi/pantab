@@ -31,6 +31,6 @@ setup(
     keywords="tableau visualization pandas dataframe",
     packages=find_packages(exclude=["samples", "tests"]),
     python_requires=">=3.6",
-    install_requires=["pandas"],
+    install_requires=["pandas", "tqdm"],
     extras_require={"dev": ["pytest"]},
 )
