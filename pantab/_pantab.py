@@ -191,13 +191,22 @@ def _insert_frame(
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        for row in df.itertuples(index=False):
-            for index, val in enumerate(row):
+        for row_index, row in enumerate(df.itertuples(index=False)):
+            for col_index, val in enumerate(row):
                 # Missing value handling
                 if val is None or val != val:
                     inserter._Inserter__write_null()
                 else:
-                    getattr(inserter, insert_funcs[index])(val)
+                    try:
+                        getattr(inserter, insert_funcs[col_index])(val)
+                    except TypeError as e:
+                        column = df.iloc[:, col_index]
+                        breakpoint()
+                        msg = (
+                            f"Unsupported type '{type(val)}' for column type "
+                            f"'{column.dtype}' (column '{column.name}' row {row_index})"
+                        )
+                        raise TypeError(msg) from e
 
         inserter.execute()
 
