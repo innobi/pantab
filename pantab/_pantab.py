@@ -207,8 +207,8 @@ def _insert_frame(
                         )
 
                         msg += (
-                            "\n See https://pantab.readthedocs.io/en/latest/caveats.html"
-                            "#type-mapping"
+                            "\n See https://pantab.readthedocs.io/en/latest/"
+                            "caveats.html#type-mapping"
                         )
                         raise TypeError(msg) from e
 

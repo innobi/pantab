@@ -272,6 +272,10 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
 def test_bad_value_gives_clear_message(tmp_hyper):
     df = pd.DataFrame([[{"a": "b"}]], columns=["a"])
 
-    msg = r"Unsupported type '<class 'dict'>' for column type 'object' \(column 'a' row 0\)"
+    msg = (
+        r"Unsupported type '<class 'dict'>' for column type 'object' "
+        r"\(column 'a' row 0\)"
+    )
+
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
