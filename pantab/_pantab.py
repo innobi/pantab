@@ -3,13 +3,13 @@ import itertools
 import pathlib
 import shutil
 import tempfile
-import tqdm
 import uuid
 from typing import Dict, List, Sequence, Union
 
 import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
+import tqdm
 
 __all__ = ["frame_to_hyper", "frame_from_hyper", "frames_from_hyper", "frames_to_hyper"]
 
