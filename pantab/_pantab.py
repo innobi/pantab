@@ -201,10 +201,14 @@ def _insert_frame(
                         getattr(inserter, insert_funcs[col_index])(val)
                     except TypeError as e:
                         column = df.iloc[:, col_index]
-                        breakpoint()
                         msg = (
                             f"Unsupported type '{type(val)}' for column type "
                             f"'{column.dtype}' (column '{column.name}' row {row_index})"
+                        )
+
+                        msg += (
+                            "\n See https://pantab.readthedocs.io/en/latest/caveats.html"
+                            "#type-mapping"
                         )
                         raise TypeError(msg) from e
 
