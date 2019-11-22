@@ -214,7 +214,7 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mo
     def failure(*args, **kwargs):
         raise ValueError("dummy failure")
 
-    monkeypatch.setattr(pantab._pantab.tab_api, "Inserter", failure, raising=True)
+    monkeypatch.setattr(pantab._writer.tab_api, "Inserter", failure, raising=True)
 
     # Try out our write methods
     with pytest.raises(ValueError, match="dummy failure"):
@@ -256,7 +256,7 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
         self.days = days
         self.microseconds = microseconds
 
-    monkeypatch.setattr(pantab._pantab.tab_api.Interval, "__init__", __init__)
+    monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
     with pytest.raises(
         ValueError, match=r"Cannot read Intervals with month componenets\."
