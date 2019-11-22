@@ -33,4 +33,3 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
         ValueError, match=r"Cannot read Intervals with month componenets\."
     ):
         pantab.frames_from_hyper(tmp_hyper)
-    

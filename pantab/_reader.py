@@ -9,8 +9,8 @@ import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
 
-
 TableType = Union[str, tab_api.Name, tab_api.TableName]
+
 
 def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
     try:
@@ -70,7 +70,7 @@ def frame_from_hyper(
         with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
             return _read_table(connection=connection, table=table)
 
-        
+
 def frames_from_hyper(
     database: Union[str, pathlib.Path]
 ) -> Dict[tab_api.TableName, pd.DataFrame]:
@@ -86,4 +86,3 @@ def frames_from_hyper(
                     result[table] = _read_table(connection=connection, table=table)
 
     return result
-        

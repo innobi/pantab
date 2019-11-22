@@ -3,7 +3,6 @@ from typing import Union
 
 import tableauhyperapi as tab_api
 
-
 # The Hyper API as of writing doesn't offer great hashability for column comparison
 # so we create out namedtuple for that purpose
 _ColumnType = collections.namedtuple("_ColumnType", ["type_", "nullability"])

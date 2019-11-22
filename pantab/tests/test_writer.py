@@ -88,4 +88,3 @@ def test_bad_value_gives_clear_message(tmp_hyper):
 
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
-        

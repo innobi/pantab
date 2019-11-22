@@ -1,7 +1,7 @@
+import itertools
 import pathlib
 import shutil
 import tempfile
-import itertools
 import uuid
 from typing import Dict, List, Sequence, Union
 
@@ -9,6 +9,7 @@ import pandas as pd
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
+
 
 def _pandas_to_tableau_type(typ: str) -> pantab_types._ColumnType:
     try:
@@ -40,8 +41,6 @@ def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
     microseconds = total_seconds * 1_000_000
 
     return tab_api.Interval(months=0, days=days, microseconds=microseconds)
-
-
 
 
 def _validate_table_mode(table_mode: str) -> None:
@@ -165,9 +164,6 @@ def _insert_frame(
         inserter.execute()
 
 
-
-
-
 def frame_to_hyper(
     df: pd.DataFrame,
     database: Union[str, pathlib.Path],
@@ -190,8 +186,6 @@ def frame_to_hyper(
             _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
         shutil.move(tmp_db, database)
-
-
 
 
 def frames_to_hyper(
