@@ -5,10 +5,10 @@ import pantab
 
 
 class TimeSuite:
-
     def setup_cache(self):
         nrows = 1000
-        data = [[
+        data = [
+            [
                 1,
                 2,
                 3,
@@ -22,23 +22,27 @@ class TimeSuite:
                 pd.to_datetime("2018-01-01", utc=True),
                 pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
                 "foo",
-            ]] * 1000
+            ]
+        ] * nrows
 
-        df = pd.DataFrame(data, columns=[
-            "int16",
-            "int32",
-            "int64",
-            "Int16",
-            "Int32",
-            "Int64",
-            "float32",
-            "float64",
-            "bool",
-            "datetime64",
-            "datetime64_utc",
-            "timedelta64",
-            "object",
-        ])
+        df = pd.DataFrame(
+            data,
+            columns=[
+                "int16",
+                "int32",
+                "int64",
+                "Int16",
+                "Int32",
+                "Int64",
+                "float32",
+                "float64",
+                "bool",
+                "datetime64",
+                "datetime64_utc",
+                "timedelta64",
+                "object",
+            ],
+        )
 
         df = df.astype(
             {
