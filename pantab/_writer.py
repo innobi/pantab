@@ -142,7 +142,7 @@ def _insert_frame(
 
     with tab_api.Inserter(connection, table_def) as inserter:
         bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
-        libwriter.write_to_hyper(df.itertuples(index=False), bound_funcs)
+        libwriter.write_to_hyper(df.itertuples(index=False), bound_funcs, inserter._Inserter__write_null)
         inserter.execute()
 
 

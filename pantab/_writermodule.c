@@ -8,24 +8,28 @@
 // in the process,though note that this is critical!
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
-  PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *result;
+  PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *nullFunc, *val, *result;
   
-  ok = PyArg_ParseTuple(args, "OO!", &data, &PyTuple_Type, &funcTuple);
-  const Py_ssize_t columnLen = PyTuple_Size(funcTuple);  
-
+  ok = PyArg_ParseTuple(args, "OO!O", &data, &PyTuple_Type, &funcTuple, &nullFunc);
   if (!ok)
     return NULL;
+  const Py_ssize_t columnLen = PyTuple_Size(funcTuple);			
 
   if (!PyIter_Check(data)) {
-    PyErr_SetString(PyExc_ValueError, "First argument must be iterable");
+    PyErr_SetString(PyExc_TypeError, "First argument must be iterable");
     return NULL;
   }
 
   for (Py_ssize_t i = 0; i < columnLen; i++) {
     if (!PyCallable_Check(PyTuple_GET_ITEM(funcTuple, i))) {
-      PyErr_SetString(PyExc_ValueError, "Supplied argument must contain all callables");
+      PyErr_SetString(PyExc_TypeError, "Second argument must contain all callables");
       return NULL;
     }
+  }
+  
+  if (!PyCallable_Check(nullFunc)) {
+    PyErr_SetString(PyExc_TypeError, "Third argument must be a callable");
+    return NULL;
   }
 
   iterator = PyObject_GetIter(data);
@@ -38,9 +42,13 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
       val = PyTuple_GET_ITEM(row, i);
       insertFunc = PyTuple_GET_ITEM(funcTuple, i);
 
-      result = PyObject_CallFunction(insertFunc, "O", val);
+      if ((val == Py_None) || (PyFloat_Check(val) && isnan(PyFloat_AS_DOUBLE(val))))
+	result = PyObject_CallFunctionObjArgs(nullFunc, NULL);
+      else
+	result = PyObject_CallFunction(insertFunc, "O", val);
 
-      if (result == NULL) {
+      if (PyErr_Occurred() || (result == NULL)) {
+	Py_XDECREF(result);
 	Py_DECREF(row);
 	Py_DECREF(iterator);
 	return NULL;
