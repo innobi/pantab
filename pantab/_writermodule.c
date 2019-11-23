@@ -6,7 +6,7 @@
 // Do not use unless you really understand it...
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
-  PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *arglist, *result;
+  PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *result;
   
   ok = PyArg_ParseTuple(args, "OO!", &data, &PyTuple_Type, &funcTuple);
 
@@ -34,9 +34,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
       val = PyTuple_GET_ITEM(row, i);
       insertFunc = PyTuple_GET_ITEM(funcTuple, i);
 
-      arglist = Py_BuildValue("(O)", val);
-      result = PyObject_CallObject(insertFunc, arglist);
-      Py_DECREF(arglist);
+      result = PyObject_CallFunction(insertFunc, "O", val);
 
       if (result == NULL) {
 	Py_DECREF(row);
