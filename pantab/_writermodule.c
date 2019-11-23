@@ -6,6 +6,7 @@
 // Particulary no checking happens that the length of each iterable
 // in data matches the length of the callables supplied at every step
 // in the process,though note that this is critical!
+// If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
   PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *nullFunc, *val, *result;
