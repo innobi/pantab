@@ -3,10 +3,13 @@
 
 
 // This function gets performance by sacrificing bounds checking
-// Do not use unless you really understand it...
+// Particulary no checking happens that the length of each iterable
+// in data matches the length of the callables supplied at every step
+// in the process,though note that this is critical!
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
   PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *result;
+  const Py_ssize_t columnLen = PyTuple_Size(funcTuple);
   
   ok = PyArg_ParseTuple(args, "OO!", &data, &PyTuple_Type, &funcTuple);
 
@@ -18,7 +21,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     return NULL;
   }
 
-  for (Py_ssize_t i = 0; i < PyTuple_Size(funcTuple); i++) {
+  for (Py_ssize_t i = 0; i < columnLen; i++) {
     if (!PyCallable_Check(PyTuple_GET_ITEM(funcTuple, i))) {
       PyErr_SetString(PyExc_ValueError, "Supplied argument must contain all callables");
       return NULL;
@@ -30,7 +33,8 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     return NULL;
 
   while ((row = PyIter_Next(iterator))) {
-    for (Py_ssize_t i = 0; i < PyTuple_Size(row); i++) {
+    // Undefined behaviof if the number of tuple elements doens't match callable list length
+    for (Py_ssize_t i = 0; i < columnLen; i++) {
       val = PyTuple_GET_ITEM(row, i);
       insertFunc = PyTuple_GET_ITEM(funcTuple, i);
 
