@@ -82,8 +82,7 @@ def test_bad_value_gives_clear_message(tmp_hyper):
     df = pd.DataFrame([[{"a": "b"}]], columns=["a"])
 
     msg = (
-        r"Unsupported type '<class 'dict'>' for column type 'object' "
-        r"\(column 'a' row 0\)"
+        r"Invalid value \"{'a': 'b'}\" found \(row 0 column 0\)"
     )
 
     with pytest.raises(TypeError, match=msg):

@@ -10,6 +10,7 @@
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
   PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *nullFunc, *val, *result;
+  Py_ssize_t row_counter;
   
   ok = PyArg_ParseTuple(args, "OO!O", &data, &PyTuple_Type, &funcTuple, &nullFunc);
   if (!ok)
@@ -37,6 +38,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   if (iterator == NULL)
     return NULL;
 
+  row_counter = 0;
   while ((row = PyIter_Next(iterator))) {
     // Undefined behaviof if the number of tuple elements doens't match callable list length
     for (Py_ssize_t i = 0; i < columnLen; i++) {
@@ -49,7 +51,15 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
 	result = PyObject_CallFunctionObjArgs(insertFunc, val, NULL);
 
       if (PyErr_Occurred() || (result == NULL)) {
-	Py_XDECREF(result);
+	if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_TypeError)) {
+	  PyObject *errMsg = PyUnicode_FromFormat("Invalid value \"%S\" found (row %zd column %zd)", val, row_counter, i);
+	  if (errMsg != NULL) {
+	    PyErr_SetObject(PyExc_TypeError, errMsg);
+	    Py_DECREF(errMsg);
+	  }
+	  Py_XDECREF(result);	  
+	}
+	
 	Py_DECREF(row);
 	Py_DECREF(iterator);
 	return NULL;
@@ -57,6 +67,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
       Py_DECREF(result);
     }
     Py_DECREF(row);
+    row_counter += 1;
   }
 
   Py_DECREF(iterator);
