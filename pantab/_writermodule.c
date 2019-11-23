@@ -1,57 +1,57 @@
 #define PY_SSIZE_T_CLEAN
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
 #include <Python.h>
-#include <numpy/arrayobject.h>
 
 
+// This function gets performance by sacrificing bounds checking
+// Do not use unless you really understand it...
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
-  PyArrayObject *array;
-  PyObject *funcList;
-  NpyIter* iter;
-  NpyIter_IterNextFunc *iternext;
-  int nonzero_count = 0;
+  PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *arglist, *result;
   
-  ok = PyArg_ParseTuple(args, "O!O!", &PyArray_Type, &array, &PyList_Type, &funcList);
+  ok = PyArg_ParseTuple(args, "OO!", &data, &PyTuple_Type, &funcTuple);
 
   if (!ok)
     return NULL;
 
-  // Sanity check our objects
-  if (!(PyArray_NDIM(array) == 2)) {
-    PyErr_SetString(PyExc_ValueError, "Must supply a 2D array");
+  if (!PyIter_Check(data)) {
+    PyErr_SetString(PyExc_ValueError, "First argument must be iterable");
     return NULL;
   }
 
-  if (PyArray_SHAPE(array)[1] != PyList_Size(funcList)) {
-    PyErr_SetString(PyExc_ValueError, "Number of columns in supplied data must match value list");
-    return NULL;
+  for (Py_ssize_t i = 0; i < PyTuple_Size(funcTuple); i++) {
+    if (!PyCallable_Check(PyTuple_GET_ITEM(funcTuple, i))) {
+      PyErr_SetString(PyExc_ValueError, "Supplied argument must contain all callables");
+      return NULL;
+    }
   }
 
-  // Do nothing for unsized arrays
-  if (PyArray_SIZE(array) == 0) {
-    return Py_None;
-  }
-
-  iter = NpyIter_New(array, NPY_ITER_READONLY, NPY_KEEPORDER, NPY_NO_CASTING, NULL);
-  if (iter == NULL)
+  iterator = PyObject_GetIter(data);
+  if (iterator == NULL)
     return NULL;
 
-  iternext = NpyIter_GetIterNext(iter, NULL);
-  if (iternext == NULL) {
-    NpyIter_Deallocate(iter);
-    return NULL;
+  while ((row = PyIter_Next(iterator))) {
+    for (Py_ssize_t i = 0; i < PyTuple_Size(row); i++) {
+      val = PyTuple_GET_ITEM(row, i);
+      insertFunc = PyTuple_GET_ITEM(funcTuple, i);
+
+      arglist = Py_BuildValue("(O)", val);
+      result = PyObject_CallObject(insertFunc, arglist);
+      Py_DECREF(arglist);
+
+      if (result == NULL) {
+	Py_DECREF(row);
+	Py_DECREF(iterator);
+	return NULL;
+      }
+      Py_DECREF(result);
+    }
+    Py_DECREF(row);
   }
 
-  do {
-    nonzero_count += 1;
-    /* Increment the iterator to the next inner loop */
-  } while(iternext(iter));
+  Py_DECREF(iterator);
 
-   NpyIter_Deallocate(iter);
-
-   printf("I have %d elements\n", nonzero_count);
+  if (PyErr_Occurred())
+    return NULL;
   
   return Py_None;
 }
@@ -74,6 +74,5 @@ static struct PyModuleDef writermodule = {
 
 PyMODINIT_FUNC
 PyInit_libwriter(void) {
-  import_array();
   return PyModule_Create(&writermodule);
 }

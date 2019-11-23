@@ -141,27 +141,8 @@ def _insert_frame(
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        for row_index, row in enumerate(df.itertuples(index=False)):
-            for col_index, val in enumerate(row):
-                # Missing value handling
-                if val is None or val != val:
-                    inserter._Inserter__write_null()
-                else:
-                    try:
-                        getattr(inserter, insert_funcs[col_index])(val)
-                    except TypeError as e:
-                        column = df.iloc[:, col_index]
-                        msg = (
-                            f"Unsupported type '{type(val)}' for column type "
-                            f"'{column.dtype}' (column '{column.name}' row {row_index})"
-                        )
-
-                        msg += (
-                            "\n See https://pantab.readthedocs.io/en/latest/"
-                            "caveats.html#type-mapping"
-                        )
-                        raise TypeError(msg) from e
-
+        bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
+        libwriter.write_to_hyper(df.itertuples(index=False), bound_funcs)
         inserter.execute()
 
 
