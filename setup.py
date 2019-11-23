@@ -8,8 +8,9 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-writer_module = Extension("libwriter", sources=["pantab/_writermodule.c"],
-                          include_dirs=[np.get_include()])
+writer_module = Extension(
+    "libwriter", sources=["pantab/_writermodule.c"], include_dirs=[np.get_include()]
+)
 
 setup(
     name="pantab",
