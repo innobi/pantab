@@ -74,27 +74,6 @@ ehthumbs.db
 Icon?
 Thumbs.db
 
-# Data files #
-##############
-*.dta
-*.xpt
-*.h5
-pandas/io/*.dat
-pandas/io/*.json
-scikits
-
-# Generated Sources #
-#####################
-!skts.c
-!np_datetime.c
-!np_datetime_strings.c
-*.c
-*.cpp
-
 # Unit / Performance Testing #
 ##############################
 .pytest_cache/
-asv_bench/env/
-asv_bench/html/
-asv_bench/results/
-asv_bench/pandas/

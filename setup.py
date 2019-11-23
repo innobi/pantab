@@ -1,18 +1,19 @@
 from os import path
 from setuptools import find_packages, setup, Extension
 
-from pantab import __version__
+import numpy as np
 
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-writer_module = Extension("libwriter", sources=["pantab/_writermodule.c"])
+writer_module = Extension("libwriter", sources=["pantab/_writermodule.c"],
+                          include_dirs=[np.get_include()])
 
 setup(
     name="pantab",
-    version=__version__,
+    version="TODO: REPLACE THIS",
     description="Converts pandas DataFrames into Tableau Hyper Extracts",
     long_description=long_description,
     long_description_content_type="text/markdown",
