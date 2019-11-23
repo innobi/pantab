@@ -45,7 +45,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
       if ((val == Py_None) || (PyFloat_Check(val) && isnan(PyFloat_AS_DOUBLE(val))))
 	result = PyObject_CallFunctionObjArgs(nullFunc, NULL);
       else
-	result = PyObject_CallFunction(insertFunc, "O", val);
+	result = PyObject_CallFunctionObjArgs(insertFunc, val, NULL);
 
       if (PyErr_Occurred() || (result == NULL)) {
 	Py_XDECREF(result);
