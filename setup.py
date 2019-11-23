@@ -1,6 +1,5 @@
 from os import path
-
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup, Extension
 
 from pantab import __version__
 
@@ -8,6 +7,8 @@ here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
+
+writer_module = Extension("libwriter", sources=["pantab/_writermodule.c"])
 
 setup(
     name="pantab",
@@ -33,4 +34,5 @@ setup(
     python_requires=">=3.6",
     install_requires=["pandas"],
     extras_require={"dev": ["pytest"]},
+    ext_modules=[writer_module],
 )

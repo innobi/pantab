@@ -8,6 +8,7 @@ from typing import Dict, List, Sequence, Union
 import pandas as pd
 import tableauhyperapi as tab_api
 
+import libwriter
 import pantab._types as pantab_types
 
 
