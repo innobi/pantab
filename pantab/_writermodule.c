@@ -9,9 +9,9 @@
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
   int ok;
   PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *val, *result;
-  const Py_ssize_t columnLen = PyTuple_Size(funcTuple);
   
   ok = PyArg_ParseTuple(args, "OO!", &data, &PyTuple_Type, &funcTuple);
+  const Py_ssize_t columnLen = PyTuple_Size(funcTuple);  
 
   if (!ok)
     return NULL;
