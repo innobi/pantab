@@ -81,9 +81,7 @@ def test_unsupported_dtype_raises(dtype, tmp_hyper):
 def test_bad_value_gives_clear_message(tmp_hyper):
     df = pd.DataFrame([[{"a": "b"}]], columns=["a"])
 
-    msg = (
-        r"Invalid value \"{'a': 'b'}\" found \(row 0 column 0\)"
-    )
+    msg = r"Invalid value \"{'a': 'b'}\" found \(row 0 column 0\)"
 
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
