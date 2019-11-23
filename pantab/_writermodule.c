@@ -14,6 +14,18 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
 
   if (!ok)
     return NULL;
+
+  // Sanity check our objects
+  if (!(PyArray_NDIM(array) == 2)) {
+    PyErr_SetString(PyExc_ValueError, "Must supply a 2D array");
+    return NULL;
+  }
+
+  if (PyArray_SHAPE(array)[1] != PyList_Size(funcList)) {
+    PyErr_SetString(PyExc_ValueError, "Number of columns in supplied data must match value list");
+    return NULL;
+  }
+    
   
   return Py_None;
 }
