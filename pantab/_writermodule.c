@@ -3,6 +3,37 @@
 
 #include "tableauhyperapi.h"
 
+
+// Returns reference the appropriate insert function, NULL on error
+void * function_for_type(PyObject *obj) {
+  const char *dtype = PyUnicode_AsUTF8(obj);
+  
+  if (strcmp(dtype, "int16") == 0)
+    return &hyper_inserter_buffer_add_int16;
+  else if (strcmp(dtype, "int32") == 0)  
+    return &hyper_inserter_buffer_add_int32;
+  else if (strcmp(dtype, "int64") == 0)
+    return &hyper_inserter_buffer_add_int64;
+  if (strcmp(dtype, "Int16") == 0)
+    return &hyper_inserter_buffer_add_int16;
+  else if (strcmp(dtype, "Int32") == 0)  
+    return &hyper_inserter_buffer_add_int32;
+  else if (strcmp(dtype, "Int64") == 0)
+    return &hyper_inserter_buffer_add_int64;
+  else if (strcmp(dtype, "float32") == 0)  
+    return &hyper_inserter_buffer_add_double;
+  else if (strcmp(dtype, "float64") == 0)  
+    return &hyper_inserter_buffer_add_double;
+  else if (strcmp(dtype, "bool") == 0)    
+    return &hyper_inserter_buffer_add_bool;
+  
+  PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
+  PyErr_SetObject(PyExc_ValueError, errMsg);
+  Py_DECREF(errMsg);
+
+  return NULL;
+}
+
 // This function gets performance by sacrificing bounds checking
 // Particulary no checking happens that the length of each iterable
 // in data matches the length of the callables supplied at every step
@@ -10,34 +41,19 @@
 // If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *data, *funcTuple, *iterator, *row, *nullFunc, *val,
-      *result;
-    Py_ssize_t row_counter;
+    PyObject *data, *iterator, *row, *val, *dtypes;
+    Py_ssize_t row_counter, ncols;
     hyper_inserter_buffer_t *insertBuffer;
-    hyper_error_t *insertResult;
+    hyper_error_t *result, *fnPtr;
+    void *funcList;  // array matching ncols length holding appropriate function
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OO!Ol", &data, &PyTuple_Type, &funcTuple,
-                          &nullFunc, &insertBuffer);
+    ok = PyArg_ParseTuple(args, "OlnO!", &data, &insertBuffer, &ncols, &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
-    const Py_ssize_t columnLen = PyTuple_Size(funcTuple);
 
     if (!PyIter_Check(data)) {
         PyErr_SetString(PyExc_TypeError, "First argument must be iterable");
-        return NULL;
-    }
-
-    for (Py_ssize_t i = 0; i < columnLen; i++) {
-        if (!PyCallable_Check(PyTuple_GET_ITEM(funcTuple, i))) {
-            PyErr_SetString(PyExc_TypeError,
-                            "Second argument must contain all callables");
-            return NULL;
-        }
-    }
-
-    if (!PyCallable_Check(nullFunc)) {
-        PyErr_SetString(PyExc_TypeError, "Third argument must be a callable");
         return NULL;
     }
 
@@ -45,51 +61,44 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     if (iterator == NULL)
         return NULL;
 
+    funcList = malloc(sizeof(void *) * ncols);
+    for (Py_ssize_t i = 0; i < ncols; i++) {
+      fnPtr = function_for_type(PyTuple_GET_ITEM(dtypes, i));
+      if (fnPtr == NULL) {
+	free(funcList);
+	return NULL;
+      }
+      funcList[i] = fnPtr;
+    }
+    
     row_counter = 0;
     while ((row = PyIter_Next(iterator))) {
-        // Undefined behaviof if the number of tuple elements doens't match
+        // Undefined behavior if the number of tuple elements does't match
         // callable list length
-        for (Py_ssize_t i = 0; i < columnLen; i++) {
+        for (Py_ssize_t i = 0; i < ncols; i++) {
             val = PyTuple_GET_ITEM(row, i);
-	    /*
-            insertFunc = PyTuple_GET_ITEM(funcTuple, i);
-
             if ((val == Py_None) ||
-                (PyFloat_Check(val) && isnan(PyFloat_AS_DOUBLE(val))))
-                result = PyObject_CallFunctionObjArgs(nullFunc, NULL);
-            else
-                result = PyObject_CallFunctionObjArgs(insertFunc, val, NULL);
-
-            if (PyErr_Occurred() || (result == NULL)) {
-                if (PyErr_Occurred() &&
-                    PyErr_ExceptionMatches(PyExc_TypeError)) {
-                    PyObject *errMsg = PyUnicode_FromFormat(
-                        "Invalid value \"%S\" found (row %zd column %zd)", val,
-                        row_counter, i);
-                    if (errMsg != NULL) {
-                        PyErr_SetObject(PyExc_TypeError, errMsg);
-                        Py_DECREF(errMsg);
-                    }
-                    Py_XDECREF(result);
-                }
-
-                Py_DECREF(row);
-                Py_DECREF(iterator);
-                return NULL;
-	    
+                (PyFloat_Check(val) && isnan(PyFloat_AS_DOUBLE(val)))) {
+	      result = hyper_inserter_buffer_add_null(insertBuffer);
 	    }
-	    */
-	    insertResult = hyper_inserter_buffer_add_null(insertBuffer);
-	    //insertResult = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t) 1);
-	    if (insertResult != NULL)
+            else {
+	      result = hyper_inserter_buffer_add_int64(insertBuffer, 1);	      
+	    }
+
+	    if (result != NULL) {
+	      PyObject *errMsg = PyUnicode_FromFormat(
+		 "Invalid value \"%S\" found (row %zd column %zd)", val,
+		 row_counter, i);
+	      PyErr_SetObject(PyExc_TypeError, errMsg);
+	      Py_DECREF(errMsg);
 	      return NULL;
-	    
-	// Py_DECREF(result);
+	    }
         }
         Py_DECREF(row);
         row_counter += 1;
     }
 
+    free(funcList);
     Py_DECREF(iterator);
 
     if (PyErr_Occurred())

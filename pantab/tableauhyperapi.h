@@ -12,5 +12,4 @@ hyper_error_t* hyper_inserter_buffer_add_int32(hyper_inserter_buffer_t* buffer, 
 hyper_error_t* hyper_inserter_buffer_add_int64(hyper_inserter_buffer_t* buffer, int64_t value);
 hyper_error_t* hyper_inserter_buffer_add_double(hyper_inserter_buffer_t* buffer, double value);
 hyper_error_t* hyper_inserter_buffer_add_binary(hyper_inserter_buffer_t* buffer, const uint8_t* value, size_t size);
-hyper_error_t* hyper_inserter_buffer_add_date(hyper_inserter_buffer_t* buffer, int32_t year, int16_t month, int16_t day);
 #endif

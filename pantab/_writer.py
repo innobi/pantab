@@ -149,7 +149,7 @@ def _insert_frame(
         # and extract just 0x7f815192ec60
         address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
-            df.itertuples(index=False), bound_funcs, inserter._Inserter__write_null, address,
+            df.itertuples(index=False), address, df.shape[1]
         )
         inserter.execute()
 
