@@ -4,91 +4,84 @@
 
 #include "tableauhyperapi.h"
 
-
 int isNull(PyObject *data) {
-  if ((data == Py_None) || (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
-    return 1;
-  } else {
-    return 0;
-  }
+    if ((data == Py_None) ||
+        (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
-
 
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
-hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype, hyper_inserter_buffer_t *insertBuffer) {
-  const char *dtypeStr = PyUnicode_AsUTF8(dtype);
-  hyper_error_t *result;
-  
-  // Non-Nullable types
-  if (strcmp(dtypeStr, "int16") == 0) {
-    int16_t val = (int16_t)PyLong_AsLong(data);
-    result = hyper_inserter_buffer_add_int16(insertBuffer, val);
-  }
-  else if (strcmp(dtypeStr, "int32") == 0) {
-    int32_t val = (int32_t)PyLong_AsLong(data);
-    result = hyper_inserter_buffer_add_int32(insertBuffer, val);
-  }
-  else if (strcmp(dtypeStr, "int64") == 0) {
-    int64_t val = (int64_t)PyLong_AsLongLong(data);
-    result = hyper_inserter_buffer_add_int64(insertBuffer, val);
-  }
-  else if (strcmp(dtypeStr, "bool") == 0) {
-    if (PyObject_IsTrue(data)) {
-        result = hyper_inserter_buffer_add_bool(insertBuffer, 1);
-    } else {
-      result = hyper_inserter_buffer_add_bool(insertBuffer, 0);
-    }
-  }
-  // Nullable types
-  else if (strcmp(dtypeStr, "Int16") == 0) {
-    if (isNull(data)) {
-      result = hyper_inserter_buffer_add_null(insertBuffer);
-    } else {
-      int16_t val = (int16_t)PyLong_AsLong(data);
-      result = hyper_inserter_buffer_add_int16(insertBuffer, val);
-    }
-  }  
-  else if (strcmp(dtypeStr, "Int32") == 0) {
-    if (isNull(data)) {    
-      result = hyper_inserter_buffer_add_null(insertBuffer);
-    } else {
-      int32_t val = (int32_t)PyLong_AsLong(data);
-      result = hyper_inserter_buffer_add_int32(insertBuffer, val);
-    }
-  }
-  else if (strcmp(dtypeStr, "Int64") == 0) {
-    if (isNull(data)) {
-      result = hyper_inserter_buffer_add_null(insertBuffer);
-    } else {
-      int64_t val = (int64_t)PyLong_AsLongLong(data);
-      result = hyper_inserter_buffer_add_int64(insertBuffer, val);
-    }
-  }
-  else if (strcmp(dtypeStr, "float32") == 0) {
-    if (isNull(data)) {    
-      result = hyper_inserter_buffer_add_null(insertBuffer);
-    } else {
-      double val = PyFloat_AsDouble(data);
-      result = hyper_inserter_buffer_add_double(insertBuffer, val);
-    }
-  }
-  else if (strcmp(dtypeStr, "float64") == 0) {
-    if (isNull(data)) {
-      result = hyper_inserter_buffer_add_null(insertBuffer);
-    } else {
-      double val = PyFloat_AsDouble(data);
-      result = hyper_inserter_buffer_add_double(insertBuffer, val);
-    }
-  } else {
-    PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
-    PyErr_SetObject(PyExc_ValueError, errMsg);
-    Py_DECREF(errMsg);
-    return NULL;
-  }
+hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
+                                    hyper_inserter_buffer_t *insertBuffer) {
+    const char *dtypeStr = PyUnicode_AsUTF8(dtype);
+    hyper_error_t *result;
 
-  return result;
+    // Non-Nullable types
+    if (strcmp(dtypeStr, "int16") == 0) {
+        int16_t val = (int16_t)PyLong_AsLong(data);
+        result = hyper_inserter_buffer_add_int16(insertBuffer, val);
+    } else if (strcmp(dtypeStr, "int32") == 0) {
+        int32_t val = (int32_t)PyLong_AsLong(data);
+        result = hyper_inserter_buffer_add_int32(insertBuffer, val);
+    } else if (strcmp(dtypeStr, "int64") == 0) {
+        int64_t val = (int64_t)PyLong_AsLongLong(data);
+        result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+    } else if (strcmp(dtypeStr, "bool") == 0) {
+        if (PyObject_IsTrue(data)) {
+            result = hyper_inserter_buffer_add_bool(insertBuffer, 1);
+        } else {
+            result = hyper_inserter_buffer_add_bool(insertBuffer, 0);
+        }
+    }
+    // Nullable types
+    else if (strcmp(dtypeStr, "Int16") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            int16_t val = (int16_t)PyLong_AsLong(data);
+            result = hyper_inserter_buffer_add_int16(insertBuffer, val);
+        }
+    } else if (strcmp(dtypeStr, "Int32") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            int32_t val = (int32_t)PyLong_AsLong(data);
+            result = hyper_inserter_buffer_add_int32(insertBuffer, val);
+        }
+    } else if (strcmp(dtypeStr, "Int64") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            int64_t val = (int64_t)PyLong_AsLongLong(data);
+            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+        }
+    } else if (strcmp(dtypeStr, "float32") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            double val = PyFloat_AsDouble(data);
+            result = hyper_inserter_buffer_add_double(insertBuffer, val);
+        }
+    } else if (strcmp(dtypeStr, "float64") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            double val = PyFloat_AsDouble(data);
+            result = hyper_inserter_buffer_add_double(insertBuffer, val);
+        }
+    } else {
+        PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
+        PyErr_SetObject(PyExc_ValueError, errMsg);
+        Py_DECREF(errMsg);
+        return NULL;
+    }
+
+    return result;
 }
 
 // This function gets performance by sacrificing bounds checking
@@ -104,7 +97,8 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     hyper_error_t *result;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OlnO!", &data, &insertBuffer, &ncols, &PyTuple_Type, &dtypes);
+    ok = PyArg_ParseTuple(args, "OlnO!", &data, &insertBuffer, &ncols,
+                          &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
 
@@ -125,10 +119,10 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
             val = PyTuple_GET_ITEM(row, i);
             dtype = PyTuple_GET_ITEM(dtypes, i);
             result = write_data_for_dtype(val, dtype, insertBuffer);
-            
+
             if ((result != NULL) || (PyErr_Occurred())) {
-              // TODO: clean up error handling mechanisms
-              return NULL;
+                // TODO: clean up error handling mechanisms
+                return NULL;
             }
         }
         Py_DECREF(row);
