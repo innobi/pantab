@@ -12,8 +12,8 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 writer_module = Extension(
     "libwriter",
     sources=["pantab/_writermodule.c"],
-    library_dirs=[dll_path.parent.resolve()],
-    libraries=[dll_path.name],
+    runtime_library_dirs=[str(dll_path.parent.resolve())],
+    libraries=[dll_path.stem.replace("lib", "")],
 )
 
 setup(

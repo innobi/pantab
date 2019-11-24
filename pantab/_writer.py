@@ -142,8 +142,14 @@ def _insert_frame(
 
     with tab_api.Inserter(connection, table_def) as inserter:
         bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
+
+        # This is a terrible hack but I couldn't find any other way to expose
+        # the memory address of the cdata object at runtime in the Python runtime
+        # take something like <cdata 'hyper_inserter_buffer_t *' 0x7f815192ec60>
+        # and extract just 0x7f815192ec60
+        address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
-            df.itertuples(index=False), bound_funcs, inserter._Inserter__write_null
+            df.itertuples(index=False), bound_funcs, inserter._Inserter__write_null, address,
         )
         inserter.execute()
 

@@ -10,12 +10,15 @@
 // If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *data, *funcTuple, *iterator, *row, *insertFunc, *nullFunc, *val,
-        *result;
+    PyObject *data, *funcTuple, *iterator, *row, *nullFunc, *val,
+      *result;
     Py_ssize_t row_counter;
+    hyper_inserter_buffer_t *insertBuffer;
+    hyper_error_t *insertResult;
 
-    ok = PyArg_ParseTuple(args, "OO!O", &data, &PyTuple_Type, &funcTuple,
-                          &nullFunc);
+    // TOOD: Find better way to accept buffer pointer than putting in long
+    ok = PyArg_ParseTuple(args, "OO!Ol", &data, &PyTuple_Type, &funcTuple,
+                          &nullFunc, &insertBuffer);
     if (!ok)
         return NULL;
     const Py_ssize_t columnLen = PyTuple_Size(funcTuple);
@@ -48,6 +51,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
         // callable list length
         for (Py_ssize_t i = 0; i < columnLen; i++) {
             val = PyTuple_GET_ITEM(row, i);
+	    /*
             insertFunc = PyTuple_GET_ITEM(funcTuple, i);
 
             if ((val == Py_None) ||
@@ -72,8 +76,15 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
                 Py_DECREF(row);
                 Py_DECREF(iterator);
                 return NULL;
-            }
-            Py_DECREF(result);
+	    
+	    }
+	    */
+	    insertResult = hyper_inserter_buffer_add_null(insertBuffer);
+	    //insertResult = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t) 1);
+	    if (insertResult != NULL)
+	      return NULL;
+	    
+	// Py_DECREF(result);
         }
         Py_DECREF(row);
         row_counter += 1;
