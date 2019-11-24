@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 import pandas as pd
 import tableauhyperapi as tab_api
@@ -91,6 +91,50 @@ def _assert_columns_equal(
     raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
 
 
+def _convert_datetimelike(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
+    """
+    The Hyper API stores datetimes in what seems to be julian time, with
+    perhaps a few nuances. Let's mirror that here instead of in C code to utilized
+    vectorized pandas performance and generally make things easier.
+
+    If done in the extension this could be faster.
+
+    Returns
+    -------
+    Tuple containing a DataFrame (with potentially modified types) and "dtypes" to
+    be passed to the C extension. For instance, with datetime data df will be copied
+    and date times converted to int64s to be passed to the C extension, though the
+    original datetime64[ns] dtype will be reflected in dtypes
+    """
+    orig_dtypes = tuple(map(str, df.dtypes))
+    datelike = df.select_dtypes(include=["datetime64[ns]", "datetime64[ns, UTC]"])
+    deltas = df.select_dtypes(include=["timedelta64[ns]"])
+
+    if datelike.empty and deltas.empty:
+        pass
+    else:
+        df = df.copy()
+        for index, (_, content) in enumerate(df.items()):
+            if str(content.dtype) in {"datetime64[ns]", "datetime64[ns, UTC]"}:
+                # TODO: does this work with pd.NaT?
+                day_ints = content.apply(lambda x: x.to_julian_date()).astype(int)
+                day_ints_us = day_ints * 1_000_000 * 60 * 60 * 24  # us per day
+                time = (content.dt.microsecond
+                        + content.dt.second * 1_000_000  # us per second
+                        + content.dt.minute * 1_000_000 * 60  # us per minute
+                        + content.dt.hour * 1_000_000 * 60 * 60  # us per hour
+                )
+
+                df.iloc[:, index] = day_ints_us + time
+
+        """
+        for index, (_, content) in enumerate(df.items()):
+            if content.dtype == "timedelta64[ns]":
+                df.iloc[:, index] = content.apply(_timedelta_to_interval)
+        """
+    
+    return df, orig_dtypes
+
 def _insert_frame(
     df: pd.DataFrame,
     *,
@@ -135,12 +179,9 @@ def _insert_frame(
         connection.catalog.create_table_if_not_exists(table_def)
 
     # Special handling for conversions
-    df = df.copy()
-    for index, (_, content) in enumerate(df.items()):
-        if content.dtype == "timedelta64[ns]":
-            df.iloc[:, index] = content.apply(_timedelta_to_interval)
+    breakpoint()    
+    df, dtypes = _convert_datetimelike(df)
 
-    dtypes = tuple(map(str, df.dtypes))
     with tab_api.Inserter(connection, table_def) as inserter:
         bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
 

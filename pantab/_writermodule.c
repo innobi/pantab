@@ -74,6 +74,13 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
             double val = PyFloat_AsDouble(data);
             result = hyper_inserter_buffer_add_double(insertBuffer, val);
         }
+    } else if (strcmp(dtypeStr, "datetime64[ns]") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            int64_t val = (int64_t)PyLong_AsLongLong(data);
+            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+        }      
     } else if (strcmp(dtypeStr, "object") == 0) {
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
