@@ -1,37 +1,94 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <inttypes.h>
 
 #include "tableauhyperapi.h"
 
 
-// Returns reference the appropriate insert function, NULL on error
-void * function_for_type(PyObject *obj) {
-  const char *dtype = PyUnicode_AsUTF8(obj);
-  
-  if (strcmp(dtype, "int16") == 0)
-    return &hyper_inserter_buffer_add_int16;
-  else if (strcmp(dtype, "int32") == 0)  
-    return &hyper_inserter_buffer_add_int32;
-  else if (strcmp(dtype, "int64") == 0)
-    return &hyper_inserter_buffer_add_int64;
-  if (strcmp(dtype, "Int16") == 0)
-    return &hyper_inserter_buffer_add_int16;
-  else if (strcmp(dtype, "Int32") == 0)  
-    return &hyper_inserter_buffer_add_int32;
-  else if (strcmp(dtype, "Int64") == 0)
-    return &hyper_inserter_buffer_add_int64;
-  else if (strcmp(dtype, "float32") == 0)  
-    return &hyper_inserter_buffer_add_double;
-  else if (strcmp(dtype, "float64") == 0)  
-    return &hyper_inserter_buffer_add_double;
-  else if (strcmp(dtype, "bool") == 0)    
-    return &hyper_inserter_buffer_add_bool;
-  
-  PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
-  PyErr_SetObject(PyExc_ValueError, errMsg);
-  Py_DECREF(errMsg);
+int isNull(PyObject *data) {
+  if ((data == Py_None) || (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
-  return NULL;
+
+// TODO: Make error handling consistent. Right now errors occur if
+// 1. The return value is non-NULL OR
+// 2. PyErr is set within this function
+hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype, hyper_inserter_buffer_t *insertBuffer) {
+  const char *dtypeStr = PyUnicode_AsUTF8(dtype);
+  hyper_error_t *result;
+  
+  // Non-Nullable types
+  if (strcmp(dtypeStr, "int16") == 0) {
+    int16_t val = (int16_t)PyLong_AsLong(data);
+    result = hyper_inserter_buffer_add_int16(insertBuffer, val);
+  }
+  else if (strcmp(dtypeStr, "int32") == 0) {
+    int32_t val = (int32_t)PyLong_AsLong(data);
+    result = hyper_inserter_buffer_add_int32(insertBuffer, val);
+  }
+  else if (strcmp(dtypeStr, "int64") == 0) {
+    int64_t val = (int64_t)PyLong_AsLongLong(data);
+    result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+  }
+  else if (strcmp(dtypeStr, "bool") == 0) {
+    if (PyObject_IsTrue(data)) {
+        result = hyper_inserter_buffer_add_bool(insertBuffer, 1);
+    } else {
+      result = hyper_inserter_buffer_add_bool(insertBuffer, 0);
+    }
+  }
+  // Nullable types
+  else if (strcmp(dtypeStr, "Int16") == 0) {
+    if (isNull(data)) {
+      result = hyper_inserter_buffer_add_null(insertBuffer);
+    } else {
+      int16_t val = (int16_t)PyLong_AsLong(data);
+      result = hyper_inserter_buffer_add_int16(insertBuffer, val);
+    }
+  }  
+  else if (strcmp(dtypeStr, "Int32") == 0) {
+    if (isNull(data)) {    
+      result = hyper_inserter_buffer_add_null(insertBuffer);
+    } else {
+      int32_t val = (int32_t)PyLong_AsLong(data);
+      result = hyper_inserter_buffer_add_int32(insertBuffer, val);
+    }
+  }
+  else if (strcmp(dtypeStr, "Int64") == 0) {
+    if (isNull(data)) {
+      result = hyper_inserter_buffer_add_null(insertBuffer);
+    } else {
+      int64_t val = (int64_t)PyLong_AsLongLong(data);
+      result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+    }
+  }
+  else if (strcmp(dtypeStr, "float32") == 0) {
+    if (isNull(data)) {    
+      result = hyper_inserter_buffer_add_null(insertBuffer);
+    } else {
+      double val = PyFloat_AsDouble(data);
+      result = hyper_inserter_buffer_add_double(insertBuffer, val);
+    }
+  }
+  else if (strcmp(dtypeStr, "float64") == 0) {
+    if (isNull(data)) {
+      result = hyper_inserter_buffer_add_null(insertBuffer);
+    } else {
+      double val = PyFloat_AsDouble(data);
+      result = hyper_inserter_buffer_add_double(insertBuffer, val);
+    }
+  } else {
+    PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
+    PyErr_SetObject(PyExc_ValueError, errMsg);
+    Py_DECREF(errMsg);
+    return NULL;
+  }
+
+  return result;
 }
 
 // This function gets performance by sacrificing bounds checking
@@ -41,11 +98,10 @@ void * function_for_type(PyObject *obj) {
 // If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *data, *iterator, *row, *val, *dtypes;
+    PyObject *data, *iterator, *row, *val, *dtypes, *dtype;
     Py_ssize_t row_counter, ncols;
     hyper_inserter_buffer_t *insertBuffer;
-    hyper_error_t *result, *fnPtr;
-    void *funcList;  // array matching ncols length holding appropriate function
+    hyper_error_t *result;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
     ok = PyArg_ParseTuple(args, "OlnO!", &data, &insertBuffer, &ncols, &PyTuple_Type, &dtypes);
@@ -61,44 +117,24 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     if (iterator == NULL)
         return NULL;
 
-    funcList = malloc(sizeof(void *) * ncols);
-    for (Py_ssize_t i = 0; i < ncols; i++) {
-      fnPtr = function_for_type(PyTuple_GET_ITEM(dtypes, i));
-      if (fnPtr == NULL) {
-	free(funcList);
-	return NULL;
-      }
-      funcList[i] = fnPtr;
-    }
-    
     row_counter = 0;
     while ((row = PyIter_Next(iterator))) {
         // Undefined behavior if the number of tuple elements does't match
         // callable list length
         for (Py_ssize_t i = 0; i < ncols; i++) {
             val = PyTuple_GET_ITEM(row, i);
-            if ((val == Py_None) ||
-                (PyFloat_Check(val) && isnan(PyFloat_AS_DOUBLE(val)))) {
-	      result = hyper_inserter_buffer_add_null(insertBuffer);
-	    }
-            else {
-	      result = hyper_inserter_buffer_add_int64(insertBuffer, 1);	      
-	    }
-
-	    if (result != NULL) {
-	      PyObject *errMsg = PyUnicode_FromFormat(
-		 "Invalid value \"%S\" found (row %zd column %zd)", val,
-		 row_counter, i);
-	      PyErr_SetObject(PyExc_TypeError, errMsg);
-	      Py_DECREF(errMsg);
-	      return NULL;
-	    }
+            dtype = PyTuple_GET_ITEM(dtypes, i);
+            result = write_data_for_dtype(val, dtype, insertBuffer);
+            
+            if ((result != NULL) || (PyErr_Occurred())) {
+              // TODO: clean up error handling mechanisms
+              return NULL;
+            }
         }
         Py_DECREF(row);
         row_counter += 1;
     }
 
-    free(funcList);
     Py_DECREF(iterator);
 
     if (PyErr_Occurred())

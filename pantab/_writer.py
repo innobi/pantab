@@ -140,6 +140,7 @@ def _insert_frame(
         if content.dtype == "timedelta64[ns]":
             df.iloc[:, index] = content.apply(_timedelta_to_interval)
 
+    dtypes = tuple(map(str, df.dtypes))
     with tab_api.Inserter(connection, table_def) as inserter:
         bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
 
@@ -149,7 +150,7 @@ def _insert_frame(
         # and extract just 0x7f815192ec60
         address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
-            df.itertuples(index=False), address, df.shape[1]
+            df.itertuples(index=False), address, df.shape[1], dtypes
         )
         inserter.execute()
 
