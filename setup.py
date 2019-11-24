@@ -1,15 +1,19 @@
 from os import path
 from setuptools import find_packages, setup, Extension
 
-import numpy as np
+from tableauhyperapi.impl.util import find_hyper_api_dll
 
 here = path.abspath(path.dirname(__file__))
+dll_path = find_hyper_api_dll()
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 writer_module = Extension(
-    "libwriter", sources=["pantab/_writermodule.c"], include_dirs=[np.get_include()]
+    "libwriter",
+    sources=["pantab/_writermodule.c"],
+    library_dirs=[dll_path.parent.resolve()],
+    libraries=[dll_path.name],
 )
 
 setup(

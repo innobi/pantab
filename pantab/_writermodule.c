@@ -1,6 +1,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include "tableauhyperapi.h"
+
 // This function gets performance by sacrificing bounds checking
 // Particulary no checking happens that the length of each iterable
 // in data matches the length of the callables supplied at every step
