@@ -74,6 +74,16 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
             double val = PyFloat_AsDouble(data);
             result = hyper_inserter_buffer_add_double(insertBuffer, val);
         }
+    } else if (strcmp(dtypeStr, "object") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+          Py_ssize_t len;
+          // TODO: CPython uses a conast char* buffer but Hyper accepts
+          // const unsigned char* - is this always safe?
+          const unsigned char* buf = (const unsigned char *)PyUnicode_AsUTF8AndSize(data, &len);
+          result = hyper_inserter_buffer_add_binary(insertBuffer, buf, len);
+        }      
     } else {
         PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
         PyErr_SetObject(PyExc_ValueError, errMsg);
