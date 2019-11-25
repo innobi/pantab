@@ -18,8 +18,8 @@ else:
 writer_module = Extension(
     "libwriter",
     sources=["pantab/_writermodule.c"],
-    library_dirs=[lib_nm],
-    libraries=[],
+    library_dirs=[str(dll_path.parent.resolve())],
+    libraries=[lib_nm],
 )
 
 setup(
