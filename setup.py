@@ -10,16 +10,10 @@ dll_path = find_hyper_api_dll()
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-
-if sys.platform=='win32':
-    runtime_lib_dirs = []
-else:
-    runtime_lib_dirs = [str(dll_path.parent.resolve())]
-
 writer_module = Extension(
     "libwriter",
     sources=["pantab/_writermodule.c"],
-    runtime_library_dirs=runtime_lib_dirs,
+    library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
 
