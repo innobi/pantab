@@ -1,3 +1,4 @@
+import os
 from os import path
 import sys
 
@@ -9,6 +10,17 @@ dll_path = find_hyper_api_dll()
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
+
+if os.platform.startswith("win32"):
+    # Looks like the Tableau Python source doesn't have the needed lib file
+    # so extract from C++ distributions
+    import io
+    import zipfile
+    from urllib.request import urlopen
+    data = urlopen("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a.zip")
+    with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
+        archive.extract("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a/lib/tableauhyperapi.lib",
+                        path=dll_path.parent + "tableauhyperapi.lib")
 
 writer_module = Extension(
     "libwriter",
