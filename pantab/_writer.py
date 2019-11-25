@@ -19,21 +19,6 @@ def _pandas_to_tableau_type(typ: str) -> pantab_types._ColumnType:
         raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
-# The Hyper API doesn't expose these functions directly and wraps them with
-# validation; we can skip the validation because the column dtypes enforce that
-_insert_functions = {
-    tab_api.SqlType.bool(): "_Inserter__write_bool",
-    tab_api.SqlType.big_int(): "_Inserter__write_big_int",
-    tab_api.SqlType.small_int(): "_Inserter__write_small_int",
-    tab_api.SqlType.int(): "_Inserter__write_int",
-    tab_api.SqlType.double(): "_Inserter__write_double",
-    tab_api.SqlType.text(): "_Inserter__write_text",
-    tab_api.SqlType.interval(): "_Inserter__write_interval",
-    tab_api.SqlType.timestamp(): "_Inserter__write_timestamp",
-    tab_api.SqlType.timestamp_tz(): "_Inserter__write_timestamp",
-}
-
-
 def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
     """Converts a pandas Timedelta to tableau Hyper API implementation."""
     days = td.days
@@ -126,13 +111,11 @@ def _insert_frame(
         table = tab_api.TableName(table)
 
     # Populate insertion mechanisms dependent on column types
-    insert_funcs: List[str] = []
     column_types: List[pantab_types._ColumnType] = []
     columns: List[tab_api.TableDefinition.Column] = []
     for col_name, dtype in df.dtypes.items():
         column_type = _pandas_to_tableau_type(dtype.name)
         column_types.append(column_type)
-        insert_funcs.append(_insert_functions[column_type.type_])
         columns.append(
             tab_api.TableDefinition.Column(
                 name=col_name,
@@ -164,6 +147,7 @@ def _insert_frame(
         # the memory address of the cdata object at runtime in the Python runtime
         # take something like <cdata 'hyper_inserter_buffer_t *' 0x7f815192ec60>
         # and extract just 0x7f815192ec60
+        # ffi.addressof did not work because this is an opaque pointer
         address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
             df.itertuples(index=False), address, df.shape[1], dtypes
