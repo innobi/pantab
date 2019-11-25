@@ -28,7 +28,7 @@ int isNull(PyObject *data) {
 // 2. PyErr is set within this function
 hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
                                     hyper_inserter_buffer_t *insertBuffer,
-				    Py_ssize_t row, Py_ssize_t col) {
+                                    Py_ssize_t row, Py_ssize_t col) {
     const char *dtypeStr = PyUnicode_AsUTF8(dtype);
     hyper_error_t *result;
 
@@ -89,48 +89,44 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
-	  hyper_date_components_t date_components = {
-						     .year = PyDateTime_GET_YEAR(data),
-						     .month = PyDateTime_GET_MONTH(data),
-						     .day = PyDateTime_GET_DAY(data)
-	  };
+            hyper_date_components_t date_components = {
+                .year = PyDateTime_GET_YEAR(data),
+                .month = PyDateTime_GET_MONTH(data),
+                .day = PyDateTime_GET_DAY(data)};
 
-	  hyper_time_components_t time_components = {
-						     .hour = (int8_t)PyDateTime_DATE_GET_HOUR(data),
-						       .minute = (int8_t)PyDateTime_DATE_GET_MINUTE(data),
-						       .second = (int8_t)PyDateTime_DATE_GET_SECOND(data),
-						     .microsecond = (int32_t)PyDateTime_DATE_GET_MICROSECOND(data)
-	  };
+            hyper_time_components_t time_components = {
+                .hour = (int8_t)PyDateTime_DATE_GET_HOUR(data),
+                .minute = (int8_t)PyDateTime_DATE_GET_MINUTE(data),
+                .second = (int8_t)PyDateTime_DATE_GET_SECOND(data),
+                .microsecond = (int32_t)PyDateTime_DATE_GET_MICROSECOND(data)};
 
-	  hyper_date_t date = hyper_encode_date(date_components);
-	  hyper_time_t time = hyper_encode_time(time_components);
+            hyper_date_t date = hyper_encode_date(date_components);
+            hyper_time_t time = hyper_encode_time(time_components);
 
-	  int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
-	  result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+            int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
+            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         }
     } else if (strcmp(dtypeStr, "datetime64[ns, UTC]") == 0) {
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
-	  hyper_date_components_t date_components = {
-						     .year = PyDateTime_GET_YEAR(data),
-						     .month = PyDateTime_GET_MONTH(data),
-						     .day = PyDateTime_GET_DAY(data)
-	  };
+            hyper_date_components_t date_components = {
+                .year = PyDateTime_GET_YEAR(data),
+                .month = PyDateTime_GET_MONTH(data),
+                .day = PyDateTime_GET_DAY(data)};
 
-	  hyper_time_components_t time_components = {
-						       .hour = PyDateTime_DATE_GET_HOUR(data),
-						       .minute = PyDateTime_DATE_GET_MINUTE(data),
-						       .second = PyDateTime_DATE_GET_SECOND(data),
-						       .microsecond = PyDateTime_DATE_GET_MICROSECOND(data)
-	  };
+            hyper_time_components_t time_components = {
+                .hour = PyDateTime_DATE_GET_HOUR(data),
+                .minute = PyDateTime_DATE_GET_MINUTE(data),
+                .second = PyDateTime_DATE_GET_SECOND(data),
+                .microsecond = PyDateTime_DATE_GET_MICROSECOND(data)};
 
-	  hyper_date_t date = hyper_encode_date(date_components);
-	  hyper_time_t time = hyper_encode_time(time_components);
+            hyper_date_t date = hyper_encode_date(date_components);
+            hyper_time_t time = hyper_encode_time(time_components);
 
-	  int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
-	  
-	  result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+            int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
+
+            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         }
     } else if (strcmp(dtypeStr, "timedelta64[ns]") == 0) {
         if (isNull(data)) {
@@ -171,15 +167,18 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
-	  // N.B. all other dtypes in pandas are well defined, but object is really anything
-	  // For purposes of Tableau these need to be strings, so error out if not
-	  // In the future should enforce StringDtype from pandas once released (1.0.0)
-	  if (!PyUnicode_Check(data)) {
-	    PyObject *errMsg = PyUnicode_FromFormat("Invalid value \"%R\" found (row %zd column %zd)", data, row, col);
-	    PyErr_SetObject(PyExc_TypeError, errMsg);
-	    Py_DECREF(errMsg);
-	    return NULL;
-	  }
+            // N.B. all other dtypes in pandas are well defined, but object is
+            // really anything For purposes of Tableau these need to be strings,
+            // so error out if not In the future should enforce StringDtype from
+            // pandas once released (1.0.0)
+            if (!PyUnicode_Check(data)) {
+                PyObject *errMsg = PyUnicode_FromFormat(
+                    "Invalid value \"%R\" found (row %zd column %zd)", data,
+                    row, col);
+                PyErr_SetObject(PyExc_TypeError, errMsg);
+                Py_DECREF(errMsg);
+                return NULL;
+            }
             Py_ssize_t len;
             // TODO: CPython uses a const char* buffer but Hyper accepts
             // const unsigned char* - is this always safe?
@@ -231,7 +230,8 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
         for (Py_ssize_t i = 0; i < ncols; i++) {
             val = PyTuple_GET_ITEM(row, i);
             dtype = PyTuple_GET_ITEM(dtypes, i);
-            result = write_data_for_dtype(val, dtype, insertBuffer, row_counter, i);
+            result =
+                write_data_for_dtype(val, dtype, insertBuffer, row_counter, i);
 
             if ((result != NULL) || (PyErr_Occurred())) {
                 // TODO: clean up error handling mechanisms
@@ -262,6 +262,6 @@ static struct PyModuleDef writermodule = {PyModuleDef_HEAD_INIT,
                                           WriterMethods};
 
 PyMODINIT_FUNC PyInit_libwriter(void) {
-  PyDateTime_IMPORT;
-  return PyModule_Create(&writermodule);
+    PyDateTime_IMPORT;
+    return PyModule_Create(&writermodule);
 }

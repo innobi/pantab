@@ -1,6 +1,6 @@
 from os import path
-from setuptools import find_packages, setup, Extension
 
+from setuptools import Extension, find_packages, setup
 from tableauhyperapi.impl.util import find_hyper_api_dll
 
 here = path.abspath(path.dirname(__file__))

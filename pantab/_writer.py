@@ -109,8 +109,9 @@ def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str,
         for index, (_, content) in enumerate(df.items()):
             if content.dtype == "timedelta64[ns]":
                 df.iloc[:, index] = content.apply(_timedelta_to_interval)
-    
+
     return df, orig_dtypes
+
 
 def _insert_frame(
     df: pd.DataFrame,
@@ -159,8 +160,6 @@ def _insert_frame(
     df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
-
         # This is a terrible hack but I couldn't find any other way to expose
         # the memory address of the cdata object at runtime in the Python runtime
         # take something like <cdata 'hyper_inserter_buffer_t *' 0x7f815192ec60>
