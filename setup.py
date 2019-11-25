@@ -19,7 +19,7 @@ if sys.platform.startswith("win32"):
     data = urlopen("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a.zip")
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
         archive.extract("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a/lib/tableauhyperapi.lib",
-                        path=dll_path.parent + "tableauhyperapi.lib")
+                        path=str(dll_path.parent / "tableauhyperapi.lib"))
 
 writer_module = Extension(
     "libwriter",
