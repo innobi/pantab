@@ -127,11 +127,9 @@ def _convert_datetimelike(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ..
 
                 df.iloc[:, index] = day_ints_us + time
 
-        """
         for index, (_, content) in enumerate(df.items()):
             if content.dtype == "timedelta64[ns]":
                 df.iloc[:, index] = content.apply(_timedelta_to_interval)
-        """
     
     return df, orig_dtypes
 
@@ -179,7 +177,6 @@ def _insert_frame(
         connection.catalog.create_table_if_not_exists(table_def)
 
     # Special handling for conversions
-    breakpoint()    
     df, dtypes = _convert_datetimelike(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:

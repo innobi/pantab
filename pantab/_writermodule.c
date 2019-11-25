@@ -4,6 +4,14 @@
 
 #include "tableauhyperapi.h"
 
+
+// datetime.timedelta has no C-API so need to convert manually
+typedef struct {
+  int64_t microseconds;
+  int32_t days;
+  int32_t months;
+} py_interval;
+
 int isNull(PyObject *data) {
     if ((data == Py_None) ||
         (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
@@ -80,7 +88,49 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
         } else {
             int64_t val = (int64_t)PyLong_AsLongLong(data);
             result = hyper_inserter_buffer_add_int64(insertBuffer, val);
-        }      
+        }
+    } else if (strcmp(dtypeStr, "datetime64[ns, UTC]") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+            int64_t val = (int64_t)PyLong_AsLongLong(data);
+            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+        }
+    } else if (strcmp(dtypeStr, "timedelta64[ns]") == 0) {
+        if (isNull(data)) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+        } else {
+          // TODO: Add error message for failed attribute access          
+          PyObject *us = PyObject_GetAttrString(data, "microseconds");
+          if (us == NULL) {
+            return NULL;
+          }
+          PyObject *days = PyObject_GetAttrString(data, "days");
+          if (days == NULL) {
+            Py_DECREF(us);
+            return NULL;
+          }
+
+          PyObject *months = PyObject_GetAttrString(data, "months");
+          if (months == NULL) {
+            Py_DECREF(us);
+            Py_DECREF(days);
+            return NULL;
+          }
+
+          py_interval interval = {.microseconds = PyLong_AsLongLong(us),
+                                  .days = PyLong_AsLong(days),
+                                  .months = PyLong_AsLong(months)
+          };
+
+          Py_DECREF(us);                    
+          Py_DECREF(days);          
+          Py_DECREF(months);
+
+          printf("Months: %d, Days: %d, Us: %ld\n", interval.months, interval.days, interval.microseconds);
+          printf("sizeof is %d\n", sizeof(py_interval));
+          result = hyper_inserter_buffer_add_raw(insertBuffer, &interval, sizeof(py_interval));
+        }        
     } else if (strcmp(dtypeStr, "object") == 0) {
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
