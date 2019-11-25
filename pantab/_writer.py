@@ -91,20 +91,12 @@ def _assert_columns_equal(
     raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
 
 
-def _convert_datetimelike(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
+def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
     """
-    The Hyper API stores datetimes in what seems to be julian time, with
-    perhaps a few nuances. Let's mirror that here instead of in C code to utilized
-    vectorized pandas performance and generally make things easier.
+    Hyper uses a different storage format than pandas / Python for timedeltas.
 
-    If done in the extension this could be faster.
-
-    Returns
-    -------
-    Tuple containing a DataFrame (with potentially modified types) and "dtypes" to
-    be passed to the C extension. For instance, with datetime data df will be copied
-    and date times converted to int64s to be passed to the C extension, though the
-    original datetime64[ns] dtype will be reflected in dtypes
+    Ultimately this should be pushed to the C extension, but doesn't look to fully work
+    at the moment anyway so keep in Python until complete.
     """
     orig_dtypes = tuple(map(str, df.dtypes))
     deltas = df.select_dtypes(include=["timedelta64[ns]"])
@@ -164,7 +156,7 @@ def _insert_frame(
         connection.catalog.create_table_if_not_exists(table_def)
 
     # Special handling for conversions
-    df, dtypes = _convert_datetimelike(df)
+    df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
         bound_funcs = tuple(getattr(inserter, func_nm) for func_nm in insert_funcs)
