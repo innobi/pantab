@@ -150,7 +150,7 @@ def _insert_frame(
         # ffi.addressof did not work because this is an opaque pointer
         address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
-            df.itertuples(index=False), address, df.shape[1], dtypes
+            df.itertuples(index=False, name=None), address, df.shape[1], dtypes
         )
         inserter.execute()
 
