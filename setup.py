@@ -1,3 +1,4 @@
+import os
 from os import path
 import sys
 
@@ -10,11 +11,12 @@ dll_path = find_hyper_api_dll()
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
+
+os.environ['LD_LIBRARY_PATH'] = str(dll_path.parent.resolve())
+
 writer_module = Extension(
     "libwriter",
     sources=["pantab/_writermodule.c"],
-    library_dirs=[str(dll_path.parent.resolve())],
-    runtime_library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
 
