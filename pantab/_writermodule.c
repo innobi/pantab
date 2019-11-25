@@ -27,7 +27,8 @@ int isNull(PyObject *data) {
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
 hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
-                                    hyper_inserter_buffer_t *insertBuffer) {
+                                    hyper_inserter_buffer_t *insertBuffer,
+				    Py_ssize_t row, Py_ssize_t col) {
     const char *dtypeStr = PyUnicode_AsUTF8(dtype);
     hyper_error_t *result;
 
@@ -170,8 +171,17 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
+	  // N.B. all other dtypes in pandas are well defined, but object is really anything
+	  // For purposes of Tableau these need to be strings, so error out if not
+	  // In the future should enforce StringDtype from pandas once released (1.0.0)
+	  if (!PyUnicode_Check(data)) {
+	    PyObject *errMsg = PyUnicode_FromFormat("Invalid value \"%R\" found (row %zd column %zd)", data, row, col);
+	    PyErr_SetObject(PyExc_TypeError, errMsg);
+	    Py_DECREF(errMsg);
+	    return NULL;
+	  }
             Py_ssize_t len;
-            // TODO: CPython uses a conast char* buffer but Hyper accepts
+            // TODO: CPython uses a const char* buffer but Hyper accepts
             // const unsigned char* - is this always safe?
             const unsigned char *buf =
                 (const unsigned char *)PyUnicode_AsUTF8AndSize(data, &len);
@@ -221,7 +231,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
         for (Py_ssize_t i = 0; i < ncols; i++) {
             val = PyTuple_GET_ITEM(row, i);
             dtype = PyTuple_GET_ITEM(dtypes, i);
-            result = write_data_for_dtype(val, dtype, insertBuffer);
+            result = write_data_for_dtype(val, dtype, insertBuffer, row_counter, i);
 
             if ((result != NULL) || (PyErr_Occurred())) {
                 // TODO: clean up error handling mechanisms
