@@ -18,7 +18,7 @@ if sys.platform.startswith("win32"):
     from urllib.request import urlopen
     data = urlopen("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a.zip")
     target_name = str(dll_path.parent / "tableauhyperapi.lib")
-    print("extract lib to {target_name}")    
+    print(f"extract lib to {target_name}")    
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
         archive.extract("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a/lib/tableauhyperapi.lib",
                         path=target_name)
