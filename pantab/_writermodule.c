@@ -1,8 +1,11 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <datetime.h>
 #include <inttypes.h>
 
 #include "tableauhyperapi.h"
+
+#define MICROSECONDS_PER_DAY 24 * 60 * 60 * 1000000
 
 // datetime.timedelta has no C-API so need to convert manually
 typedef struct {
@@ -85,15 +88,48 @@ hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
-            int64_t val = (int64_t)PyLong_AsLongLong(data);
-            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+	  hyper_date_components_t date_components = {
+						     .year = PyDateTime_GET_YEAR(data),
+						     .month = PyDateTime_GET_MONTH(data),
+						     .day = PyDateTime_GET_DAY(data)
+	  };
+
+	  hyper_time_components_t time_components = {
+						     .hour = (int8_t)PyDateTime_DATE_GET_HOUR(data),
+						       .minute = (int8_t)PyDateTime_DATE_GET_MINUTE(data),
+						       .second = (int8_t)PyDateTime_DATE_GET_SECOND(data),
+						     .microsecond = (int32_t)PyDateTime_DATE_GET_MICROSECOND(data)
+	  };
+
+	  hyper_date_t date = hyper_encode_date(date_components);
+	  hyper_time_t time = hyper_encode_time(time_components);
+
+	  int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
+	  result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         }
     } else if (strcmp(dtypeStr, "datetime64[ns, UTC]") == 0) {
         if (isNull(data)) {
             result = hyper_inserter_buffer_add_null(insertBuffer);
         } else {
-            int64_t val = (int64_t)PyLong_AsLongLong(data);
-            result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+	  hyper_date_components_t date_components = {
+						     .year = PyDateTime_GET_YEAR(data),
+						     .month = PyDateTime_GET_MONTH(data),
+						     .day = PyDateTime_GET_DAY(data)
+	  };
+
+	  hyper_time_components_t time_components = {
+						       .hour = PyDateTime_DATE_GET_HOUR(data),
+						       .minute = PyDateTime_DATE_GET_MINUTE(data),
+						       .second = PyDateTime_DATE_GET_SECOND(data),
+						       .microsecond = PyDateTime_DATE_GET_MICROSECOND(data)
+	  };
+
+	  hyper_date_t date = hyper_encode_date(date_components);
+	  hyper_time_t time = hyper_encode_time(time_components);
+
+	  int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
+	  
+	  result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         }
     } else if (strcmp(dtypeStr, "timedelta64[ns]") == 0) {
         if (isNull(data)) {
@@ -215,4 +251,7 @@ static struct PyModuleDef writermodule = {PyModuleDef_HEAD_INIT,
                                           -1, // keep state in global variables
                                           WriterMethods};
 
-PyMODINIT_FUNC PyInit_libwriter(void) { return PyModule_Create(&writermodule); }
+PyMODINIT_FUNC PyInit_libwriter(void) {
+  PyDateTime_IMPORT;
+  return PyModule_Create(&writermodule);
+}
