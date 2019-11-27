@@ -17,11 +17,10 @@ if sys.platform.startswith("win32"):
     import zipfile
     from urllib.request import urlopen
     data = urlopen("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a.zip")
-    target_name = str(dll_path.parent / "tableauhyperapi.lib")
-    print(f"extract lib to {target_name}")    
+    target = dll_path.parent / "tableauhyperapi.lib"
+    print(f"extract lib to {target}")    
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
-        archive.extract("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a/lib/tableauhyperapi.lib",
-                        path=target_name)
+        target.write_bytes(archive.open("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_2.0.0.8953.r50e2ce3a/lib/tableauhyperapi.lib").read())
 
 writer_module = Extension(
     "libwriter",
