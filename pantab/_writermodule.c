@@ -14,7 +14,7 @@ typedef struct {
     int32_t months;
 } py_interval;
 
-int isNull(PyObject *data) {
+static int isNull(PyObject *data) {
     if ((data == Py_None) ||
         (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
         return 1;
@@ -26,7 +26,7 @@ int isNull(PyObject *data) {
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
-hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
+static hyper_error_t *write_data_for_dtype(PyObject *data, PyObject *dtype,
                                     hyper_inserter_buffer_t *insertBuffer,
                                     Py_ssize_t row, Py_ssize_t col) {
     const char *dtypeStr = PyUnicode_AsUTF8(dtype);
