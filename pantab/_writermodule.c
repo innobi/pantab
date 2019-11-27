@@ -270,7 +270,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     hyper_error_t *result;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OlnO!", &data, &insertBuffer, &ncols,
+    ok = PyArg_ParseTuple(args, "OKnO!", &data, &insertBuffer, &ncols,
                           &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
