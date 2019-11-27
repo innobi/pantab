@@ -1,5 +1,6 @@
 .asv
 .mypy_cache
+*.hyper
 
 #########################################
 # Editor temporary/working/backup files #
