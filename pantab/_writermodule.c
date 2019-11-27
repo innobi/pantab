@@ -15,14 +15,14 @@ typedef struct {
 } py_interval;
 
 typedef enum {
-    INT16 = 1,
-    INT32,
-    INT64,
+    INT16_ = 1,
+    INT32_,
+    INT64_,
     INT16NA = 6,
     INT32NA,
     INT64NA,
-    FLOAT32 = 11,
-    FLOAT64,
+    FLOAT32_ = 11,
+    FLOAT64_,
     BOOLEAN = 50,
     DATETIME64_NS = 100,
     DATETIME64_NS_UTC,
@@ -34,14 +34,14 @@ typedef enum {
 const static struct {
     DTYPE dtype;
     const char *str;
-} dtype_map[] = {{INT16, "int16"},
-                 {INT32, "int32"},
-                 {INT64, "int64"},
+} dtype_map[] = {{INT16_, "int16"},
+                 {INT32_, "int32"},
+                 {INT64_, "int64"},
                  {INT16NA, "Int16"},
                  {INT32NA, "Int32"},
                  {INT64NA, "Int64"},
-                 {FLOAT32, "float32"},
-                 {FLOAT64, "float64"},
+                 {FLOAT32_, "float32"},
+                 {FLOAT64_, "float64"},
                  {BOOLEAN, "bool"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
@@ -106,8 +106,8 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
     case INT16NA:
     case INT32NA:
     case INT64NA:
-    case FLOAT32:
-    case FLOAT64:
+    case FLOAT32_:
+    case FLOAT64_:
     case DATETIME64_NS:
     case DATETIME64_NS_UTC:
     case TIMEDELTA64_NS:
@@ -123,17 +123,17 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
 
     // Check again for non-null data
     switch (dtype) {
-    case INT16: {
+    case INT16_: {
         int16_t val = (int16_t)PyLong_AsLong(data);
         result = hyper_inserter_buffer_add_int16(insertBuffer, val);
         break;
     }
-    case INT32: {
+    case INT32_: {
         int32_t val = (int32_t)PyLong_AsLong(data);
         result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
-    case INT64: {
+    case INT64_: {
         int64_t val = (int64_t)PyLong_AsLongLong(data);
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
@@ -161,12 +161,12 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
     }
-    case FLOAT32: {
+    case FLOAT32_: {
         double val = PyFloat_AsDouble(data);
         result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
-    case FLOAT64: {
+    case FLOAT64_: {
         double val = PyFloat_AsDouble(data);
         result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
