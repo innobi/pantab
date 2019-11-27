@@ -15,13 +15,13 @@ typedef struct {
 } py_interval;
 
 typedef enum {
-    INT16,
+    INT16 = 1,
     INT32,
     INT64,
-    INT16NA,
+    INT16NA = 6,
     INT32NA,
     INT64NA,
-    FLOAT32,
+    FLOAT32 = 11,
     FLOAT64,
     BOOLEAN = 50,
     DATETIME64_NS = 100,
