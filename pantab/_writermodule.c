@@ -123,19 +123,28 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
 
     // Check again for non-null data
     switch (dtype) {
-    case INT16_: {
+    case INT16_:
+    case INT16NA: {
         int16_t val = (int16_t)PyLong_AsLong(data);
         result = hyper_inserter_buffer_add_int16(insertBuffer, val);
         break;
     }
-    case INT32_: {
+    case INT32_:
+    case INT32NA: {
         int32_t val = (int32_t)PyLong_AsLong(data);
         result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
-    case INT64_: {
+    case INT64_:
+    case INT64NA: {
         int64_t val = (int64_t)PyLong_AsLongLong(data);
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+        break;
+    }
+    case FLOAT32_:
+    case FLOAT64_: {
+        double val = PyFloat_AsDouble(data);
+        result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
     case BOOLEAN: {
@@ -144,31 +153,6 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
         } else {
             result = hyper_inserter_buffer_add_bool(insertBuffer, 0);
         }
-        break;
-    }
-    case INT16NA: {
-        int16_t val = (int16_t)PyLong_AsLong(data);
-        result = hyper_inserter_buffer_add_int16(insertBuffer, val);
-        break;
-    }
-    case INT32NA: {
-        int32_t val = (int32_t)PyLong_AsLong(data);
-        result = hyper_inserter_buffer_add_int32(insertBuffer, val);
-        break;
-    }
-    case INT64NA: {
-        int64_t val = (int64_t)PyLong_AsLongLong(data);
-        result = hyper_inserter_buffer_add_int64(insertBuffer, val);
-        break;
-    }
-    case FLOAT32_: {
-        double val = PyFloat_AsDouble(data);
-        result = hyper_inserter_buffer_add_double(insertBuffer, val);
-        break;
-    }
-    case FLOAT64_: {
-        double val = PyFloat_AsDouble(data);
-        result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
     case DATETIME64_NS:
