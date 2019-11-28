@@ -280,6 +280,8 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
 
             if ((result != NULL) || (PyErr_Occurred())) {
                 free(enumerated_dtypes);
+                Py_DECREF(row);
+                Py_DECREF(iterator);
                 return NULL;
             }
         }
@@ -293,7 +295,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     if (PyErr_Occurred())
         return NULL;
 
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 static PyMethodDef WriterMethods[] = {{"write_to_hyper", write_to_hyper,
