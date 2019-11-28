@@ -3,11 +3,12 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 import pandas as pd
 import tableauhyperapi as tab_api
 
+import libwriter  # type: ignore
 import pantab._types as pantab_types
 
 
@@ -16,21 +17,6 @@ def _pandas_to_tableau_type(typ: str) -> pantab_types._ColumnType:
         return pantab_types._column_types[typ]
     except KeyError:
         raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
-
-
-# The Hyper API doesn't expose these functions directly and wraps them with
-# validation; we can skip the validation because the column dtypes enforce that
-_insert_functions = {
-    tab_api.SqlType.bool(): "_Inserter__write_bool",
-    tab_api.SqlType.big_int(): "_Inserter__write_big_int",
-    tab_api.SqlType.small_int(): "_Inserter__write_small_int",
-    tab_api.SqlType.int(): "_Inserter__write_int",
-    tab_api.SqlType.double(): "_Inserter__write_double",
-    tab_api.SqlType.text(): "_Inserter__write_text",
-    tab_api.SqlType.interval(): "_Inserter__write_interval",
-    tab_api.SqlType.timestamp(): "_Inserter__write_timestamp",
-    tab_api.SqlType.timestamp_tz(): "_Inserter__write_timestamp",
-}
 
 
 def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
@@ -90,6 +76,28 @@ def _assert_columns_equal(
     raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
 
 
+def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
+    """
+    Hyper uses a different storage format than pandas / Python for timedeltas.
+
+    Ultimately this should be pushed to the C extension, but doesn't look to fully work
+    at the moment anyway so keep in Python until complete.
+    """
+    orig_dtypes = tuple(map(str, df.dtypes))
+    deltas = df.select_dtypes(include=["timedelta64[ns]"])
+
+    if deltas.empty:
+        pass
+    else:
+        df = df.copy()
+
+        for index, (_, content) in enumerate(df.items()):
+            if content.dtype == "timedelta64[ns]":
+                df.iloc[:, index] = content.apply(_timedelta_to_interval)
+
+    return df, orig_dtypes
+
+
 def _insert_frame(
     df: pd.DataFrame,
     *,
@@ -103,13 +111,11 @@ def _insert_frame(
         table = tab_api.TableName(table)
 
     # Populate insertion mechanisms dependent on column types
-    insert_funcs: List[str] = []
     column_types: List[pantab_types._ColumnType] = []
     columns: List[tab_api.TableDefinition.Column] = []
     for col_name, dtype in df.dtypes.items():
         column_type = _pandas_to_tableau_type(dtype.name)
         column_types.append(column_type)
-        insert_funcs.append(_insert_functions[column_type.type_])
         columns.append(
             tab_api.TableDefinition.Column(
                 name=col_name,
@@ -134,33 +140,18 @@ def _insert_frame(
         connection.catalog.create_table_if_not_exists(table_def)
 
     # Special handling for conversions
-    df = df.copy()
-    for index, (_, content) in enumerate(df.items()):
-        if content.dtype == "timedelta64[ns]":
-            df.iloc[:, index] = content.apply(_timedelta_to_interval)
+    df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        for row_index, row in enumerate(df.itertuples(index=False)):
-            for col_index, val in enumerate(row):
-                # Missing value handling
-                if val is None or val != val:
-                    inserter._Inserter__write_null()
-                else:
-                    try:
-                        getattr(inserter, insert_funcs[col_index])(val)
-                    except TypeError as e:
-                        column = df.iloc[:, col_index]
-                        msg = (
-                            f"Unsupported type '{type(val)}' for column type "
-                            f"'{column.dtype}' (column '{column.name}' row {row_index})"
-                        )
-
-                        msg += (
-                            "\n See https://pantab.readthedocs.io/en/latest/"
-                            "caveats.html#type-mapping"
-                        )
-                        raise TypeError(msg) from e
-
+        # This is a terrible hack but I couldn't find any other way to expose
+        # the memory address of the cdata object at runtime in the Python runtime
+        # take something like <cdata 'hyper_inserter_buffer_t *' 0x7f815192ec60>
+        # and extract just 0x7f815192ec60
+        # ffi.addressof did not work because this is an opaque pointer
+        address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
+        libwriter.write_to_hyper(
+            df.itertuples(index=False, name=None), address, df.shape[1], dtypes
+        )
         inserter.execute()
 
 

@@ -28,6 +28,9 @@ jobs:
       run: |
         pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.8953-py3-none-linux_x86_64.whl
         pip install pandas
+    - name: Build extensions
+      run: |
+        python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
         pip install pytest
@@ -51,6 +54,9 @@ jobs:
       run: |
         pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.8953-py3-none-macosx_10_11_x86_64.whl
         pip install pandas
+    - name: Build extensions
+      run: |
+        python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
         pip install pytest
@@ -74,6 +80,9 @@ jobs:
       run: |
         pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.8953-py3-none-win_amd64.whl        
         pip install pandas
+    - name: Build extensions
+      run: |
+        python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
         pip install pytest

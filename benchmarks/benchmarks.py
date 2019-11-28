@@ -6,7 +6,7 @@ import pantab
 
 class TimeSuite:
     def setup_cache(self):
-        nrows = 1000
+        nrows = 10_000
         data = [
             [
                 1,
@@ -68,3 +68,12 @@ class TimeSuite:
 
     def time_read_frame(self, _):
         pantab.frame_from_hyper("test.hyper", table="test")
+
+
+class TimeLong:
+
+    def setup(self):
+        self.df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
+
+    def time_write_frame(self):
+        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
