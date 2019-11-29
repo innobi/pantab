@@ -40,7 +40,7 @@ setup(
     author_email="william.ayd@icloud.com",
     license="BSD",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 4 - Production/Stable",
         "Intended Audience :: Developers",
         "Topic :: Office/Business",
         "License :: OSI Approved :: BSD License",
