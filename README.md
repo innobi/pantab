@@ -1,5 +1,3 @@
-Note that pantab is currently beta software, which means the API is experimental and subject to change. This may change soon!
-
 # Getting Help
 
 ## Documentation

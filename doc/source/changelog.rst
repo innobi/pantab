@@ -1,6 +1,17 @@
 Changelog
 ^^^^^^^^^
 
+0.1.0 (2019-11-29)
+==================
+*pantab is officially out of beta!* Thanks for all of the feedback and support of the tool so far.
+
+Special thanks to Adrian Vogelsgesang and Jan Finis at Tableau, who offered guidance and feedback on performance improvements in this release.
+
+- Improved error messaging when attempting to write invalid data. (#19)
+- Write-performance of Hyper extracts has been drastically improved for larger datasets. (#31)
+- Less memory is now required to write DataFrames to the Hyper format. (#33)
+
+
 0.0.1.b5 (2019-11-05)
 =====================
 
