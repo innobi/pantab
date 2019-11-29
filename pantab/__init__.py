@@ -1,4 +1,4 @@
-__version__ = "0.0.1.b5"
+__version__ = "0.1.0"
 
 
 from ._reader import frame_from_hyper, frames_from_hyper
