@@ -25,11 +25,11 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
     monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
     with pytest.raises(
-        ValueError, match=r"Cannot read Intervals with month componenets\."
+        ValueError, match=r"Cannot read Intervals with month components\."
     ):
         pantab.frame_from_hyper(tmp_hyper, table="test")
 
     with pytest.raises(
-        ValueError, match=r"Cannot read Intervals with month componenets\."
+        ValueError, match=r"Cannot read Intervals with month components\."
     ):
         pantab.frames_from_hyper(tmp_hyper)
