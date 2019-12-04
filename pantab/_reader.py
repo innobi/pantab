@@ -22,7 +22,7 @@ def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
 def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
     """Converts a tableau Hyper API Interval to a pandas Timedelta."""
     if interval.months != 0:
-        raise ValueError("Cannot read Intervals with month componenets.")
+        raise ValueError("Cannot read Intervals with month components.")
 
     return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
 
