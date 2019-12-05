@@ -1,0 +1,12 @@
+name: pantab
+channels:
+  - defaults
+dependencies:
+  - asv
+  - black
+  - flake8
+  - isort
+  - mypy
+  - pandas
+  - python
+  - sphinx
