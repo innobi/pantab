@@ -73,7 +73,7 @@
     //
     "matrix": {
          "pandas": [],
-         "pip+http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.8707-py3-none-macosx_10_11_x86_64.whl": [""],
+         "pip+http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-macosx_10_11_x86_64.whl": [""],
     },
 
     // Combinations of libraries/python versions can be excluded/included
