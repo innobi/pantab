@@ -84,6 +84,12 @@ New code development should come bundled with type annotations. Be sure to check
 mypy pantab
 ```
 
+### Adding a whatsnew entry
+
+Every change should come with a [news fragment](https://github.com/hawkowl/towncrier#news-fragments) placed in the `pantab/newsfragments/` folder. Please use the issue number as the file name and the appropriate news fragment extension. So for instance, if you are closing issue #100 with a new feature, the file should be named `100.feature` and contain a short description of the change being made.
+
+Ultimately before release all news fragments will be compiled with `towncrier` to create the whatsnew entry.
+
 ### Commit your changes
 
 Assuming all of the checks above pass on your code, go ahead and commit those changes. 
