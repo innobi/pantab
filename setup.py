@@ -20,7 +20,7 @@ if sys.platform.startswith("win32"):
     target = dll_path.parent / "tableauhyperapi.lib"
     print(f"extract lib to {target}")    
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
-        target.write_bytes(archive.open("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib").read())
+        target.write_bytes(archive.open("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib").read())
 
 writer_module = Extension(
     "libwriter",
