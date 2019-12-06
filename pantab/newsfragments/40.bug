@@ -1,1 +1,1 @@
-Added "package_data={"": ["*.h"]}" to main setup call so that header files are correctly copied during build.
+Fixed issue where source installations would error with `fatal error: tableauhyperapi.h: No such file or directory`
