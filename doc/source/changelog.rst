@@ -1,6 +1,20 @@
 Changelog
 ^^^^^^^^^
 
+0.1.1 (2019-12-06)
+==================
+
+A special *thank you* goes out to the following contributors leading up to this release:
+
+  - `chillerno1 <https://github.com/chillerno1>`_
+  - `cedricyau <https://github.com/cedricyau>`_
+
+Bugfixes
+--------
+
+- Fixed issue where source installations would error with `fatal error: tableauhyperapi.h: No such file or directory` (#40)
+
+
 0.1.0 (2019-11-29)
 ==================
 *pantab is officially out of beta!* Thanks for all of the feedback and support of the tool so far.
