@@ -1,0 +1,1 @@
+Added "package_data={"": ["*.h"]}" to main setup call so that header files are correctly copied during build.
