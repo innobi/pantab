@@ -131,7 +131,7 @@ In addition to append, ``table_mode="i"`` can be used to combine a df with an ex
    # In this case, only snake will be inserted into your existing table.
    pantab.frame_to_hyper(updated_df, "example.hyper", table="animals", table_mode="i", table_key="animal")
 
-If you're using ``frames_to_hyper`` to update multiple tables, use the arg ``list_of_keys=["column_x", "column_y"]`` defining a key for each table (in order of the tables supplied).
+If you're using ``frames_to_hyper`` to update multiple tables, use the arg ``list_of_keys=["column_x", "column_y"]`` to specify a key for each frame (in order of the frames supplied).
 
 .. code-block:: python
 

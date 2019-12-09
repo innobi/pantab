@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Sequence, Tuple, Union, Optional, Callable
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import libwriter  # type: ignore
 import pandas as pd
