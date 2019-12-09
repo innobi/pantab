@@ -5,10 +5,10 @@ import tempfile
 import uuid
 from typing import Dict, List, Sequence, Tuple, Union
 
+import libwriter  # type: ignore
 import pandas as pd
 import tableauhyperapi as tab_api
 
-import libwriter  # type: ignore
 import pantab._types as pantab_types
 
 
@@ -30,8 +30,48 @@ def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
 
 
 def _validate_table_mode(table_mode: str) -> None:
-    if table_mode not in {"a", "w"}:
-        raise ValueError("'table_mode' must be either 'w' or 'a'")
+    if table_mode not in {"a", "w", "i"}:
+        raise ValueError("'table_mode' must be either 'w', 'a' or 'i'")
+
+
+def _validate_key_exists(table_key: str, columns: pd.Index) -> None:
+    if table_key is None:
+        raise ValueError("'table_key' must be provided when using table_mode='i'.")
+    if table_key not in columns:
+        raise LookupError(f"Key '{table_key}' does not exist in the table.")
+
+
+def _compare_frames_keys_len(frames_len: int, keys_len: int) -> None:
+    if not (frames_len == keys_len):
+        raise ValueError("Number of frames does not match number of keys.")
+
+
+def _filter_new_records(
+    df: pd.DataFrame,
+    connection: tab_api.Connection,
+    table: pantab_types.TableType,
+    table_key: str,
+) -> None:
+    """
+    Compares unique values from an incoming DataFrame based on a given key, with
+    the values in an existing tableau Hyper table and returns a filtered DataFrame
+    excluding those already contained within the table.
+    """
+    _validate_key_exists(table_key, df.columns)
+
+    if isinstance(table, str):
+        table = tab_api.TableName(table)
+
+    with connection.execute_query(
+        query=f"""
+               select distinct {tab_api.escape_name(table_key)}
+               from {table}
+               """
+    ) as keys:
+        existing_keys = set(itertools.chain(*list(keys)))
+
+        # Prefix ~ is equivalent to not.
+        return df[~df[table_key].isin(existing_keys)]
 
 
 def _assert_columns_equal(
@@ -125,7 +165,7 @@ def _insert_frame(
         )
 
     # Sanity check for existing table structures
-    if table_mode == "a" and connection.catalog.has_table(table):
+    if table_mode in ("a", "i") and connection.catalog.has_table(table):
         table_def = connection.catalog.get_table_definition(table)
         _assert_columns_equal(columns, table_def.columns)
     else:  # New table, potentially new schema
@@ -161,6 +201,7 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableType,
     table_mode: str = "w",
+    table_key: str = None,
 ) -> None:
     """See api.rst for documentation"""
     with tab_api.HyperProcess(
@@ -168,12 +209,16 @@ def frame_to_hyper(
     ) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
-        if table_mode == "a" and pathlib.Path(database).exists():
+        if table_mode in ("a", "i") and pathlib.Path(database).exists():
             shutil.copy(database, tmp_db)
 
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
+            if table_mode == "i":
+                df = _filter_new_records(
+                    df, connection=connection, table=table, table_key=table_key
+                )
             _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
         shutil.move(tmp_db, database)
@@ -183,22 +228,32 @@ def frames_to_hyper(
     dict_of_frames: Dict[pantab_types.TableType, pd.DataFrame],
     database: Union[str, pathlib.Path],
     table_mode: str = "w",
+    list_of_keys: List[str] = [],
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
+    if table_mode == "i":
+        _compare_frames_keys_len(len(dict_of_frames), len(list_of_keys))
 
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
-        if table_mode == "a" and pathlib.Path(database).exists():
+        if table_mode in ("a", "i") and pathlib.Path(database).exists():
             shutil.copy(database, tmp_db)
 
         with tab_api.Connection(
             hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            for table, df in dict_of_frames.items():
+            for idx, (table, df) in enumerate(dict_of_frames.items()):
+                if table_mode == "i":
+                    df = _filter_new_records(
+                        df,
+                        connection=connection,
+                        table=table,
+                        table_key=list_of_keys[idx],
+                    )
                 _insert_frame(
                     df, connection=connection, table=table, table_mode=table_mode
                 )
