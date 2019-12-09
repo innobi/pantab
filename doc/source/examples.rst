@@ -103,3 +103,77 @@ By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloa
    pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a")
 
 Please note that ``table_mode="a"`` will create the table(s) if they do not already exist.
+
+Inserting New Data into Existing Tables
+---------------------------------------
+
+In addition to append, ``table_mode="i"`` can be used to combine a df with an existing table, only inserting new records. A unique key ``table_key="column"`` must be supplied when using this method.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+
+   df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+   ], columns=["animal", "num_of_legs"])
+
+   # Writing out first df
+   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+
+   updated_df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+       ["snake", 0],
+   ], columns=["animal", "num_of_legs"])
+
+   # In this case, only snake will be inserted into your existing table.
+   pantab.frame_to_hyper(updated_df, "example.hyper", table="animals", table_mode="i", table_key="animal")
+
+If you're using ``frames_to_hyper`` to update multiple tables, use the arg ``list_of_keys=["column_x", "column_y"]`` defining a key for each table (in order of the tables supplied).
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+
+   df_animals = pd.DataFrame([
+      ["dog", 4],
+      ["cat", 4],
+   ], columns=["animal", "num_of_legs"])
+
+   df_places = pd.DataFrame([
+      ["London", 1],
+      ["Paris", 2],
+      ["New York", 3],
+   ], columns=["place", "ranking"])
+
+   # Create .hyper extract.
+   pantab.frames_to_hyper(dict_of_frames={"animals" : df_animals, "places" : df_places}, database="example.hyper")
+
+   upd_animals = pd.DataFrame([
+      ["dog", 4],
+      ["cat", 4],
+      ["snake", 0],
+      ["kangaroo", 2],
+   ], columns=["animal", "num_of_legs"])
+
+   upd_places = pd.DataFrame([
+      ["London", 1],
+      ["Paris", 2],
+      ["New York", 3],
+      ["Tokyo", 4],
+   ], columns=["place", "ranking"])
+
+   # Insert new values into existing .hyper tables.
+   pantab.frames_to_hyper(
+        dict_of_frames={"animals" : upd_animals, "places" : upd_places},
+        list_of_keys=["animal", "place"],
+        database="example.hyper",
+        table_mode="i",
+   )
+
+..  note::
+
+   Unlike append, ``table_mode="i"`` requires the table(s) to exist before new records can be inserted.
