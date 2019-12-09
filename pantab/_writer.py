@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Sequence, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union, Optional, Callable
 
 import libwriter  # type: ignore
 import pandas as pd
@@ -51,7 +51,7 @@ def _filter_new_records(
     connection: tab_api.Connection,
     table: pantab_types.TableType,
     table_key: str,
-) -> None:
+) -> Callable:
     """
     Compares unique values from an incoming DataFrame based on a given key, with
     the values in an existing tableau Hyper table and returns a filtered DataFrame
@@ -201,7 +201,7 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableType,
     table_mode: str = "w",
-    table_key: str = None,
+    table_key: str = Optional[str],
 ) -> None:
     """See api.rst for documentation"""
     with tab_api.HyperProcess(
