@@ -40,6 +40,21 @@ def test_missing_data(tmp_hyper, table_name, table_mode):
     tm.assert_frame_equal(result, expected)
 
 
+def test_insert_data(rnd_df, tmp_hyper, table_name, update_mode):
+    # Write partial DataFrame to act as a preexisting table.
+    pantab.frame_to_hyper(rnd_df.loc[0:10], tmp_hyper, table=table_name)
+
+    # Insert 'new' records.
+    pantab.frame_to_hyper(
+        rnd_df, tmp_hyper, table=table_name, table_mode=update_mode, table_key="keys",
+    )
+
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+    expected = rnd_df
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frames_to_hyper(
@@ -63,5 +78,30 @@ def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
     assert set(result.keys()) == set(
         (table_name, tab_api.TableName("public", "table2"))
     )
+    for val in result.values():
+        tm.assert_frame_equal(val, expected)
+
+
+def test_multi_table_insert(rnd_df, tmp_hyper, table_name, update_mode):
+    # Write partial DataFrames to act as preexisting tables.
+    df1, df2 = (rnd_df.loc[0:1], rnd_df.loc[0:25])
+
+    pantab.frames_to_hyper(
+        {table_name: df1, "table2": df2},
+        list_of_keys=["keys", "keys"],
+        database=tmp_hyper,
+    )
+
+    # Perform insert of 'new' records.
+    pantab.frames_to_hyper(
+        {table_name: rnd_df, "table2": rnd_df},
+        list_of_keys=["keys", "keys"],
+        database=tmp_hyper,
+        table_mode=update_mode,
+    )
+
+    expected = rnd_df
+    result = pantab.frames_from_hyper(tmp_hyper)
+
     for val in result.values():
         tm.assert_frame_equal(val, expected)

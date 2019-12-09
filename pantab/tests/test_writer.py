@@ -9,7 +9,7 @@ import pantab
 
 
 def test_bad_table_mode_raises(df, tmp_hyper):
-    msg = "'table_mode' must be either 'w' or 'a'"
+    msg = "'table_mode' must be either 'w', 'a' or 'i'"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="x")
 
@@ -85,3 +85,37 @@ def test_bad_value_gives_clear_message(tmp_hyper):
 
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+
+def test_no_key_gives_clear_message(tmp_hyper):
+    df = pd.DataFrame([["a", "b"]], columns=["w", "x"])
+
+    msg = "'table_key' must be provided when using table_mode='i'."
+    with pytest.raises(ValueError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="i")
+
+
+def test_invalid_key_raises(tmp_hyper):
+    df = pd.DataFrame([["a", "b"]], columns=["w", "x"])
+
+    msg = "Key 'c' does not exist in the table."
+
+    with pytest.raises(LookupError, match=msg):
+        pantab.frame_to_hyper(
+            df, tmp_hyper, table="test", table_mode="i", table_key="c"
+        )
+
+
+def test_frames_keys_not_equal_raises(tmp_hyper):
+    df1 = pd.DataFrame([["a", "b"]], columns=["w", "x"])
+    df2 = pd.DataFrame([["c", "d"]], columns=["y", "z"])
+
+    msg = "Number of frames does not match number of keys."
+
+    with pytest.raises(ValueError, match=msg):
+        pantab.frames_to_hyper(
+            dict_of_frames={"test1": df1, "test2": df2},
+            list_of_keys=["x"],
+            database=tmp_hyper,
+            table_mode="i",
+        )
