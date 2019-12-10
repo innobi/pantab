@@ -51,6 +51,7 @@ setup(
     keywords="tableau visualization pandas dataframe",
     packages=find_packages(exclude=["samples", "tests"]),
     package_data={"": ["*.h"]},
+    data_files=[("", ["LICENSE.txt", "README.md"])],
     python_requires=">=3.6",
     install_requires=["pandas"],
     extras_require={"dev": ["pytest"]},
