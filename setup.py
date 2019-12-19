@@ -24,14 +24,14 @@ if sys.platform.startswith("win32"):
 
 writer_module = Extension(
     "libwriter",
-    sources=["pantab/_writermodule.c"],
+    sources=["pantab/dtypes.c", "pantab/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
 
 reader_module = Extension(
     "libreader",
-    sources=["pantab/_readermodule.c"],
+    sources=["pantab/dtypes.c", "pantab/_readermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
