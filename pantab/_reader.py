@@ -19,15 +19,6 @@ def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
     except KeyError:
         return "object"
 
-
-def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
-    """Converts a tableau Hyper API Interval to a pandas Timedelta."""
-    if interval.months != 0:
-        raise ValueError("Cannot read Intervals with month components.")
-
-    return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
-
-
 def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataFrame:
     if isinstance(table, str):
         table = tab_api.TableName(table)
@@ -46,16 +37,6 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     df = pd.DataFrame(libreader.read_hyper_query(address, query, dtype_strs))
 
     df.columns = dtypes.keys()
-    # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
-    # so we need to run an apply against applicable types
-    for key, val in dtypes.items():
-        if val == "datetime64[ns]":
-            df[key] = pd.to_datetime(df[key], unit="ms")
-        elif val == "datetime64[ns, UTC]":
-            df[key] = pd.to_datetime(df[key], unit="ms", tz="UTC")
-        elif val == "timedelta64[ns]":
-            df[key] = df[key].apply(_interval_to_timedelta)
-
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 

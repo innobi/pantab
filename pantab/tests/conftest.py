@@ -21,7 +21,6 @@ def df():
                 True,
                 pd.to_datetime("2018-01-01"),
                 pd.to_datetime("2018-01-01", utc=True),
-                pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
                 "foo",
             ],
             [
@@ -36,7 +35,6 @@ def df():
                 False,
                 pd.to_datetime("1/1/19"),
                 pd.to_datetime("2019-01-01", utc=True),
-                pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
                 "bar",
             ],
         ],
@@ -52,7 +50,6 @@ def df():
             "bool",
             "datetime64",
             "datetime64_utc",
-            "timedelta64",
             "object",
         ],
     )
@@ -70,7 +67,6 @@ def df():
             "bool": np.bool,
             "datetime64": "datetime64[ns]",
             "datetime64_utc": "datetime64[ns, UTC]",
-            "timedelta64": "timedelta64[ns]",
             "object": "object",
         }
     )
