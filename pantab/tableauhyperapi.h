@@ -54,5 +54,8 @@ typedef struct hyper_rowset_t hyper_rowset_t;
 typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
 hyper_error_t* hyper_execute_query(hyper_connection_t* connection, const char* query, hyper_rowset_t** rowset);
 hyper_error_t* hyper_rowset_get_next_chunk(hyper_rowset_t* rowset, hyper_rowset_chunk_t** rowset_chunk);
+hyper_error_t* hyper_rowset_chunk_field_values(
+   hyper_rowset_chunk_t* rowset_chunk, size_t* col_count, size_t* row_count,
+   const uint8_t* const* values[], const size_t* sizes[], const int8_t* null_flags[]);
 int64_t hyper_read_int64(const uint8_t* source);
 #endif

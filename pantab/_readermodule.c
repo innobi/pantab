@@ -11,6 +11,10 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   hyper_rowset_chunk_t *chunk;
   const char *query;
   hyper_error_t *result;
+  size_t num_cols, num_rows;
+  const uint8_t * const * values;
+  const size_t *sizes;
+  const int8_t *null_flags;
 
   printf("parsing args\n");
   // TODO: support platforms where uintptr_t may not equal unsigned long long
@@ -38,9 +42,15 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     return NULL;
   }
 
-  printf("read_int64\n");
-  int64_t val = hyper_read_int64(chunk);
-  printf("the result is %lld\n", val);
+  
+  result = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
+					   &values, &sizes, &null_flags);
+  if (result) {
+    Py_DECREF(row);
+    return NULL;
+  }
+  
+  printf("number of rows: %lld\nnumber of columns: %lld\n", num_rows, num_cols);
 
   Py_DECREF(row);
   if (PyErr_Occurred())
