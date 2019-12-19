@@ -16,18 +16,33 @@ if sys.platform.startswith("win32"):
     import io
     import zipfile
     from urllib.request import urlopen
-    data = urlopen("http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374.zip")
+
+    data = urlopen(
+        "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374.zip"
+    )
     target = dll_path.parent / "tableauhyperapi.lib"
-    print(f"extract lib to {target}")    
+    print(f"extract lib to {target}")
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
-        target.write_bytes(archive.open("tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib").read())
+        target.write_bytes(
+            archive.open(
+                "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib"
+            ).read()
+        )
 
 writer_module = Extension(
     "libwriter",
-    sources=["pantab/_writermodule.c"],
+    sources=["pantab/dtypes.c", "pantab/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
+
+reader_module = Extension(
+    "libreader",
+    sources=["pantab/dtypes.c", "pantab/_readermodule.c"],
+    library_dirs=[str(dll_path.parent.resolve())],
+    libraries=[dll_path.stem.replace("lib", "")],
+)
+
 
 setup(
     name="pantab",
@@ -55,5 +70,5 @@ setup(
     python_requires=">=3.6",
     install_requires=["pandas"],
     extras_require={"dev": ["pytest"]},
-    ext_modules=[writer_module],
+    ext_modules=[writer_module, reader_module],
 )

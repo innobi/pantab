@@ -1,0 +1,1 @@
+Improved performance when reading data from Hyper extracts

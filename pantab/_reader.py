@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
+import libreader  # type: ignore
 import pantab._types as pantab_types
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
@@ -17,14 +18,6 @@ def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
         return pantab_types._pandas_types[typ]
     except KeyError:
         return "object"
-
-
-def _interval_to_timedelta(interval: tab_api.Interval) -> pd.Timedelta:
-    """Converts a tableau Hyper API Interval to a pandas Timedelta."""
-    if interval.months != 0:
-        raise ValueError("Cannot read Intervals with month components.")
-
-    return pd.Timedelta(days=interval.days, microseconds=interval.microseconds)
 
 
 def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataFrame:
@@ -39,20 +32,13 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
         column_type = pantab_types._ColumnType(column.type, column.nullability)
         dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
 
-    with connection.execute_query(f"SELECT * from {table}") as result:
-        df = pd.DataFrame(result)
+    address = int(str(connection._cdata)[:-1].split()[-1], base=16)  # HACK :-X
+    query = f"SELECT * from {table}"
+    dtype_strs = tuple(dtypes.values())
+
+    df = pd.DataFrame(libreader.read_hyper_query(address, query, dtype_strs))
 
     df.columns = dtypes.keys()
-    # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
-    # so we need to run an apply against applicable types
-    for key, val in dtypes.items():
-        if val == "datetime64[ns]":
-            df[key] = df[key].apply(lambda x: x._to_datetime())
-        elif val == "datetime64[ns, UTC]":
-            df[key] = df[key].apply(lambda x: x._to_datetime()).dt.tz_localize("UTC")
-        elif val == "timedelta64[ns]":
-            df[key] = df[key].apply(_interval_to_timedelta)
-
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 

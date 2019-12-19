@@ -23,6 +23,12 @@ def df():
                 pd.to_datetime("2018-01-01", utc=True),
                 pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
                 "foo",
+                np.iinfo(np.int16).min,
+                np.iinfo(np.int32).min,
+                np.iinfo(np.int64).min,
+                -(2 ** 24),
+                -(2 ** 53),
+                "\xef\xff\xdc\xde\xee",
             ],
             [
                 6,
@@ -38,6 +44,12 @@ def df():
                 pd.to_datetime("2019-01-01", utc=True),
                 pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
                 "bar",
+                np.iinfo(np.int16).max,
+                np.iinfo(np.int32).max,
+                np.iinfo(np.int64).max,
+                2 ** 24 - 1,
+                2 ** 53 - 1,
+                "\xfa\xfb\xdd\xaf\xaa",
             ],
         ],
         columns=[
@@ -54,14 +66,23 @@ def df():
             "datetime64_utc",
             "timedelta64",
             "object",
+            "int16_limits",
+            "int32_limits",
+            "int64_limits",
+            "float32_limits",
+            "float64_limits",
+            "non-ascii",
         ],
     )
 
     df = df.astype(
         {
             "int16": np.int16,
+            "Int16": "Int16",
             "int32": np.int32,
+            "Int32": "Int32",
             "int64": np.int64,
+            "Int32": "Int32",
             "float32": np.float32,
             "float64": np.float64,
             "bool": np.bool,
@@ -69,6 +90,12 @@ def df():
             "datetime64_utc": "datetime64[ns, UTC]",
             "timedelta64": "timedelta64[ns]",
             "object": "object",
+            "int16_limits": np.int16,
+            "int32_limits": np.int32,
+            "int64_limits": np.int64,
+            "float32_limits": np.float64,
+            "float64_limits": np.float64,
+            "non-ascii": "object",
         }
     )
 
