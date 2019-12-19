@@ -26,8 +26,9 @@ def df():
                 np.iinfo(np.int16).min,
                 np.iinfo(np.int32).min,
                 np.iinfo(np.int64).min,
-                -2**24,
-                -2**53,
+                -2 ** 24,
+                -2 ** 53,
+                "\xef\xff\xdc\xde\xee",
             ],
             [
                 6,
@@ -46,8 +47,9 @@ def df():
                 np.iinfo(np.int16).max,
                 np.iinfo(np.int32).max,
                 np.iinfo(np.int64).max,
-                2**24 - 1,
-                2**53 - 1,
+                2 ** 24 - 1,
+                2 ** 53 - 1,
+                "\xfa\xfb\xdd\xaf\xaa",
             ],
         ],
         columns=[
@@ -69,6 +71,7 @@ def df():
             "int64_limits",
             "float32_limits",
             "float64_limits",
+            "non-ascii",
         ],
     )
 
@@ -92,6 +95,7 @@ def df():
             "int64_limits": np.int64,
             "float32_limits": np.float64,
             "float64_limits": np.float64,
+            "non-ascii": "object",
         }
     )
 
