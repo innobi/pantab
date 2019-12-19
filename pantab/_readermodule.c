@@ -54,7 +54,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
 
   for (int i = 0; i < num_rows; i++) {
     for (int j = 0; j < num_cols; j++) {
-      printf("row %d col %d value is: %lld\n", i, j, values[i][j]);
+      printf("row %d col %d value is: %lld\n", i, j, *(*values++));
     }
   }
 
