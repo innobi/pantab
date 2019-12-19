@@ -8,14 +8,6 @@
 
 #define MICROSECONDS_PER_DAY 24 * 60 * 60 * 1000000
 
-// datetime.timedelta has no C-API so need to convert manually
-typedef struct {
-    int64_t microseconds;
-    int32_t days;
-    int32_t months;
-} py_interval;
-
-
 static int isNull(PyObject *data) {
     if ((data == Py_None) ||
         (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {

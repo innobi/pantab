@@ -36,22 +36,6 @@ hyper_date_components_t hyper_decode_date(hyper_date_t date);
 hyper_date_t hyper_encode_date(hyper_date_components_t components);
 hyper_time_components_t hyper_decode_time(hyper_time_t time);
 hyper_time_t hyper_encode_time(hyper_time_components_t components);
-typedef hyper_data128_t hyper_interval_t;
-typedef struct {
-    int32_t years;
-    int32_t months;
-    int32_t days;
-    int32_t hours;
-    int32_t minutes;
-    int32_t seconds;
-    int32_t microseconds;
-} hyper_interval_components_t;
-hyper_date_components_t hyper_decode_date(hyper_date_t date);
-hyper_date_t hyper_encode_date(hyper_date_components_t components);
-hyper_time_components_t hyper_decode_time(hyper_time_t time);
-hyper_time_t hyper_encode_time(hyper_time_components_t components);
-hyper_interval_components_t hyper_decode_interval(hyper_interval_t interval);
-hyper_interval_t hyper_encode_interval(hyper_interval_components_t components);
 
 typedef struct hyper_error_t hyper_error_t;
 typedef struct hyper_inserter_buffer_t hyper_inserter_buffer_t;
@@ -85,4 +69,11 @@ hyper_error_t *hyper_rowset_chunk_field_values(
     hyper_rowset_chunk_t *rowset_chunk, size_t *col_count, size_t *row_count,
     const uint8_t *const *values[], const size_t *sizes[],
     const int8_t *null_flags[]);
+
+// custom addition from the Python binding; mistmatch with C API
+typedef struct {
+    int64_t microseconds;
+    int32_t days;
+    int32_t months;
+} py_interval;
 #endif
