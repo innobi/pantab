@@ -5,16 +5,20 @@ static PyObject *cls_timedelta = NULL;
 // the pointer to size is only used if receiving a character array
 static PyObject *read_value(const uint8_t *value, DTYPE dtype,
                             const size_t *size) {
+    if (PyErr_CheckSignals()) {
+        return NULL;
+    }
+
     switch (dtype) {
     case INT16_:
     case INT16NA:
-      return PyLong_FromLong(*((int16_t *) value));
+        return PyLong_FromLong(*((int16_t *)value));
     case INT32_:
     case INT32NA:
-      return PyLong_FromLong(*((int32_t *) value));
+        return PyLong_FromLong(*((int32_t *)value));
     case INT64_:
     case INT64NA:
-        return PyLong_FromLongLong(*((int64_t *) value));
+        return PyLong_FromLongLong(*((int64_t *)value));
 
     case BOOLEAN:
         return PyBool_FromLong(*value);
@@ -103,8 +107,8 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     PyObject *row;
     PyTupleObject *dtypes;
     hyper_connection_t *connection;
-    hyper_rowset_t *rowset;
-    hyper_rowset_chunk_t *chunk;
+    hyper_rowset_t *rowset = NULL;
+    hyper_rowset_chunk_t *chunk = NULL;
     const char *query;
     hyper_error_t *hyper_err;
     size_t num_cols, num_rows;
@@ -155,9 +159,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
         for (size_t i = 0; i < num_rows; i++) { // TODO: why is i++ required?
             row = PyTuple_New(num_cols);
             if (row == NULL) {
-                // TODO: clean up everything
-                Py_DECREF(result);
-                return NULL;
+                goto ERROR_CLEANUP;
             }
 
             for (size_t j = 0; j < num_cols; j++) {
@@ -190,13 +192,8 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
                     for (size_t j2 = 0; j2 < j - 2; j2++) {
                         Py_DECREF(PyTuple_GET_ITEM(row, j2));
                     }
-                    Py_DECREF(row);
-                    Py_DECREF(result);
-                    hyper_destroy_rowset_chunk(chunk);
-                    hyper_close_rowset(rowset);
-                    if (cls_timedelta != NULL)
-                        Py_DECREF(cls_timedelta);
-                    return NULL;
+
+                    goto ERROR_CLEANUP;
                 }
 
                 PyTuple_SET_ITEM(row, j, val);
@@ -218,14 +215,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
                 for (Py_ssize_t j = 0; j < PyTuple_GET_SIZE(row); j++) {
                     Py_DECREF(PyTuple_GET_ITEM(row, j));
                 }
-                Py_DECREF(row);
-                Py_DECREF(result);
-                hyper_destroy_rowset_chunk(chunk);
-                hyper_close_rowset(rowset);
-                if (cls_timedelta != NULL)
-                    Py_DECREF(cls_timedelta);
-
-                return NULL;
+                goto ERROR_CLEANUP;
             }
         }
 
@@ -236,10 +226,18 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     if (cls_timedelta != NULL)
         Py_DECREF(cls_timedelta);
 
-    if (PyErr_Occurred())
-        return NULL;
-
     return result;
+
+ERROR_CLEANUP:
+    Py_XDECREF(row);
+    Py_XDECREF(result);
+    Py_XDECREF(cls_timedelta);
+    if (chunk != NULL)
+        hyper_destroy_rowset_chunk(chunk);
+    if (rowset != NULL)
+        hyper_close_rowset(rowset);
+
+    return NULL;
 }
 
 static PyMethodDef ReaderMethods[] = {
