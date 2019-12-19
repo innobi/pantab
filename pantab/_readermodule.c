@@ -5,6 +5,8 @@
 #include "dtypes.h"
 #include "tableauhyperapi.h"
 
+static PyObject *cls_timedelta;
+
 // the pointer to size is only used if receiving a character array
 static PyObject *read_value(const uint8_t *value, DTYPE dtype,
                             const size_t *size) {
@@ -43,6 +45,33 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
                                           time.hour, time.minute, time.second,
                                           time.microsecond);
     }
+
+    case TIMEDELTA64_NS: {
+      // Unfortunately PyDelta_FromDSU and the pandas Timedelta class
+      // are not compatible in signature, particularly when it comes
+      // to handling negative days. As such, we construct the pandas
+      // object instead of using the CPython API
+      py_interval interval = *((py_interval *)value);
+      if (interval.months != 0) {
+	// TODO: Set Python error object
+	return NULL;
+      }
+
+      PyObject *kwargs = PyDict_New();
+      if (kwargs == NULL)
+	return NULL;
+
+      PyDict_SetItemString(kwargs, "days", PyLong_FromLongLong(interval.days));
+      PyDict_SetItemString(kwargs, "microseconds", PyLong_FromLongLong(interval.microseconds));
+      PyObject *dummy = PyTuple_New(0);  // need this for PyObject_Call
+      
+      PyObject *td = PyObject_Call(cls_timedelta, dummy, kwargs);
+      Py_DECREF(dummy);
+      Py_DECREF(kwargs);
+      
+      return td;
+    }
+
     }
 }
 
@@ -176,5 +205,16 @@ static struct PyModuleDef readermodule = {PyModuleDef_HEAD_INIT,
 
 PyMODINIT_FUNC PyInit_libreader(void) {
     PyDateTime_IMPORT;
+    PyObject *mod_pandas = PyImport_ImportModule("pandas");
+    if (mod_pandas == NULL) {
+      return NULL;  // TODO: error message
+    }
+
+    cls_timedelta = PyObject_GetAttrString(mod_pandas, "Timedelta");
+    Py_DECREF(mod_pandas);
+    if (cls_timedelta == NULL) {
+      return NULL;  // TODO: error message
+    }
+    
     return PyModule_Create(&readermodule);
 }
