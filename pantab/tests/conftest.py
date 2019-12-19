@@ -26,8 +26,8 @@ def df():
                 np.iinfo(np.int16).min,
                 np.iinfo(np.int32).min,
                 np.iinfo(np.int64).min,
-                -2 ** 24,
-                -2 ** 53,
+                -(2 ** 24),
+                -(2 ** 53),
                 "\xef\xff\xdc\xde\xee",
             ],
             [
