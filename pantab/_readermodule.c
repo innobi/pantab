@@ -27,7 +27,9 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
         return PyFloat_FromDouble(*((double *)value));
 
     case OBJECT:
-        return PyUnicode_FromStringAndSize(value, *size);
+        // TODO: are there any platforms where we cant cast char* and
+        // unsigned char* ???
+        return PyUnicode_FromStringAndSize((const char *)value, *size);
 
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
@@ -102,7 +104,8 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
 static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *row, *dtypes;
+    PyObject *row;
+    PyTupleObject *dtypes;
     hyper_connection_t *connection;
     hyper_rowset_t *rowset;
     hyper_rowset_chunk_t *chunk;
@@ -188,7 +191,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
                     // Stop at j - 2 columns because side effect will have
                     // incremented j at start of loop, and current value cannot
                     // be decrefed
-                    for (Py_ssize_t j2 = 0; j2 < j - 2; j2++) {
+                    for (size_t j2 = 0; j2 < j - 2; j2++) {
                         Py_DECREF(PyTuple_GET_ITEM(row, j2));
                     }
                     Py_DECREF(row);
