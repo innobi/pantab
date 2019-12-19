@@ -92,6 +92,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
 
     hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
 						&values, &sizes, &null_flags);
+    
     if (hyper_err) {
       // TODO: clean up anything appended to list
       return NULL;
@@ -149,6 +150,8 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
 	return NULL;
       }
     }
+
+    hyper_destroy_rowset_chunk(chunk);
   }
 
   if (PyErr_Occurred())
