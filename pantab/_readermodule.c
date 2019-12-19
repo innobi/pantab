@@ -1,11 +1,34 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include "dtypes.h"
 #include "tableauhyperapi.h"
+
+
+static PyObject *read_value(const uint8_t *value, DTYPE dtype, const size_t *size) {
+  switch (dtype) {
+    case INT16_:
+    case INT16NA:
+    case INT32_:
+    case INT32NA:
+    case INT64_:
+    case INT64NA:      
+      return PyLong_FromLongLong(*value);
+
+  case BOOLEAN: {
+      return PyBool_FromLong(*value);
+  }
+
+    case FLOAT32_:
+    case FLOAT64_:
+      return PyFloat_FromDouble(*value);
+	
+  }
+}
 
 static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   int ok;
-  PyObject *row;
+  PyObject *row, *dtypes;
   hyper_connection_t *connection;
   hyper_rowset_t *rowset;
   hyper_rowset_chunk_t *chunk;
@@ -17,7 +40,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   const int8_t *null_flags;
 
   // TODO: support platforms where uintptr_t may not equal unsigned long long
-  ok = PyArg_ParseTuple(args, "Ks", &connection, &query);
+  ok = PyArg_ParseTuple(args, "KsO!", &connection, &query, &PyTuple_Type, &dtypes);
   if (!ok)
     return NULL;
 
@@ -27,6 +50,10 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   }
 
 
+  DTYPE *enumeratedDtypes = makeEnumeratedDtypes(dtypes);
+  if (enumeratedDtypes == NULL)
+    return NULL;
+  
   PyObject *result = PyList_New(0);
   if (result == NULL) {
     return NULL;
@@ -60,7 +87,16 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
       }
 
       for (size_t j = 0; j < num_cols; j++) {
-	PyObject *val = PyLong_FromLongLong(*(*values++));
+	PyObject *val;
+	if (*null_flags == 1) {
+	  val = Py_None;
+	  Py_INCREF(val);
+	} else {
+	  DTYPE dtype = enumeratedDtypes[j];
+	  val = read_value(*values, dtype, sizes);
+	}
+
+	values++, sizes++, null_flags++;
 
 	if (val == NULL) {
 	  // TODO: clean up everything

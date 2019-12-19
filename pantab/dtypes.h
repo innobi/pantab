@@ -38,4 +38,5 @@ const static struct {
 // creates an enumeration from a tuple of strings,
 // so ("int16", "int32") -> [INT16_, INT32_]
 // caller is responsible for freeing memory
+// returns NULL on failure
 DTYPE *makeEnumeratedDtypes(PyTupleObject *obj);

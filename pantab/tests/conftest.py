@@ -60,8 +60,11 @@ def df():
     df = df.astype(
         {
             "int16": np.int16,
+            "Int16": "Int16",
             "int32": np.int32,
+            "Int32": "Int32",
             "int64": np.int64,
+            "Int32": "Int32",
             "float32": np.float32,
             "float64": np.float64,
             "bool": np.bool,

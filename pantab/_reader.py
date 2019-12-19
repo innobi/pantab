@@ -42,7 +42,8 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
 
     address = int(str(connection._cdata)[:-1].split()[-1], base=16) # HACK :-X
     query = f"SELECT * from {table}"
-    df = pd.DataFrame(libreader.read_hyper_query(address, query))
+    dtype_strs = tuple(dtypes.values())
+    df = pd.DataFrame(libreader.read_hyper_query(address, query, dtype_strs))
 
     df.columns = dtypes.keys()
     # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
