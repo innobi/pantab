@@ -88,6 +88,12 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
       return td;
     }
 
+    default: {
+        PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
+        PyErr_SetObject(PyExc_ValueError, errMsg);
+        Py_DECREF(errMsg);
+        return NULL;
+    }
     }
 }
 
