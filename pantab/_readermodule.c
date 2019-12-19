@@ -10,59 +10,86 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   hyper_rowset_t *rowset;
   hyper_rowset_chunk_t *chunk;
   const char *query;
-  hyper_error_t *result;
+  hyper_error_t *hyper_err;
   size_t num_cols, num_rows;
   const uint8_t * const * values;
   const size_t *sizes;
   const int8_t *null_flags;
 
-  printf("parsing args\n");
   // TODO: support platforms where uintptr_t may not equal unsigned long long
   ok = PyArg_ParseTuple(args, "Ks", &connection, &query);
-  printf("at least got here\n");
   if (!ok)
     return NULL;
 
-  row = PyTuple_New(2);
-  
-  if (row == NULL)
-    return NULL;
-
-  printf("execute query\n");
-  result = hyper_execute_query(connection, query, &rowset);
-  if (result) {
-    Py_DECREF(row);
+  hyper_err = hyper_execute_query(connection, query, &rowset);
+  if (hyper_err) {
     return NULL;
   }
 
-  printf("next_chunk\n");
-  result = hyper_rowset_get_next_chunk(rowset, &chunk);
-  if (result) {
-    Py_DECREF(row);
+  hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
+  if (hyper_err) {
     return NULL;
   }
 
   
-  result = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
-					   &values, &sizes, &null_flags);
-  if (result) {
-    Py_DECREF(row);
+  hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
+					      &values, &sizes, &null_flags);
+  if (hyper_err) {
     return NULL;
   }
   
-  printf("number of rows: %lld\nnumber of columns: %lld\n", num_rows, num_cols);
 
-  for (int i = 0; i < num_rows; i++) {
-    for (int j = 0; j < num_cols; j++) {
-      printf("row %d col %d value is: %lld\n", i, j, *(*values++));
+  PyObject *result = PyList_New(0);
+  if (result == NULL) {
+    return NULL;
+  }
+  
+  for (size_t i = 0; i < num_rows; i++) {
+    row = PyTuple_New(num_cols);
+    if (row == NULL) {
+      Py_DECREF(result);
+      return NULL;
+    }
+    
+    for (size_t j = 0; j < num_cols; j++) {
+      PyObject *val = PyLong_FromLongLong(*(*values++));
+
+      if (val == NULL) {
+	Py_DECREF(result);
+	Py_DECREF(row);
+	return NULL;
+      }
+      
+      PyTuple_SET_ITEM(row, j, val);
+    }
+    
+    int ret = PyList_Append(result, row);
+    if (ret != 0) {
+      // Clean up any previously inserted elements
+      for (Py_ssize_t i=0; i < PyList_GET_SIZE(result) - 1; i++) {
+	PyObject *tup = PyList_GET_ITEM(result, i);
+	for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(tup); j++) {
+	  Py_DECREF(PyTuple_GET_ITEM(tup, j));
+	}
+	
+	Py_DECREF(tup);
+      }
+
+      // Clean up current elements
+      for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(row); j++) {
+	Py_DECREF(PyTuple_GET_ITEM(row, j));
+      }
+      Py_DECREF(row);
+      Py_DECREF(result);
+
+      return NULL;
     }
   }
 
-  Py_DECREF(row);
   if (PyErr_Occurred())
     return NULL;
 
-  Py_RETURN_NONE;
+  return result;
 }
 
 static PyMethodDef ReaderMethods[] = {{"read_hyper_query", read_hyper_query,
