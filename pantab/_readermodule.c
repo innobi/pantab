@@ -1,11 +1,9 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <datetime.h>
 
 #include "dtypes.h"
 #include "tableauhyperapi.h"
-
-// TODO: de-deplicate with writer
-#define MICROSECONDS_PER_DAY 24 * 60 * 60 * 1000000
 
 
 // the pointer to size is only used if receiving a character array
@@ -32,13 +30,16 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype, const size_t *siz
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
       // TODO: these don't belong here
-      printf("value is %zu\n", value);
-      hyper_date_components_t unix_epoch = {.year = 1970, .month = 1, .day = 1};
-      hyper_date_t encoded_epoch = hyper_encode_date(unix_epoch);
-      printf("encoded epoch is %zu\n", encoded_epoch);
-      unsigned long long epoch_in_ms = (unsigned long long)encoded_epoch * MICROSECONDS_PER_DAY;
-      printf("takeaway is %zu\n", value - epoch_in_ms);
-      return PyLong_FromUnsignedLongLong(value - epoch_in_ms);
+      uint64_t val = *((uint64_t *)value);
+
+      // This is a macro in the writer module but overflows here...
+      static const uint64_t ms_per_day = 24ULL * 60ULL * 60ULL * 1000000ULL;
+      uint64_t encoded_date = val / ms_per_day;
+      uint64_t encoded_time = val % ms_per_day;
+      hyper_date_components_t date = hyper_decode_date(encoded_date);
+      hyper_time_components_t time = hyper_decode_time(encoded_time);
+
+      return PyDateTime_FromDateAndTime(date.year, date.month, date.day, time.hour, time.minute, time.second, time.microsecond);
     }
 	
   }
@@ -168,5 +169,6 @@ static struct PyModuleDef readermodule = {PyModuleDef_HEAD_INIT,
                                           ReaderMethods};
 
 PyMODINIT_FUNC PyInit_libreader(void) {
+    PyDateTime_IMPORT;
     return PyModule_Create(&readermodule);
 }
