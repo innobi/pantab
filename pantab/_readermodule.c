@@ -67,7 +67,9 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
       
       py_interval interval = *((py_interval *)value);
       if (interval.months != 0) {
-	// TODO: Set Python error object
+        PyObject *errMsg = PyUnicode_FromFormat("Cannot read Intervals with month components.");
+        PyErr_SetObject(PyExc_ValueError, errMsg);
+        Py_DECREF(errMsg);	
 	return NULL;
       }
 
