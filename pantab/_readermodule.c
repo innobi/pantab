@@ -26,63 +26,73 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     return NULL;
   }
 
-  hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
-  if (hyper_err) {
-    return NULL;
-  }
-
-  
-  hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
-					      &values, &sizes, &null_flags);
-  if (hyper_err) {
-    return NULL;
-  }
-  
 
   PyObject *result = PyList_New(0);
   if (result == NULL) {
     return NULL;
   }
-  
-  for (size_t i = 0; i < num_rows; i++) {
-    row = PyTuple_New(num_cols);
-    if (row == NULL) {
-      Py_DECREF(result);
+
+  while(1) {
+
+    hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
+    if (hyper_err) {
+      // TODO: clean up anything appended to list
       return NULL;
     }
-    
-    for (size_t j = 0; j < num_cols; j++) {
-      PyObject *val = PyLong_FromLongLong(*(*values++));
 
-      if (val == NULL) {
+    if (chunk == NULL) {
+      break;  // No more to parse
+    }
+
+    hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, 
+						&values, &sizes, &null_flags);
+    if (hyper_err) {
+      // TODO: clean up anything appended to list
+      return NULL;
+    }  
+
+    for (size_t i = 0; i < num_rows; i++) {  // TODO: why is i++ required?
+      row = PyTuple_New(num_cols);
+      if (row == NULL) {
+	// TODO: clean up everything
 	Py_DECREF(result);
-	Py_DECREF(row);
 	return NULL;
       }
-      
-      PyTuple_SET_ITEM(row, j, val);
-    }
-    
-    int ret = PyList_Append(result, row);
-    if (ret != 0) {
-      // Clean up any previously inserted elements
-      for (Py_ssize_t i=0; i < PyList_GET_SIZE(result) - 1; i++) {
-	PyObject *tup = PyList_GET_ITEM(result, i);
-	for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(tup); j++) {
-	  Py_DECREF(PyTuple_GET_ITEM(tup, j));
+
+      for (size_t j = 0; j < num_cols; j++) {
+	PyObject *val = PyLong_FromLongLong(*(*values++));
+
+	if (val == NULL) {
+	  // TODO: clean up everything
+	  Py_DECREF(result);
+	  Py_DECREF(row);
+	  return NULL;
 	}
+      
+	PyTuple_SET_ITEM(row, j, val);
+      }
+
+      int ret = PyList_Append(result, row);
+      if (ret != 0) {
+	// Clean up any previously inserted elements
+	for (Py_ssize_t i=0; i < PyList_GET_SIZE(result) - 1; i++) {
+	  PyObject *tup = PyList_GET_ITEM(result, i);
+	  for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(tup); j++) {
+	    Py_DECREF(PyTuple_GET_ITEM(tup, j));
+	  }
 	
-	Py_DECREF(tup);
-      }
+	  Py_DECREF(tup);
+	}
 
-      // Clean up current elements
-      for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(row); j++) {
-	Py_DECREF(PyTuple_GET_ITEM(row, j));
-      }
-      Py_DECREF(row);
-      Py_DECREF(result);
+	// Clean up current elements
+	for (Py_ssize_t j=0; j < PyTuple_GET_SIZE(row); j++) {
+	  Py_DECREF(PyTuple_GET_ITEM(row, j));
+	}
+	Py_DECREF(row);
+	Py_DECREF(result);
 
-      return NULL;
+	return NULL;
+      }
     }
   }
 
