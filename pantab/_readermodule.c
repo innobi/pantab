@@ -22,6 +22,9 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype, const size_t *siz
     case FLOAT32_:
     case FLOAT64_:
       return PyFloat_FromDouble(*value);
+
+    case OBJECT:
+      return PyUnicode_FromStringAndSize(value, *size);
 	
   }
 }
