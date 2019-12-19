@@ -4,7 +4,11 @@
 #include "dtypes.h"
 #include "tableauhyperapi.h"
 
+// TODO: de-deplicate with writer
+#define MICROSECONDS_PER_DAY 24 * 60 * 60 * 1000000
 
+
+// the pointer to size is only used if receiving a character array
 static PyObject *read_value(const uint8_t *value, DTYPE dtype, const size_t *size) {
   switch (dtype) {
     case INT16_:
@@ -15,16 +19,27 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype, const size_t *siz
     case INT64NA:      
       return PyLong_FromLongLong(*value);
 
-  case BOOLEAN: {
+    case BOOLEAN:
       return PyBool_FromLong(*value);
-  }
 
     case FLOAT32_:
     case FLOAT64_:
-      return PyFloat_FromDouble(*value);
+      return PyFloat_FromDouble(*((double *)value));
 
     case OBJECT:
       return PyUnicode_FromStringAndSize(value, *size);
+
+    case DATETIME64_NS:
+    case DATETIME64_NS_UTC: {
+      // TODO: these don't belong here
+      printf("value is %zu\n", value);
+      hyper_date_components_t unix_epoch = {.year = 1970, .month = 1, .day = 1};
+      hyper_date_t encoded_epoch = hyper_encode_date(unix_epoch);
+      printf("encoded epoch is %zu\n", encoded_epoch);
+      unsigned long long epoch_in_ms = (unsigned long long)encoded_epoch * MICROSECONDS_PER_DAY;
+      printf("takeaway is %zu\n", value - epoch_in_ms);
+      return PyLong_FromUnsignedLongLong(value - epoch_in_ms);
+    }
 	
   }
 }

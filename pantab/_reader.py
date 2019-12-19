@@ -50,9 +50,9 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     # so we need to run an apply against applicable types
     for key, val in dtypes.items():
         if val == "datetime64[ns]":
-            df[key] = df[key].apply(lambda x: x._to_datetime())
+            df[key] = pd.to_datetime(df[key], unit="ms")
         elif val == "datetime64[ns, UTC]":
-            df[key] = df[key].apply(lambda x: x._to_datetime()).dt.tz_localize("UTC")
+            df[key] = pd.to_datetime(df[key], unit="ms", tz="UTC")
         elif val == "timedelta64[ns]":
             df[key] = df[key].apply(_interval_to_timedelta)
 
