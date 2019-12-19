@@ -1,12 +1,4 @@
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
-#include <datetime.h>
-#include <inttypes.h>
-
-#include "dtypes.h"
-#include "tableauhyperapi.h"
-
-#define MICROSECONDS_PER_DAY 24 * 60 * 60 * 1000000
+#include "pantab.h"
 
 static int isNull(PyObject *data) {
     if ((data == Py_None) ||

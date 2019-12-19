@@ -1,9 +1,4 @@
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
-#include <datetime.h>
-
-#include "dtypes.h"
-#include "tableauhyperapi.h"
+#include "pantab.h"
 
 static PyObject *cls_timedelta = NULL;
 
@@ -39,9 +34,8 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
         uint64_t val = *((uint64_t *)value);
 
         // This is a macro in the writer module but overflows here...
-        static const uint64_t ms_per_day = 24ULL * 60ULL * 60ULL * 1000000ULL;
-        uint64_t encoded_date = val / ms_per_day;
-        uint64_t encoded_time = val % ms_per_day;
+        uint64_t encoded_date = val / MICROSECONDS_PER_DAY;
+        uint64_t encoded_time = val % MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
         hyper_time_components_t time = hyper_decode_time(encoded_time);
 
