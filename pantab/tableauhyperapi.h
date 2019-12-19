@@ -52,6 +52,7 @@ hyper_error_t* hyper_inserter_buffer_add_raw(hyper_inserter_buffer_t* buffer, co
 typedef struct hyper_connection_t hyper_connection_t;
 typedef struct hyper_rowset_t hyper_rowset_t;
 typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
+void hyper_close_rowset(hyper_rowset_t* rowset);
 hyper_error_t* hyper_execute_query(hyper_connection_t* connection, const char* query, hyper_rowset_t** rowset);
 hyper_error_t* hyper_rowset_get_next_chunk(hyper_rowset_t* rowset, hyper_rowset_chunk_t** rowset_chunk);
 void hyper_destroy_rowset_chunk(const hyper_rowset_chunk_t* rowset_chunk);

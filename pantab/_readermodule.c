@@ -68,7 +68,6 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     return NULL;
   }
 
-
   DTYPE *enumeratedDtypes = makeEnumeratedDtypes(dtypes);
   if (enumeratedDtypes == NULL)
     return NULL;
@@ -153,6 +152,8 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
 
     hyper_destroy_rowset_chunk(chunk);
   }
+
+  hyper_close_rowset(rowset);
 
   if (PyErr_Occurred())
     return NULL;
