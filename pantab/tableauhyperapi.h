@@ -48,4 +48,11 @@ hyper_error_t* hyper_inserter_buffer_add_int64(hyper_inserter_buffer_t* buffer, 
 hyper_error_t* hyper_inserter_buffer_add_double(hyper_inserter_buffer_t* buffer, double value);
 hyper_error_t* hyper_inserter_buffer_add_binary(hyper_inserter_buffer_t* buffer, const uint8_t* value, size_t size);
 hyper_error_t* hyper_inserter_buffer_add_raw(hyper_inserter_buffer_t* buffer, const uint8_t* value, size_t size);
+
+typedef struct hyper_connection_t hyper_connection_t;
+typedef struct hyper_rowset_t hyper_rowset_t;
+typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
+hyper_error_t* hyper_execute_query(hyper_connection_t* connection, const char* query, hyper_rowset_t** rowset);
+hyper_error_t* hyper_rowset_get_next_chunk(hyper_rowset_t* rowset, hyper_rowset_chunk_t** rowset_chunk);
+int64_t hyper_read_int64(const uint8_t* source);
 #endif

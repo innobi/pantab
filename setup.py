@@ -29,6 +29,14 @@ writer_module = Extension(
     libraries=[dll_path.stem.replace("lib", "")],
 )
 
+reader_module = Extension(
+    "libreader",
+    sources=["pantab/_readermodule.c"],
+    library_dirs=[str(dll_path.parent.resolve())],
+    libraries=[dll_path.stem.replace("lib", "")],
+)
+
+
 setup(
     name="pantab",
     version="0.1.1",
@@ -55,5 +63,5 @@ setup(
     python_requires=">=3.6",
     install_requires=["pandas"],
     extras_require={"dev": ["pytest"]},
-    ext_modules=[writer_module],
+    ext_modules=[writer_module, reader_module],
 )

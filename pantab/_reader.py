@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
+import libreader
 import pantab._types as pantab_types
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
@@ -39,9 +40,13 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
         column_type = pantab_types._ColumnType(column.type, column.nullability)
         dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
 
-    with connection.execute_query(f"SELECT * from {table}") as result:
-        df = pd.DataFrame(result)
 
+    # HACK :-X
+    address = int(str(connection)[:-1].split()[-1], base=16)        
+    query = f"SELECT * from {table}"
+    libreader.read_hyper_query(address, query)
+
+    """
     df.columns = dtypes.keys()
     # The tableauhyperapi.Timestamp class is not implicitly convertible to a datetime
     # so we need to run an apply against applicable types
@@ -57,6 +62,8 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df
+    """
+    return None
 
 
 def frame_from_hyper(
