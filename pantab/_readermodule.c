@@ -34,10 +34,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
-        // TODO: these don't belong here
         uint64_t val = *((uint64_t *)value);
-
-        // This is a macro in the writer module but overflows here...
         uint64_t encoded_date = val / MICROSECONDS_PER_DAY;
         uint64_t encoded_time = val % MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
@@ -154,7 +151,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
             goto ERROR_CLEANUP;
         }
 
-        for (size_t i = 0; i < num_rows; i++) { // TODO: why is i++ required?
+        for (size_t i = 0; i < num_rows; i++) {
             row = PyTuple_New(num_cols);
             if (row == NULL) {
                 goto ERROR_CLEANUP;
@@ -173,8 +170,6 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
                 values++, sizes++, null_flags++;
 
                 if (val == NULL) {
-                    // TODO: a lot of duplication in error handling here
-                    // with list append failure later
                     for (Py_ssize_t i = 0; i < PyList_GET_SIZE(result); i++) {
                         PyObject *tup = PyList_GET_ITEM(result, i);
                         for (Py_ssize_t j = 0; j < PyTuple_GET_SIZE(tup); j++) {
