@@ -104,7 +104,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
 static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *row;
+    PyObject *row = NULL;
     PyTupleObject *dtypes;
     hyper_connection_t *connection;
     hyper_rowset_t *rowset = NULL;
@@ -140,8 +140,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
 
         hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
         if (hyper_err) {
-            // TODO: clean up anything appended to list
-            return NULL;
+            goto ERROR_CLEANUP;
         }
 
         if (chunk == NULL) {
@@ -152,8 +151,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
             chunk, &num_cols, &num_rows, &values, &sizes, &null_flags);
 
         if (hyper_err) {
-            // TODO: clean up anything appended to list
-            return NULL;
+            goto ERROR_CLEANUP;
         }
 
         for (size_t i = 0; i < num_rows; i++) { // TODO: why is i++ required?
@@ -223,8 +221,7 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
     }
 
     hyper_close_rowset(rowset);
-    if (cls_timedelta != NULL)
-        Py_DECREF(cls_timedelta);
+    Py_XDECREF(cls_timedelta);
 
     return result;
 
