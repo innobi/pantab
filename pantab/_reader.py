@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
-import libreader
+import libreader # type: ignore
 import pantab._types as pantab_types
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
