@@ -52,6 +52,12 @@ static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
   
   printf("number of rows: %lld\nnumber of columns: %lld\n", num_rows, num_cols);
 
+  for (int i = 0; i < num_rows; i++) {
+    for (int j = 0; j < num_cols; j++) {
+      printf("row %d col %d value is: %lld\n", i, j, values[i][j]);
+    }
+  }
+
   Py_DECREF(row);
   if (PyErr_Occurred())
     return NULL;
