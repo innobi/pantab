@@ -13,11 +13,13 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     switch (dtype) {
     case INT16_:
     case INT16NA:
+      return PyLong_FromLong(*((int16_t *) value));
     case INT32_:
     case INT32NA:
+      return PyLong_FromLong(*((int32_t *) value));
     case INT64_:
     case INT64NA:
-        return PyLong_FromLongLong(*value);
+        return PyLong_FromLongLong(*((int64_t *) value));
 
     case BOOLEAN:
         return PyBool_FromLong(*value);

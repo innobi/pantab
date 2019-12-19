@@ -90,7 +90,7 @@ def df():
             "int16_limits": np.int16,
             "int32_limits": np.int32,
             "int64_limits": np.int64,
-            "float32_limits": np.float32,
+            "float32_limits": np.float64,
             "float64_limits": np.float64,
         }
     )
