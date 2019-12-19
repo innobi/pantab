@@ -31,14 +31,14 @@ if sys.platform.startswith("win32"):
 
 writer_module = Extension(
     "libwriter",
-    sources=["pantab/dtypes.c", "pantab/_writermodule.c"],
+    sources=["pantab/pantab.c", "pantab/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
 
 reader_module = Extension(
     "libreader",
-    sources=["pantab/dtypes.c", "pantab/_readermodule.c"],
+    sources=["pantab/pantab.c", "pantab/_readermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
 )
@@ -46,7 +46,7 @@ reader_module = Extension(
 
 setup(
     name="pantab",
-    version="0.1.1",
+    version="0.2.0",
     description="Converts pandas DataFrames into Tableau Hyper Extracts",
     long_description=long_description,
     long_description_content_type="text/markdown",

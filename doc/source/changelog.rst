@@ -1,6 +1,15 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 0.2.0 (2019-12-19)
+=========================
+
+Features
+--------
+
+- Improved performance when reading data from Hyper extracts (#34)
+
+
 0.1.1 (2019-12-06)
 ==================
 

@@ -1,4 +1,4 @@
-#include "dtypes.h"
+#include "pantab.h"
 
 static DTYPE stringToDtype(const char *str) {
     for (Py_ssize_t i = 0;
