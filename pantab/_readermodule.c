@@ -1,5 +1,4 @@
 #include "pantab.h"
-#include <stdint.h>
 
 static PyObject *cls_timedelta = NULL;
 
@@ -36,16 +35,19 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
         uint64_t val = *((uint64_t *)value);
-        // Special case NULL value as it isn't contained in null_flags
-	printf("The value is %" PRIu64 "\n", val);
-        if (val == UINT64_C(148731206400000000)) {
-            Py_RETURN_NONE;
-        }
 
         uint64_t encoded_date = val / MICROSECONDS_PER_DAY;
         uint64_t encoded_time = val % MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
         hyper_time_components_t time = hyper_decode_time(encoded_time);
+
+        // Special case NULL value as it isn't contained in null_flags
+        // Note that the sentinel to compare to varies by platform, so
+        // have to fully parse and compare components for now
+        if ((date.year == 1) && (date.month == 1) && (date.day == 1) &&
+            (time.hour == 0) && (time.minute == 0) && (time.microsecond == 0)) {
+            Py_RETURN_NONE;
+        }
 
         return PyDateTime_FromDateAndTime(date.year, date.month, date.day,
                                           time.hour, time.minute, time.second,
