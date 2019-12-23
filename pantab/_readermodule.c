@@ -35,6 +35,11 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
         uint64_t val = *((uint64_t *)value);
+        // Special case NULL value as it isn't contained in null_flags
+        if (val == 148731206400000000) {
+            Py_RETURN_NONE;
+        }
+
         uint64_t encoded_date = val / MICROSECONDS_PER_DAY;
         uint64_t encoded_time = val % MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
