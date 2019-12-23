@@ -1,0 +1,1 @@
+Fixed issue where reading a timedelta column containing ``pd.NaT`` would throw a ``ValueError``
