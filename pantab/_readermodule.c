@@ -37,6 +37,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     case DATETIME64_NS_UTC: {
         uint64_t val = *((uint64_t *)value);
         // Special case NULL value as it isn't contained in null_flags
+	printf("The value is %" PRIu64 "\n", val);
         if (val == UINT64_C(148731206400000000)) {
             Py_RETURN_NONE;
         }
