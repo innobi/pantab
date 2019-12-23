@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import tableauhyperapi as tab_api
@@ -19,8 +19,11 @@ def _pandas_to_tableau_type(typ: str) -> pantab_types._ColumnType:
         raise TypeError("Conversion of '{}' dtypes not supported!".format(typ))
 
 
-def _timedelta_to_interval(td: pd.Timedelta) -> tab_api.Interval:
+def _timedelta_to_interval(td: pd.Timedelta) -> Optional[tab_api.Interval]:
     """Converts a pandas Timedelta to tableau Hyper API implementation."""
+    if pd.isnull(td):
+        return None
+
     days = td.days
     without_days = td - pd.Timedelta(days=days)
     total_seconds = int(without_days.total_seconds())
