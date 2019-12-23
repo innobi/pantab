@@ -1,6 +1,16 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 0.2.1 (2019-12-23)
+=========================
+
+Bugfixes
+--------
+
+- Fixed issue where reading a datetime column containing ``pd.NaT`` values would throw an ``OutOfBoundsDatetime`` error (#56)
+- Fixed issue where reading a timedelta column containing ``pd.NaT`` would throw a ``ValueError`` (#57)
+
+
 Pantab 0.2.0 (2019-12-19)
 =========================
 
