@@ -1,6 +1,15 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 0.2.2 (2019-12-25)
+=========================
+
+Bugfixes
+--------
+
+- Pantab now writes actual NULL values for datetime columns, rather than 0001-01-01 00:00:00 (#60)
+
+
 Pantab 0.2.1 (2019-12-23)
 =========================
 
