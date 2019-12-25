@@ -78,6 +78,9 @@ class TimeWriteLong:
     def time_write_frame(self):
         pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
 
+    def peakmem_write_frame(self):
+        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+
 class TimeReadLong:
     def setup_cache(self):
         df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
@@ -85,4 +88,7 @@ class TimeReadLong:
         pantab.frame_to_hyper(df, path, table="test")
 
     def time_read_frame(self):
+        pantab.frame_from_hyper("test.hyper", table="test")
+
+    def peakmem_read_frame(self):
         pantab.frame_from_hyper("test.hyper", table="test")
