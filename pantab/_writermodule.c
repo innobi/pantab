@@ -1,12 +1,11 @@
 #include "pantab.h"
 
-
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
 static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
-                                hyper_inserter_buffer_t *insertBuffer,
-                                Py_ssize_t row, Py_ssize_t col) {
+                                       hyper_inserter_buffer_t *insertBuffer,
+                                       Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
     // Check again for non-null data
     switch (dtype) {
@@ -142,8 +141,8 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     Py_buffer buf;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OOKnO!", &data, &null_mask, &insertBuffer, &ncols,
-                          &PyTuple_Type, &dtypes);
+    ok = PyArg_ParseTuple(args, "OOKnO!", &data, &null_mask, &insertBuffer,
+                          &ncols, &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
 
@@ -153,55 +152,59 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     }
 
     if (!PyObject_CheckBuffer(null_mask)) {
-      PyErr_SetString(PyExc_TypeError, "Second argument must support buffer protocol");
-      return NULL;
+        PyErr_SetString(PyExc_TypeError,
+                        "Second argument must support buffer protocol");
+        return NULL;
     }
 
     iterator = PyObject_GetIter(data);
     if (iterator == NULL)
         return NULL;
 
-    if (PyObject_GetBuffer(null_mask, &buf, PyBUF_CONTIG_RO | PyBUF_FORMAT) < 0) {
-      Py_DECREF(iterator);
-      return NULL;
+    if (PyObject_GetBuffer(null_mask, &buf, PyBUF_CONTIG_RO | PyBUF_FORMAT) <
+        0) {
+        Py_DECREF(iterator);
+        return NULL;
     }
 
     if (buf.ndim != 2) {
-      Py_DECREF(iterator);
-      PyBuffer_Release(&buf);
-      PyErr_SetString(PyExc_ValueError, "null_mask must be 2D");
-      return NULL;
+        Py_DECREF(iterator);
+        PyBuffer_Release(&buf);
+        PyErr_SetString(PyExc_ValueError, "null_mask must be 2D");
+        return NULL;
     }
 
     if (strncmp(buf.format, "?", 1) != 0) {
-      Py_DECREF(iterator);
-      PyBuffer_Release(&buf);
-      PyErr_SetString(PyExc_ValueError, "null_mask must be boolean");
-      return NULL;
+        Py_DECREF(iterator);
+        PyBuffer_Release(&buf);
+        PyErr_SetString(PyExc_ValueError, "null_mask must be boolean");
+        return NULL;
     }
 
     DTYPE *enumerated_dtypes = makeEnumeratedDtypes((PyTupleObject *)dtypes);
     row_counter = 0;
+    Py_ssize_t item_counter =
+        0; // Needed as pointer arith doesn't work for void * buf
     while ((row = PyIter_Next(iterator))) {
         // TODO: Add validation that the total length of all elements
         //  matches the length of the null buffer, otherwise wrong data
         //  is returned
         for (Py_ssize_t i = 0; i < ncols; i++) {
-	  if (*((uint8_t *)buf.buf++) == 1) {
-            result = hyper_inserter_buffer_add_null(insertBuffer);
-	  } else {
-            val = PyTuple_GET_ITEM(row, i);
-            result = writeNonNullData(val, enumerated_dtypes[i], insertBuffer,
-                               row_counter, i);
-	  }
+            if (((uint8_t *)buf.buf)[item_counter++] == 1) {
+                result = hyper_inserter_buffer_add_null(insertBuffer);
+            } else {
+                val = PyTuple_GET_ITEM(row, i);
+                result = writeNonNullData(val, enumerated_dtypes[i],
+                                          insertBuffer, row_counter, i);
+            }
 
-	  if ((result != NULL) || (PyErr_Occurred())) {
-	    free(enumerated_dtypes);
-	    Py_DECREF(row);
-	    Py_DECREF(iterator);
-	    PyBuffer_Release(&buf);	    
-	    return NULL;
-	  }
+            if ((result != NULL) || (PyErr_Occurred())) {
+                free(enumerated_dtypes);
+                Py_DECREF(row);
+                Py_DECREF(iterator);
+                PyBuffer_Release(&buf);
+                return NULL;
+            }
         }
         Py_DECREF(row);
         row_counter += 1;
