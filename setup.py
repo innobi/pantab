@@ -46,7 +46,7 @@ reader_module = Extension(
 
 setup(
     name="pantab",
-    version="0.2.1",
+    version="0.2.2",
     description="Converts pandas DataFrames into Tableau Hyper Extracts",
     long_description=long_description,
     long_description_content_type="text/markdown",
