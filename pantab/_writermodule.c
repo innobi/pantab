@@ -1,42 +1,13 @@
 #include "pantab.h"
 
-static int isNull(PyObject *data) {
-    if ((data == Py_None) ||
-        (PyFloat_Check(data) && isnan(PyFloat_AS_DOUBLE(data)))) {
-        return 1;
-    } else {
-        return 0;
-    }
-}
 
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
-static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
+static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
                                 hyper_inserter_buffer_t *insertBuffer,
                                 Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
-
-    // First perform checks for nullable data
-    switch (dtype) {
-    case INT16NA:
-    case INT32NA:
-    case INT64NA:
-    case FLOAT32_:
-    case FLOAT64_:
-    case DATETIME64_NS:
-    case DATETIME64_NS_UTC:
-    case TIMEDELTA64_NS:
-    case OBJECT: {
-        if (isNull(data)) {
-            result = hyper_inserter_buffer_add_null(insertBuffer);
-            return result;
-        }
-    }
-    default:
-        break;
-    }
-
     // Check again for non-null data
     switch (dtype) {
     case INT16_:
@@ -209,27 +180,28 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
       return NULL;
     }
 
-    for (Py_ssize_t i = 0; i < buf.len; i++) {
-      printf("%d\n", ((uint8_t *)buf.buf)[i]);
-    }
-    PyBuffer_Release(&buf);
-
     DTYPE *enumerated_dtypes = makeEnumeratedDtypes((PyTupleObject *)dtypes);
     row_counter = 0;
     while ((row = PyIter_Next(iterator))) {
-        // Undefined behavior if the number of tuple elements does't match
-        // callable list length
+        // TODO: Add validation that the total length of all elements
+        //  matches the length of the null buffer, otherwise wrong data
+        //  is returned
         for (Py_ssize_t i = 0; i < ncols; i++) {
+	  if (*((uint8_t *)buf.buf++) == 1) {
+            result = hyper_inserter_buffer_add_null(insertBuffer);
+	  } else {
             val = PyTuple_GET_ITEM(row, i);
-            result = writeData(val, enumerated_dtypes[i], insertBuffer,
+            result = writeNonNullData(val, enumerated_dtypes[i], insertBuffer,
                                row_counter, i);
+	  }
 
-            if ((result != NULL) || (PyErr_Occurred())) {
-                free(enumerated_dtypes);
-                Py_DECREF(row);
-                Py_DECREF(iterator);
-                return NULL;
-            }
+	  if ((result != NULL) || (PyErr_Occurred())) {
+	    free(enumerated_dtypes);
+	    Py_DECREF(row);
+	    Py_DECREF(iterator);
+	    PyBuffer_Release(&buf);	    
+	    return NULL;
+	  }
         }
         Py_DECREF(row);
         row_counter += 1;
@@ -237,6 +209,7 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
 
     free(enumerated_dtypes);
     Py_DECREF(iterator);
+    PyBuffer_Release(&buf);
 
     if (PyErr_Occurred())
         return NULL;
