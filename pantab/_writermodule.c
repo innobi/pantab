@@ -164,13 +164,14 @@ static hyper_error_t *writeData(PyObject *data, DTYPE dtype,
 // If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
     int ok;
-    PyObject *data, *iterator, *row, *val, *dtypes;
+    PyObject *data, *iterator, *row, *val, *dtypes, *null_mask;
     Py_ssize_t row_counter, ncols;
     hyper_inserter_buffer_t *insertBuffer;
     hyper_error_t *result;
+    Py_buffer buf;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OKnO!", &data, &insertBuffer, &ncols,
+    ok = PyArg_ParseTuple(args, "OOKnO!", &data, &null_mask, &insertBuffer, &ncols,
                           &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
@@ -180,9 +181,38 @@ static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
         return NULL;
     }
 
+    if (!PyObject_CheckBuffer(null_mask)) {
+      PyErr_SetString(PyExc_TypeError, "Second argument must support buffer protocol");
+      return NULL;
+    }
+
     iterator = PyObject_GetIter(data);
     if (iterator == NULL)
         return NULL;
+
+    if (PyObject_GetBuffer(null_mask, &buf, PyBUF_CONTIG_RO | PyBUF_FORMAT) < 0) {
+      Py_DECREF(iterator);
+      return NULL;
+    }
+
+    if (buf.ndim != 2) {
+      Py_DECREF(iterator);
+      PyBuffer_Release(&buf);
+      PyErr_SetString(PyExc_ValueError, "null_mask must be 2D");
+      return NULL;
+    }
+
+    if (strncmp(buf.format, "?", 1) != 0) {
+      Py_DECREF(iterator);
+      PyBuffer_Release(&buf);
+      PyErr_SetString(PyExc_ValueError, "null_mask must be boolean");
+      return NULL;
+    }
+
+    for (Py_ssize_t i = 0; i < buf.len; i++) {
+      printf("%d\n", ((uint8_t *)buf.buf)[i]);
+    }
+    PyBuffer_Release(&buf);
 
     DTYPE *enumerated_dtypes = makeEnumeratedDtypes((PyTupleObject *)dtypes);
     row_counter = 0;

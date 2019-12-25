@@ -5,6 +5,7 @@ import tempfile
 import uuid
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
@@ -142,6 +143,7 @@ def _insert_frame(
 
         connection.catalog.create_table_if_not_exists(table_def)
 
+    null_mask = np.ascontiguousarray(pd.isnull(df))
     # Special handling for conversions
     df, dtypes = _maybe_convert_timedelta(df)
 
@@ -153,7 +155,7 @@ def _insert_frame(
         # ffi.addressof did not work because this is an opaque pointer
         address = int(str(inserter._buffer)[:-1].split()[-1], base=16)
         libwriter.write_to_hyper(
-            df.itertuples(index=False, name=None), address, df.shape[1], dtypes
+            df.itertuples(index=False, name=None), null_mask, address, df.shape[1], dtypes
         )
         inserter.execute()
 
