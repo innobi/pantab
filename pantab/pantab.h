@@ -7,7 +7,7 @@
 #include <inttypes.h>
 #include "tableauhyperapi.h"
 
-#define MICROSECONDS_PER_DAY (uint64_t)(24UL * 60UL * 60UL * 1000000UL)
+#define MICROSECONDS_PER_DAY (INT64_C(24) * INT64_C(60) * INT64_C(60) * INT64_C(1000000))
 
 typedef enum {
     INT16_ = 1,

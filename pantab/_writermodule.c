@@ -57,7 +57,10 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
         hyper_date_t date = hyper_encode_date(date_components);
         hyper_time_t time = hyper_encode_time(time_components);
 
-        int64_t val = time + (int64_t)date * MICROSECONDS_PER_DAY;
+        // TODO: Tableau uses typedefs for unsigned 32 / 64 integers for
+        // date and time respectively, but stores as int64; here we cast
+        // explicitly but should probably bounds check for overflow as well
+        int64_t val = (int64_t)time + (int64_t)date * MICROSECONDS_PER_DAY;
 
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;

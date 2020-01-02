@@ -34,10 +34,10 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
-        uint64_t val = *((uint64_t *)value);
+        hyper_time_t val = *((hyper_time_t *)value);
 
-        uint64_t encoded_date = val / MICROSECONDS_PER_DAY;
-        uint64_t encoded_time = val % MICROSECONDS_PER_DAY;
+        hyper_date_t encoded_date = (hyper_date_t)(val / (hyper_time_t) MICROSECONDS_PER_DAY);
+        hyper_time_t encoded_time = val % (hyper_time_t) MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
         hyper_time_components_t time = hyper_decode_time(encoded_time);
 
