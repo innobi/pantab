@@ -1,6 +1,15 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 0.2.3 (2020-01-02)
+=========================
+
+Bugfixes
+--------
+
+- Fixed issue where dates would roundtrip in pantab find but would either error or be incorrect in Tableau Desktop (#66)
+
+
 Pantab 0.2.2 (2019-12-25)
 =========================
 
