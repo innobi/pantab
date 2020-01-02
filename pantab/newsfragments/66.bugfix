@@ -1,0 +1,1 @@
+Fixed issue where dates would roundtrip in pantab find but would either error or be incorrect in Tableau Desktop
