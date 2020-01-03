@@ -29,12 +29,17 @@ if sys.platform.startswith("win32"):
             ).read()
         )
 
+
+extra_compile_args = ["-Wextra", "-Werror"]
+
+
 writer_module = Extension(
     "libwriter",
     sources=["pantab/pantab.c", "pantab/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
     depends=["pantab/pantab.h"],
+    extra_compile_args=extra_compile_args,
 )
 
 reader_module = Extension(
@@ -43,6 +48,7 @@ reader_module = Extension(
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
     depends=["pantab/pantab.h"],
+    extra_compile_args=extra_compile_args,
 )
 
 

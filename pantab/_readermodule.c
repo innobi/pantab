@@ -36,8 +36,9 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     case DATETIME64_NS_UTC: {
         hyper_time_t val = *((hyper_time_t *)value);
 
-        hyper_date_t encoded_date = (hyper_date_t)(val / (hyper_time_t) MICROSECONDS_PER_DAY);
-        hyper_time_t encoded_time = val % (hyper_time_t) MICROSECONDS_PER_DAY;
+        hyper_date_t encoded_date =
+            (hyper_date_t)(val / (hyper_time_t)MICROSECONDS_PER_DAY);
+        hyper_time_t encoded_time = val % (hyper_time_t)MICROSECONDS_PER_DAY;
         hyper_date_components_t date = hyper_decode_date(encoded_date);
         hyper_time_components_t time = hyper_decode_time(encoded_time);
 
@@ -108,7 +109,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     }
 }
 
-static PyObject *read_hyper_query(PyObject *dummy, PyObject *args) {
+static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *row = NULL;
     PyTupleObject *dtypes;
@@ -246,11 +247,9 @@ static PyMethodDef ReaderMethods[] = {
      "Reads a hyper query from a given connection."},
     {NULL, NULL, 0, NULL}};
 
-static struct PyModuleDef readermodule = {PyModuleDef_HEAD_INIT,
-                                          "libreader", // Name of module
-                                          NULL,        // Documentation
-                                          -1, // keep state in global variables
-                                          ReaderMethods};
+static struct PyModuleDef readermodule = {.m_base = PyModuleDef_HEAD_INIT,
+                                          .m_name = "libreader",
+                                          .m_methods = ReaderMethods};
 
 PyMODINIT_FUNC PyInit_libreader(void) {
     PyDateTime_IMPORT;
