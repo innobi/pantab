@@ -32,11 +32,10 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
         column_type = pantab_types._ColumnType(column.type, column.nullability)
         dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
 
-    address = int(str(connection._cdata)[:-1].split()[-1], base=16)  # HACK :-X
     query = f"SELECT * from {table}"
     dtype_strs = tuple(dtypes.values())
 
-    df = pd.DataFrame(libreader.read_hyper_query(address, query, dtype_strs))
+    df = pd.DataFrame(libreader.read_hyper_query(connection._cdata, query, dtype_strs))
 
     df.columns = dtypes.keys()
     df = df.astype(dtypes)

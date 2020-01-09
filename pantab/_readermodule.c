@@ -1,3 +1,4 @@
+#include "cffi.h"
 #include "pantab.h"
 #include <datetime.h>
 
@@ -112,11 +113,11 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
 static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
-    PyObject *row = NULL;
+    PyObject *row = NULL, *connectionObj;
     PyTupleObject *dtypes;
     hyper_connection_t *connection;
-    hyper_rowset_t *rowset = NULL;
-    hyper_rowset_chunk_t *chunk = NULL;
+    hyper_rowset_t *rowset;
+    hyper_rowset_chunk_t *chunk;
     const char *query;
     hyper_error_t *hyper_err;
     size_t num_cols, num_rows;
@@ -125,11 +126,13 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     const int8_t *null_flags;
 
     // TODO: support platforms where uintptr_t may not equal unsigned long long
-    ok = PyArg_ParseTuple(args, "KsO!", &connection, &query, &PyTuple_Type,
+    ok = PyArg_ParseTuple(args, "OsO!", &connectionObj, &query, &PyTuple_Type,
                           &dtypes);
     if (!ok)
         return NULL;
 
+    // TODO: check that we get an instance of CDataObject; else will segfault
+    connection = (hyper_connection_t *)((CDataObject *)connectionObj)->c_data;
     hyper_err = hyper_execute_query(connection, query, &rowset);
     if (hyper_err) {
         return NULL;

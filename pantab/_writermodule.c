@@ -1,3 +1,4 @@
+#include "cffi.h"
 #include "pantab.h"
 #include <datetime.h>
 
@@ -138,14 +139,15 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
 // If this doesn't hold true behavior is undefined
 static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
-    PyObject *data, *iterator, *row, *val, *dtypes, *null_mask;
+    PyObject *data, *iterator, *row, *val, *dtypes, *null_mask,
+        *insertBufferObj;
     Py_ssize_t row_counter, ncols;
     hyper_inserter_buffer_t *insertBuffer;
     hyper_error_t *result;
     Py_buffer buf;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
-    ok = PyArg_ParseTuple(args, "OOKnO!", &data, &null_mask, &insertBuffer,
+    ok = PyArg_ParseTuple(args, "OOOnO!", &data, &null_mask, &insertBufferObj,
                           &ncols, &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
@@ -160,6 +162,10 @@ static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
                         "Second argument must support buffer protocol");
         return NULL;
     }
+
+    // TODO: check that we get an instance of CDataObject; else will segfault
+    insertBuffer =
+        (hyper_inserter_buffer_t *)((CDataObject *)insertBufferObj)->c_data;
 
     iterator = PyObject_GetIter(data);
     if (iterator == NULL)
