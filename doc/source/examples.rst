@@ -52,7 +52,7 @@ By default tables will be written to the "public" schema. You can control this b
    pantab.frame_to_hyper(df, "example.hyper", table=table)
 
    # Can also be round-tripped
-   df2 = pantab.frame_from_hyper(df, "example.hyper", table=table)
+   df2 = pantab.frame_from_hyper("example.hyper", table=table)
 
 Reading and Writing Multiple Tables
 -----------------------------------
