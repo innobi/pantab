@@ -1,6 +1,6 @@
+#include "cffi.h"
 #include "pantab.h"
 #include <datetime.h>
-#include "cffi.h"
 
 static PyObject *cls_timedelta = NULL;
 
