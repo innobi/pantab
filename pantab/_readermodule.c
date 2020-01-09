@@ -1,4 +1,5 @@
 #include "pantab.h"
+#include <datetime.h>
 
 static PyObject *cls_timedelta = NULL;
 

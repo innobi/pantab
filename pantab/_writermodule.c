@@ -1,4 +1,5 @@
 #include "pantab.h"
+#include <datetime.h>
 
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
