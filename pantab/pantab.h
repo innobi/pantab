@@ -26,7 +26,7 @@ typedef enum {
     UNKNOWN = 255
 } DTYPE;
 
-const static struct {
+static const struct {
     DTYPE dtype;
     const char *str;
 } dtype_map[] = {{INT16_, "int16"},
