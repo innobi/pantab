@@ -1,13 +1,13 @@
-from os import path
+import os
 import sys
 
 from setuptools import Extension, find_packages, setup
 from tableauhyperapi.impl.util import find_hyper_api_dll
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
 dll_path = find_hyper_api_dll()
 
-with open(path.join(here, "README.md"), encoding="utf-8") as f:
+with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 if sys.platform.startswith("win32"):
@@ -18,16 +18,29 @@ if sys.platform.startswith("win32"):
     from urllib.request import urlopen
 
     data = urlopen(
-        "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374.zip"
+        "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64"
+        "-release-hyperapi_release_3.0.0.9273.r6111d374.zip"
     )
     target = dll_path.parent / "tableauhyperapi.lib"
     print(f"extract lib to {target}")
     with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
         target.write_bytes(
             archive.open(
-                "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib"
+                "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release"
+                "_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib"
             ).read()
         )
+
+
+extra_compile_args = ["-Wextra"]
+
+
+# MSVC compiler has different flags; assume that's what we are using on Windows
+if os.name == "nt":
+    extra_compile_args = ["/WX"]
+else:
+    extra_compile_args = ["-Wextra", "-Werror"]
+
 
 writer_module = Extension(
     "libwriter",
@@ -35,6 +48,7 @@ writer_module = Extension(
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
     depends=["pantab/pantab.h"],
+    extra_compile_args=extra_compile_args,
 )
 
 reader_module = Extension(
@@ -43,6 +57,7 @@ reader_module = Extension(
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
     depends=["pantab/pantab.h"],
+    extra_compile_args=extra_compile_args,
 )
 
 

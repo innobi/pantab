@@ -1,4 +1,5 @@
 #include "pantab.h"
+#include <datetime.h>
 
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
@@ -135,7 +136,7 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
 // in data matches the length of the callables supplied at every step
 // in the process,though note that this is critical!
 // If this doesn't hold true behavior is undefined
-static PyObject *write_to_hyper(PyObject *dummy, PyObject *args) {
+static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *data, *iterator, *row, *val, *dtypes, *null_mask;
     Py_ssize_t row_counter, ncols;
@@ -228,11 +229,9 @@ static PyMethodDef WriterMethods[] = {{"write_to_hyper", write_to_hyper,
                                        "Writes a numpy array to a hyper file."},
                                       {NULL, NULL, 0, NULL}};
 
-static struct PyModuleDef writermodule = {PyModuleDef_HEAD_INIT,
-                                          "libwriter", // Name of module
-                                          NULL,        // Documentation
-                                          -1, // keep state in global variables
-                                          WriterMethods};
+static struct PyModuleDef writermodule = {.m_base = PyModuleDef_HEAD_INIT,
+                                          .m_name = "libwriter",
+                                          .m_methods = WriterMethods};
 
 PyMODINIT_FUNC PyInit_libwriter(void) {
     PyDateTime_IMPORT;

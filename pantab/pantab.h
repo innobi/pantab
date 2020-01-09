@@ -3,7 +3,6 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <datetime.h>
 #include <inttypes.h>
 #include "tableauhyperapi.h"
 
@@ -26,7 +25,7 @@ typedef enum {
     UNKNOWN = 255
 } DTYPE;
 
-const static struct {
+static const struct {
     DTYPE dtype;
     const char *str;
 } dtype_map[] = {{INT16_, "int16"},
