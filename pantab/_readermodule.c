@@ -113,7 +113,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
 static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
-    PyObject *row, *connectionObj;
+    PyObject *row = NULL, *connectionObj;
     PyTupleObject *dtypes;
     hyper_connection_t *connection;
     hyper_rowset_t *rowset;
