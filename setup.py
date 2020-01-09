@@ -47,7 +47,7 @@ writer_module = Extension(
     sources=["pantab/pantab.c", "pantab/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/pantab.h"],
+    depends=["pantab/pantab.h", "pantab/cffi.h"],
     extra_compile_args=extra_compile_args,
 )
 
@@ -56,7 +56,7 @@ reader_module = Extension(
     sources=["pantab/pantab.c", "pantab/_readermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/pantab.h"],
+    depends=["pantab/pantab.h", "pantab/cffi.h"],
     extra_compile_args=extra_compile_args,
 )
 
