@@ -1,6 +1,27 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 1.0.0 (2020-01-15)
+=========================
+
+Special thanks to `chillerno1 <https://github.com/chillerno1>`_ for contributing to this release.
+
+Features
+--------
+
+- pantab now supports reading/writing pandas 1.0 dtypes, namely the ``boolean`` and ``string`` dtypes. (#20)
+
+  .. important::
+
+     TEXT data read from a Hyper extract will be stored in a ``string`` dtype when using pandas 1.0 or greater in combination with pantab 1.0 or greater. Older versions of either tool will read the data back into a ``object`` dtype.
+
+
+Bugfixes
+--------
+
+- Fixed potential segfault on systems where not all addresses can be expressed in an unsigned long long. (#52)
+
+
 Pantab 0.2.3 (2020-01-02)
 =========================
 
