@@ -1,5 +1,5 @@
-Usage Limitations
-=================
+Usage Notes
+===========
 
 Type Mapping
 ------------
@@ -43,19 +43,11 @@ pantab maps the following dtypes from pandas to the equivalent column type in Ta
 Any dtype not explicitly listed in the above table will raise a ValueError if trying to write out data.
 
 .. versionadded:: 1.0.0
-   If using pandas 1.0 and above, text data will be read back into a ``"string"`` dtype rather than an ``object`` dtype.
+   If using pandas 1.0 and above, text data will be read back into a ``string`` dtype rather than an ``object`` dtype.
 
 .. note::
 
    Most objects can maintain their type when "round-tripping" to/from Hyper extracts, with the exception of the float32 object as only DOUBLE is available for floating point storage in Hyper. After pandas 1.0 / pantab 1.0, object dtypes written will be read back in as string.
-
-Missing Value Handling
-----------------------
-In the scientific Python community missing values are often notated as ``np.nan``, which is a float value implementing the `IEEE 754 <https://en.wikipedia.org/wiki/IEEE_754>`_ standard for missing value handling. Because NumPy stores homogenous arrays, there has been a long standing issue in pandas where integers could not store missing records, as noted in the `pandas documentation on missing values <https://pandas.pydata.org/pandas-docs/stable/user_guide/missing_data.html#working-with-missing-data>`_.
-
-Complicating factors is the presence of the ``None`` sentinel in Python, which can often times intuitively be represented as a missing value. Unfortunately ``None`` is a Python level construct, and most of the performance of the data stack in Python is implemented in lower-level C routines that cannot take advantage of this value. The Hyper API though uses this as its missing value indicator.
-
-Because of the various missing value indicators, serializing to/from a Hyper extract via pantab cannot be lossless. On write, ``None`` and ``np.nan`` values will both be written in as missing data to the Hyper extract. On read, missing values will be read back as ``np.nan``.
 
 Index / Column Handling
 -----------------------

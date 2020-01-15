@@ -1,1 +1,0 @@
-Fixed potential segfault on systems where not all addresses can be expressed in an unsigned long long.
