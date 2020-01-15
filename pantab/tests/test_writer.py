@@ -7,8 +7,8 @@ import pytest
 import tableauhyperapi as tab_api
 
 import pantab
+import pantab._compat as compat
 
-PANDAS_100 = LooseVersion(pd.__version__) >= LooseVersion("1.0.0")
 
 def test_bad_table_mode_raises(df, tmp_hyper):
     msg = "'table_mode' must be either 'w' or 'a'"
@@ -22,7 +22,7 @@ def test_bad_table_mode_raises(df, tmp_hyper):
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
-    if PANDAS_100:
+    if compat.PANDAS_100:
         df = df.drop("string", axis=1)
     else:
         df = df.drop("object", axis=1)

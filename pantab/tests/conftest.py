@@ -1,11 +1,9 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
 
-PANDAS_100 = LooseVersion(pd.__version__) >= LooseVersion("1.0.0")
+import pantab._compat as compat
 
 
 @pytest.fixture
@@ -71,7 +69,7 @@ def df():
                 pd.NaT,
                 pd.NaT,
                 pd.NaT,
-                pd.NA if PANDAS_100 else np.nan,
+                pd.NA if compat.PANDAS_100 else np.nan,
                 0,
                 0,
                 0,
@@ -94,7 +92,7 @@ def df():
             "datetime64",
             "datetime64_utc",
             "timedelta64",
-            "string" if PANDAS_100 else "object",
+            "string" if compat.PANDAS_100 else "object",
             "int16_limits",
             "int32_limits",
             "int64_limits",
@@ -125,7 +123,7 @@ def df():
             "float64_limits": np.float64,
         }
 
-    if PANDAS_100:
+    if compat.PANDAS_100:
         astypes["string"] = "string"
         astypes["non-ascii"] = "string"
     else:

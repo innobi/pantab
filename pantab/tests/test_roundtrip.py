@@ -1,13 +1,10 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import tableauhyperapi as tab_api
 
 import pantab
-
-PANDAS_100 = LooseVersion(pd.__version__) >= LooseVersion("1.0.0")
+import pantab._compat as compat
 
 
 def test_basic(df, tmp_hyper, table_name, table_mode):
@@ -36,7 +33,7 @@ def test_missing_data(tmp_hyper, table_name, table_mode):
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)    
     expected = pd.DataFrame([[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc"))
-    if PANDAS_100:
+    if compat.PANDAS_100:
         expected["b"] = expected["b"].astype("string")
         expected["c"] = expected["c"].astype("string")
 

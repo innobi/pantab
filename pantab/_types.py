@@ -1,9 +1,10 @@
 import collections
-from distutils.version import LooseVersion
 from typing import Union
 
 import pandas as pd
 import tableauhyperapi as tab_api
+
+import pantab._compat as compat
 
 # The Hyper API as of writing doesn't offer great hashability for column comparison
 # so we create out namedtuple for that purpose
@@ -33,7 +34,7 @@ _column_types = {
     "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
 }
 
-if LooseVersion(pd.__version__) >= "1.0.0":
+if compat.PANDAS_100:
     _column_types["string"] = _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE)
     _column_types["boolean"] = _ColumnType(tab_api.SqlType.bool(), tab_api.Nullability.NULLABLE)
 else:
