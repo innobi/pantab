@@ -102,20 +102,20 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
     }
     case STRING:
     case OBJECT: {
-      if (dtype == OBJECT) {
-	// N.B. all other dtypes in pandas are well defined, but object is
-        // really anything For purposes of Tableau these need to be strings,
-        // so error out if not In the future should enforce StringDtype from
-        // pandas once released (1.0.0)
-        if (!PyUnicode_Check(data)) {
-	  PyObject *errMsg = PyUnicode_FromFormat(
-						  "Invalid value \"%R\" found (row %zd column %zd)", data, row,
-						  col);
-	  PyErr_SetObject(PyExc_TypeError, errMsg);
-	  Py_DECREF(errMsg);
-	  return NULL;
+        if (dtype == OBJECT) {
+            // N.B. all other dtypes in pandas are well defined, but object is
+            // really anything For purposes of Tableau these need to be strings,
+            // so error out if not In the future should enforce StringDtype from
+            // pandas once released (1.0.0)
+            if (!PyUnicode_Check(data)) {
+                PyObject *errMsg = PyUnicode_FromFormat(
+                    "Invalid value \"%R\" found (row %zd column %zd)", data,
+                    row, col);
+                PyErr_SetObject(PyExc_TypeError, errMsg);
+                Py_DECREF(errMsg);
+                return NULL;
+            }
         }
-      }
         Py_ssize_t len;
         // TODO: CPython uses a const char* buffer but Hyper accepts
         // const unsigned char* - is this always safe?
