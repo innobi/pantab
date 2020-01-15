@@ -21,7 +21,6 @@ def df():
                 4.0,
                 5.0,
                 True,
-                True,
                 pd.to_datetime("2018-01-01"),
                 pd.to_datetime("2018-01-01", utc=True),
                 pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
@@ -42,7 +41,6 @@ def df():
                 np.nan,
                 9.0,
                 10.0,
-                False,
                 False,
                 pd.to_datetime("1/1/19"),
                 pd.to_datetime("2019-01-01", utc=True),
@@ -65,11 +63,10 @@ def df():
                 np.nan,
                 np.nan,
                 False,
-                pd.NA,
                 pd.NaT,
                 pd.NaT,
                 pd.NaT,
-                pd.NA if compat.PANDAS_100 else np.nan,
+                np.nan,
                 0,
                 0,
                 0,
@@ -88,11 +85,10 @@ def df():
             "float32",
             "float64",
             "bool",
-            "boolean",
             "datetime64",
             "datetime64_utc",
             "timedelta64",
-            "string" if compat.PANDAS_100 else "object",
+            "object",
             "int16_limits",
             "int32_limits",
             "int64_limits",
@@ -112,25 +108,22 @@ def df():
         "float32": np.float32,
         "float64": np.float64,
         "bool": np.bool,
-        "boolean": "boolean",
         "datetime64": "datetime64[ns]",
         "datetime64_utc": "datetime64[ns, UTC]",
         "timedelta64": "timedelta64[ns]",
+        "object": object,
         "int16_limits": np.int16,
         "int32_limits": np.int32,
         "int64_limits": np.int64,
         "float32_limits": np.float64,
         "float64_limits": np.float64,
+        "non-ascii": object,
     }
 
+    df = df.astype(astypes)    
     if compat.PANDAS_100:
-        astypes["string"] = "string"
-        astypes["non-ascii"] = "string"
-    else:
-        astypes["object"] = object
-        astypes["non-ascii"] = object
-
-    df = df.astype(astypes)
+        df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
+        df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
 
     return df
 
