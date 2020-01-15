@@ -31,8 +31,10 @@ def test_missing_data(tmp_hyper, table_name, table_mode):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
 
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)    
-    expected = pd.DataFrame([[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc"))
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+    expected = pd.DataFrame(
+        [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
+    )
     if compat.PANDAS_100:
         expected["b"] = expected["b"].astype("string")
         expected["c"] = expected["c"].astype("string")

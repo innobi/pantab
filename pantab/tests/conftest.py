@@ -103,25 +103,25 @@ def df():
     )
 
     astypes = {
-            "int16": np.int16,
-            "Int16": "Int16",
-            "int32": np.int32,
-            "Int32": "Int32",
-            "int64": np.int64,
-            "Int32": "Int32",
-            "float32": np.float32,
-            "float64": np.float64,
-            "bool": np.bool,
-            "boolean": "boolean",
-            "datetime64": "datetime64[ns]",
-            "datetime64_utc": "datetime64[ns, UTC]",
-            "timedelta64": "timedelta64[ns]",
-            "int16_limits": np.int16,
-            "int32_limits": np.int32,
-            "int64_limits": np.int64,
-            "float32_limits": np.float64,
-            "float64_limits": np.float64,
-        }
+        "int16": np.int16,
+        "Int16": "Int16",
+        "int32": np.int32,
+        "Int32": "Int32",
+        "int64": np.int64,
+        "Int32": "Int32",
+        "float32": np.float32,
+        "float64": np.float64,
+        "bool": np.bool,
+        "boolean": "boolean",
+        "datetime64": "datetime64[ns]",
+        "datetime64_utc": "datetime64[ns, UTC]",
+        "timedelta64": "timedelta64[ns]",
+        "int16_limits": np.int16,
+        "int32_limits": np.int32,
+        "int64_limits": np.int64,
+        "float32_limits": np.float64,
+        "float64_limits": np.float64,
+    }
 
     if compat.PANDAS_100:
         astypes["string"] = "string"
