@@ -17,7 +17,9 @@ The original copyright notice is included below for reference.
 #ifndef PANTAB_HYPER_API
 #define PANTAB_HYPER_API
 
+#include <inttypes.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef uint32_t hyper_date_t;
 typedef struct {
