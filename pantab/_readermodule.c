@@ -23,12 +23,14 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
         return PyLong_FromLongLong(*((int64_t *)value));
 
     case BOOLEAN:
+    case BOOLEANNA:
         return PyBool_FromLong(*value);
 
     case FLOAT32_:
     case FLOAT64_:
         return PyFloat_FromDouble(*((double *)value));
 
+    case STRING:
     case OBJECT:
         // TODO: are there any platforms where we cant cast char* and
         // unsigned char* ???

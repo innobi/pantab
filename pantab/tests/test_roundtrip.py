@@ -4,6 +4,19 @@ import pandas.testing as tm
 import tableauhyperapi as tab_api
 
 import pantab
+import pantab._compat as compat
+
+
+def assert_roundtrip_equal(result, expected):
+    """Compat helper for comparing round-tripped results."""
+
+    expected["float32"] = expected["float32"].astype(np.float64)
+
+    if compat.PANDAS_100:
+        expected["object"] = expected["object"].astype("string")
+        expected["non-ascii"] = expected["non-ascii"].astype("string")
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_basic(df, tmp_hyper, table_name, table_mode):
@@ -19,7 +32,7 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
 
     expected["float32"] = expected["float32"].astype(np.float64)
 
-    tm.assert_frame_equal(result, expected)
+    assert_roundtrip_equal(result, expected)
 
 
 def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
@@ -36,8 +49,6 @@ def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
-    expected["float32"] = expected["float32"].astype(np.float64)
-
     # some test trickery here
     if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
         table_name = tab_api.TableName("public", table_name)
@@ -46,4 +57,4 @@ def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
         (table_name, tab_api.TableName("public", "table2"))
     )
     for val in result.values():
-        tm.assert_frame_equal(val, expected)
+        assert_roundtrip_equal(val, expected)

@@ -3,6 +3,8 @@ import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
 
+import pantab._compat as compat
+
 
 @pytest.fixture
 def df():
@@ -119,6 +121,10 @@ def df():
             "non-ascii": "object",
         }
     )
+
+    if compat.PANDAS_100:
+        df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
+        df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
 
     return df
 

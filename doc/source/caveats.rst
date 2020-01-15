@@ -27,6 +27,8 @@ pantab maps the following dtypes from pandas to the equivalent column type in Ta
 +--------------------+-----------------+------------+
 |bool                |BOOL             |NOT NULLABLE|
 +--------------------+-----------------+------------+
+|boolean             |BOOL             |NULLABLE    |
++--------------------+-----------------+------------+
 |datetime64[ns]      |TIMESTAMP        |NULLABLE    |
 +--------------------+-----------------+------------+
 |datetime64[ns, UTC] |TIMESTAMP_WITH_TZ|Nullable    |
@@ -35,16 +37,17 @@ pantab maps the following dtypes from pandas to the equivalent column type in Ta
 +--------------------+-----------------+------------+
 |object              |TEXT             |NULLABLE    |
 +--------------------+-----------------+------------+
+|string              |TEXT             |NULLABLE    |
++--------------------+-----------------+------------+
 
 Any dtype not explicitly listed in the above table will raise a ValueError if trying to write out data.
 
-.. warning::
-
-   ``object`` dtype is a very generic type in pandas, but is the closest type to a native "text" type available prior to 1.0.0. Passing non-string / NULL data through an ``object`` dtype will raise a TypeError, though it is perfectly valid for storage in pandas. This may change in the future as pandas 1.0.0 introduces a dedicated "String" data type.
+.. versionadded:: 1.0.0
+   If using pandas 1.0 and above, text data will be read back into a ``"string"`` dtype rather than an ``object`` dtype.
 
 .. note::
 
-   All objects can maintain their type when "round-tripping" to/from Hyper extracts, with the exception of the float32 object as only DOUBLE is available for floating point storage in Hyper. 
+   Most objects can maintain their type when "round-tripping" to/from Hyper extracts, with the exception of the float32 object as only DOUBLE is available for floating point storage in Hyper. After pandas 1.0 / pantab 1.0, object dtypes written will be read back in as string.
 
 Missing Value Handling
 ----------------------
