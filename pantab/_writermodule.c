@@ -9,7 +9,6 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
                                        hyper_inserter_buffer_t *insertBuffer,
                                        Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
-    // Check again for non-null data
     switch (dtype) {
     case INT16_:
     case INT16NA: {
@@ -35,7 +34,8 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
         result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
-    case BOOLEAN: {
+    case BOOLEAN:
+    case BOOLEANNA: {
         if (PyObject_IsTrue(data)) {
             result = hyper_inserter_buffer_add_bool(insertBuffer, 1);
         } else {
@@ -100,19 +100,22 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
         Py_DECREF(months);
         break;
     }
+    case STRING:
     case OBJECT: {
-        // N.B. all other dtypes in pandas are well defined, but object is
+      if (dtype == OBJECT) {
+	// N.B. all other dtypes in pandas are well defined, but object is
         // really anything For purposes of Tableau these need to be strings,
         // so error out if not In the future should enforce StringDtype from
         // pandas once released (1.0.0)
         if (!PyUnicode_Check(data)) {
-            PyObject *errMsg = PyUnicode_FromFormat(
-                "Invalid value \"%R\" found (row %zd column %zd)", data, row,
-                col);
-            PyErr_SetObject(PyExc_TypeError, errMsg);
-            Py_DECREF(errMsg);
-            return NULL;
+	  PyObject *errMsg = PyUnicode_FromFormat(
+						  "Invalid value \"%R\" found (row %zd column %zd)", data, row,
+						  col);
+	  PyErr_SetObject(PyExc_TypeError, errMsg);
+	  Py_DECREF(errMsg);
+	  return NULL;
         }
+      }
         Py_ssize_t len;
         // TODO: CPython uses a const char* buffer but Hyper accepts
         // const unsigned char* - is this always safe?

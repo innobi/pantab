@@ -18,10 +18,12 @@ typedef enum {
     FLOAT32_ = 11,
     FLOAT64_,
     BOOLEAN = 50,
+    BOOLEANNA,
     DATETIME64_NS = 100,
     DATETIME64_NS_UTC,
     TIMEDELTA64_NS = 200,
     OBJECT = 220,
+    STRING,
     UNKNOWN = 255
 } DTYPE;
 
@@ -37,9 +39,11 @@ static const struct {
                  {FLOAT32_, "float32"},
                  {FLOAT64_, "float64"},
                  {BOOLEAN, "bool"},
+		 {BOOLEAN, "boolean"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
                  {TIMEDELTA64_NS, "timedelta64[ns]"},
+		 {STRING, "string"},
                  {OBJECT, "object"}};
 
 // creates an enumeration from a tuple of strings,
