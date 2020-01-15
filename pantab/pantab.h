@@ -2,11 +2,12 @@
 #define PANTAB
 
 #define PY_SSIZE_T_CLEAN
+#include "tableauhyperapi.h"
 #include <Python.h>
 #include <inttypes.h>
-#include "tableauhyperapi.h"
 
-#define MICROSECONDS_PER_DAY (INT64_C(24) * INT64_C(60) * INT64_C(60) * INT64_C(1000000))
+#define MICROSECONDS_PER_DAY                                                   \
+    (INT64_C(24) * INT64_C(60) * INT64_C(60) * INT64_C(1000000))
 
 typedef enum {
     INT16_ = 1,
@@ -39,11 +40,11 @@ static const struct {
                  {FLOAT32_, "float32"},
                  {FLOAT64_, "float64"},
                  {BOOLEAN, "bool"},
-		 {BOOLEAN, "boolean"},
+                 {BOOLEAN, "boolean"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
                  {TIMEDELTA64_NS, "timedelta64[ns]"},
-		 {STRING, "string"},
+                 {STRING, "string"},
                  {OBJECT, "object"}};
 
 // creates an enumeration from a tuple of strings,
