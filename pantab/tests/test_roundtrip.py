@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import pandas.util.testing as tm
+import pandas.testing as tm
 import tableauhyperapi as tab_api
 
 import pantab
@@ -18,24 +18,6 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     expected["float32"] = expected["float32"].astype(np.float64)
-
-    tm.assert_frame_equal(result, expected)
-
-
-def test_missing_data(tmp_hyper, table_name, table_mode):
-    df = pd.DataFrame([[np.nan], [1]], columns=list("a"))
-    df["b"] = pd.Series([None, np.nan], dtype=object)  # no inference
-    df["c"] = pd.Series([np.nan, "c"])
-
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
-
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
-    expected = pd.DataFrame(
-        [[np.nan, np.nan, np.nan], [1, np.nan, "c"]], columns=list("abc")
-    )
-    if table_mode == "a":
-        expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     tm.assert_frame_equal(result, expected)
 
