@@ -120,7 +120,7 @@ def df():
         "non-ascii": object,
     }
 
-    df = df.astype(astypes)    
+    df = df.astype(astypes)
     if compat.PANDAS_100:
         df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
         df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
