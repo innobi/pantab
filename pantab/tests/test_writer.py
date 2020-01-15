@@ -6,7 +6,6 @@ import pytest
 import tableauhyperapi as tab_api
 
 import pantab
-import pantab._compat as compat
 
 
 def test_bad_table_mode_raises(df, tmp_hyper):
@@ -21,11 +20,7 @@ def test_bad_table_mode_raises(df, tmp_hyper):
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
-    if compat.PANDAS_100:
-        df = df.drop("string", axis=1)
-    else:
-        df = df.drop("object", axis=1)
-
+    df = df.drop("object", axis=1)
     msg = "^Mismatched column definitions:"
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
