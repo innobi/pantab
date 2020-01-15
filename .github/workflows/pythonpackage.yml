@@ -163,7 +163,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies (pandas)
       run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-win_amd64.whl        
+        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-win_amd64.whl
         pip install --pre pandas==1.0.0rc0
     - name: Build extensions
       run: |
