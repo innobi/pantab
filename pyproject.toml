@@ -1,3 +1,6 @@
+[build-system]
+requires = ["pandas", "tableauhyperapi"]
+
 [tool.towncrier]
     package = "pantab"
     filename = "NEWS.rst"
