@@ -19,7 +19,7 @@ if sys.platform.startswith("win32"):
 
     data = urlopen(
         "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64"
-        "-release-hyperapi_release_3.0.0.9273.r6111d374.zip"
+        "-release-hyperapi_release_4.0.0.9746.rc378815c.zip"
     )
     target = dll_path.parent / "tableauhyperapi.lib"
     print(f"extract lib to {target}")
@@ -27,7 +27,7 @@ if sys.platform.startswith("win32"):
         target.write_bytes(
             archive.open(
                 "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release"
-                "_3.0.0.9273.r6111d374/lib/tableauhyperapi.lib"
+                "_4.0.0.9746.rc378815c/lib/tableauhyperapi.lib"
             ).read()
         )
 
@@ -85,7 +85,7 @@ setup(
     package_data={"": ["*.h"]},
     data_files=[("", ["LICENSE.txt", "README.md"])],
     python_requires=">=3.6",
-    install_requires=["pandas"],
+    install_requires=["pandas", "tableauhyperapi"],
     extras_require={"dev": ["pytest"]},
     ext_modules=[writer_module, reader_module],
 )
