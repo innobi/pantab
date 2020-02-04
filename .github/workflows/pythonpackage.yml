@@ -24,6 +24,9 @@ jobs:
         black --check pantab
         # isort **/*.py -c
         mypy pantab
+    - name: Install dependencies
+      run: |
+      pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
@@ -46,6 +49,9 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+      pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
@@ -68,6 +74,9 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+      pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
