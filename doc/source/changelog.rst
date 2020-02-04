@@ -1,6 +1,16 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 1.0.1 (2020-02-03)
+=========================
+
+Features
+--------
+
+- pantab will not automatically install the tableauhyperapi as a dependency when installing via pip (#83)
+- Pre-built wheels for manylinux configurations are now available. (#84)
+
+
 Pantab 1.0.0 (2020-01-15)
 =========================
 
