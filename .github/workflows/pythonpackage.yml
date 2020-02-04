@@ -24,17 +24,17 @@ jobs:
         black --check pantab
         # isort **/*.py -c
         mypy pantab
-    - name: Install dependencies (pandas)
+    - name: Install dependencies
       run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-linux_x86_64.whl
-        pip install pandas
+        python -m pip install --upgrade pip
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest
 
   build-macos:
 
@@ -50,17 +50,17 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies (pandas)
+    - name: Install dependencies
       run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-macosx_10_11_x86_64.whl
-        pip install pandas
+        python -m pip install --upgrade pip
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest
 
   build-windows:
 
@@ -76,99 +76,14 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies (pandas)
-      run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-win_amd64.whl        
-        pip install pandas
-    - name: Build extensions
-      run: |
-        python setup.py build_ext --inplace
-    - name: Test with pytest
-      run: |
-        pip install pytest
-        pytest
-
-  build-linux-rc:
-
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.7]
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Run code checks
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install mypy isort black
-        black --check pantab
-        # isort **/*.py -c
-        mypy pantab
-    - name: Install dependencies (pandas)
-      run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-linux_x86_64.whl
-        pip install --pre pandas==1.0.0rc0
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
-
-  build-macos-rc:
-
-    runs-on: macos-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.7]
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies (pandas)
-      run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-macosx_10_11_x86_64.whl
-        pip install --pre pandas==1.0.0rc0
-    - name: Build extensions
-      run: |
-        python setup.py build_ext --inplace
-    - name: Test with pytest
-      run: |
-        pip install pytest
-        pytest
-
-  build-windows-rc:
-
-    runs-on: windows-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.7]
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies (pandas)
-      run: |
-        pip install http://downloads.tableau.com/tssoftware/tableauhyperapi-0.0.9273-py3-none-win_amd64.whl
-        pip install --pre pandas==1.0.0rc0
-    - name: Build extensions
-      run: |
-        python setup.py build_ext --inplace
-    - name: Test with pytest
-      run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest

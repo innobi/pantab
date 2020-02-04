@@ -18,13 +18,11 @@ What is it?
 How do I get it?
 ----------------
 
-``pantab`` requires Python 3.6+ and can run on any Python-supported OS. You additionally will need to `install the Hyper API <https://help.tableau.com/current/api/hyper_api/en-us/docs/hyper_api_installing.html>`_ per Tableau's documentation.
-
-With those pre-requisites installed, installation is as easy as:
+``pantab`` requires Python 3.6+ and can run on any Python-supported OS. Installation is as easy as:
 
 .. code-block:: bash
 
-   pip install pantab
+   python -m pip install pantab
 
 
 
