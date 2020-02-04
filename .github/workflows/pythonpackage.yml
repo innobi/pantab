@@ -26,14 +26,15 @@ jobs:
         mypy pantab
     - name: Install dependencies
       run: |
-        pip install pandas tableauhyperapi
+        python -m pip install --upgrade pip
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest
 
   build-macos:
 
@@ -51,14 +52,15 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pandas tableauhyperapi
+        python -m pip install --upgrade pip
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest
 
   build-windows:
 
@@ -76,11 +78,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pandas tableauhyperapi
+        python -m pip install --upgrade pip
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
     - name: Test with pytest
       run: |
-        pip install pytest
-        pytest
+        python -m pip install pytest
+        python -m pytest
