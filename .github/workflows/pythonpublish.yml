@@ -21,7 +21,6 @@ jobs:
         ls wheelhouse/
     - name: Install and test wheel
       run: |
-        ls wheelhouse
         mkdir temp
         cd temp
         python -m pip install --upgrade pip
@@ -33,7 +32,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: ${{ matrix.python-version }}-manylinux
-        path: dist
+        path: wheelhouse
 
   deploy-macos:
     runs-on: macos-latest
