@@ -29,5 +29,6 @@ for whl in dist/pantab*.whl; do
     ${PYLOC}/bin/python -m auditwheel repair "$whl" --plat $PLAT -w /io/wheelhouse/
 done
 
-# Run test suite for application
+# Install packages and test
+${PYLOC}/bin/python -m pip install pantab --no-index -f /io/wheelhouse
 ${PYLOC}/bin/python -c "import pantab; pantab.test()"
