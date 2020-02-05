@@ -49,8 +49,8 @@ jobs:
         python setup.py bdist_wheel
     - name: Install and test wheel
       run: |
-        pwd
-        cd ./temp  # move to temp to not interfere with source files
+        mkdir temp
+        cd temp
         python -m pip install pytest
         python -m pip install pantab --no-index -f ../dist
         python -c "import pantab; pantab.test()"
