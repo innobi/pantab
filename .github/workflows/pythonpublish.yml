@@ -1,8 +1,7 @@
 name: Create Platform Wheels
 
 on:
-  release:
-    types: [created, edited]
+  push
 
 jobs:
   deploy-manylinux:
@@ -22,6 +21,7 @@ jobs:
         ls wheelhouse/
     - name: Install and test wheel
       run: |
+        ls wheelhouse
         mkdir temp
         cd temp
         python -m pip install --upgrade pip

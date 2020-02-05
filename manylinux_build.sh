@@ -28,3 +28,5 @@ ${PYLOC}/bin/python setup.py bdist_wheel
 for whl in dist/pantab*.whl; do
     ${PYLOC}/bin/python -m auditwheel repair "$whl" --plat $PLAT -w /io/wheelhouse/
 done
+
+ls /io/wheelhouse
