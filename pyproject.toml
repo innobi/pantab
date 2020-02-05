@@ -1,5 +1,5 @@
 [build-system]
-requires = ["tableauhyperapi"]
+requires = ["setuptools", "wheel", "tableauhyperapi"]
 
 [tool.towncrier]
     package = "pantab"
