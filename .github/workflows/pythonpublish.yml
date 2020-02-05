@@ -18,3 +18,7 @@ jobs:
       run: |
         docker run --rm -e PLAT=manylinux2014_x86_64 -e PYVER=${{ matrix.python-version }} -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/manylinux_build.sh
         ls wheelhouse/
+    - name: Upload linux wheel artifact
+      uses: actions/upload-artifact@v1
+      with:
+        path: dist
