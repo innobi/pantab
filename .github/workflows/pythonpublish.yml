@@ -23,7 +23,7 @@ jobs:
         mkdir temp
         cd temp
         python -m pip install --upgrade pip
-        python -m pip install pandas pytest
+        python -m pip install pandas tableauhyperapi pytest  # TODO: only pytest
         python -m pip install pantab --no-index -f ../wheelhouse
         python -c "import pantab; pantab.test()"
         cd ..
