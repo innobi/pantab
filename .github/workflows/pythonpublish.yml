@@ -50,9 +50,9 @@ jobs:
     - name: Install and test wheel
       run: |
         pwd
-        python -m pip install pytest
-        python -m pip install pantab --no-index -f dist
         cd ./temp  # move to temp to not interfere with source files
+        python -m pip install pytest
+        python -m pip install pantab --no-index -f ../dist
         python -c "import pantab; pantab.test()"
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
