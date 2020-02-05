@@ -1,10 +1,9 @@
 name: Create Platform Wheels
 
-on:
-  release:
+on: [push]
 
 jobs:
-  deploy-linux:
+  deploy-manylinux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,18 +14,11 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Docker Build
+      uses: docker://quay.io/pypa/manylinux2010_x86_64
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install setuptools wheel pandas tableauhyperapi
-    - name: Build wheels
-      run: |
-        python setup.py bdist_wheel
-    - name: Upload linux wheel artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: ${{ matrix.python-version }}-manylinux
-        path: dist
+        docker run --rm -e PLAT=manylinux2010_x86_64 -e PYVER=${{ matrix.python-version }} -v `pwd`:/io docker://quay.io/pypa/manylinux2010_x86_64 /io/manylinux_build.sh
+        ls wheelhouse/
 
   deploy-macos:
     runs-on: macos-latest
