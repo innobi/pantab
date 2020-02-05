@@ -30,5 +30,6 @@ for whl in dist/pantab*.whl; do
 done
 
 # Install packages and test
+cd $HOME
 ${PYLOC}/bin/python -m pip install pantab --no-index -f /io/wheelhouse
 ${PYLOC}/bin/python -c "import pantab; pantab.test()"
