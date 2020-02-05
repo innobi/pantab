@@ -1,6 +1,6 @@
 name: pantab tests
 
-on: [release]
+on: [push]
 
 jobs:
   build-linux:
