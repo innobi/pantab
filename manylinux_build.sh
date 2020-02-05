@@ -29,5 +29,4 @@ done
 
 # Run the tests using the installed wheel
 ${PYLOC}/bin/python -m pip install pantab --no-index -f /io/wheelhouse
-cd "$HOME"
-${PYLOC}/bin/python -m pytest /io/pantab
+${PYLOC}/bin/python -m pytest
