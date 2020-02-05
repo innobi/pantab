@@ -2,9 +2,10 @@ name: Create Platform Wheels
 
 on:
   release:
+    types: [created, edited]
 
 jobs:
-  deploy-linux:
+  deploy-manylinux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,18 +16,24 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Docker Build
       run: |
+        docker run --rm -e PLAT=manylinux2014_x86_64 -e PYVER=${{ matrix.python-version }} -v `pwd`:/io quay.io/pypa/manylinux2014_x86_64 /io/manylinux_build.sh
+        ls wheelhouse/
+    - name: Install and test wheel
+      run: |
+        mkdir temp
+        cd temp
         python -m pip install --upgrade pip
-        python -m pip install setuptools wheel pandas tableauhyperapi
-    - name: Build wheels
-      run: |
-        python setup.py bdist_wheel
+        python -m pip install pandas tableauhyperapi pytest  # TODO: only pytest
+        python -m pip install pantab --no-index -f ../wheelhouse
+        python -c "import pantab; pantab.test()"
+        cd ..
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
       with:
         name: ${{ matrix.python-version }}-manylinux
-        path: dist
+        path: wheelhouse
 
   deploy-macos:
     runs-on: macos-latest
@@ -42,10 +49,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install setuptools wheel pandas tableauhyperapi
+        python -m pip install setuptools wheel tableauhyperapi
     - name: Build wheels
       run: |
         python setup.py bdist_wheel
+    - name: Install and test wheel
+      run: |
+        mkdir temp
+        cd temp
+        python -m pip install pandas pytest
+        python -m pip install pantab --no-index -f ../dist
+        python -c "import pantab; pantab.test()"
+        cd ..
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
       with:
@@ -66,10 +81,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install setuptools wheel pandas tableauhyperapi        
+        python -m pip install setuptools wheel tableauhyperapi
     - name: Build wheels
       run: |
         python setup.py bdist_wheel
+    - name: Install and test wheel
+      run: |
+        mkdir temp
+        cd temp
+        python -m pip install pandas pytest
+        python -m pip install pantab --no-index -f ../dist
+        python -c "import pantab; pantab.test()"
+        cd ..
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
       with:
