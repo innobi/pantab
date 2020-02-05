@@ -16,8 +16,8 @@ PYLOC=/opt/python/cp${PYVER2}-cp${PYVER2}${ABIVER}
 # Clear any existing pip caches
 which ${PYLOC}/bin/python
 ${PYLOC}/bin/python -m pip install --upgrade pip
-${PYLOC}/bin/python -m pip install --upgrade setuptools wheel
-${PYLOC}/bin/python -m pip install auditwheel pandas tableauhyperapi
+${PYLOC}/bin/python -m pip install --upgrade setuptools wheel auditwheel
+${PYLOC}/bin/python -m pip install tableauhyperapi
 
 # Hack so auditwheel can find libtableauhyperapi
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PYLOC}/lib/python${PYVER}/site-packages/tableauhyperapi/bin
