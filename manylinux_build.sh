@@ -28,9 +28,3 @@ ${PYLOC}/bin/python setup.py bdist_wheel
 for whl in dist/pantab*.whl; do
     ${PYLOC}/bin/python -m auditwheel repair "$whl" --plat $PLAT -w /io/wheelhouse/
 done
-
-# Install packages and test
-cd $HOME
-${PYLOC}/bin/python -m pip install pytest
-${PYLOC}/bin/python -m pip install pantab --no-index -f /io/wheelhouse
-${PYLOC}/bin/python -c "import pantab; pantab.test()"
