@@ -1,7 +1,8 @@
 name: Create Platform Wheels
 
 on:
-  push
+  release:
+    types: [created, edited]
 
 jobs:
   deploy-manylinux:
