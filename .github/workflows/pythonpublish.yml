@@ -43,14 +43,15 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install setuptools wheel pandas tableauhyperapi
+        python -m pip install setuptools wheel tableauhyperapi
     - name: Build wheels
       run: |
         python setup.py bdist_wheel
     - name: Install and test wheel
+      working-directory: ./temp
       run: |
         python -m pip install pytest
-        python -m pip install pantab --no-index -f dist
+        python -m pip install pantab --no-index -f ../dist
         python -c "import pantab; pantab.test()"
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
@@ -77,9 +78,10 @@ jobs:
       run: |
         python setup.py bdist_wheel
     - name: Install and test wheel
+      working-directory: ./temp
       run: |
         python -m pip install pytest
-        python -m pip install pantab --no-index -f dist
+        python -m pip install pantab --no-index -f ../dist
         python -c "import pantab; pantab.test()"
     - name: Upload linux wheel artifact
       uses: actions/upload-artifact@v1
