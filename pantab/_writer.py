@@ -179,7 +179,9 @@ def frame_to_hyper(
         ) as connection:
             _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
 
-        shutil.move(tmp_db, database)
+        # In Python 3.9+ we can just pass the path object, but due to bpo 32689
+        # and subsequent typeshed changes it is easier to just pass as str for now
+        shutil.move(str(tmp_db), database)
 
 
 def frames_to_hyper(
@@ -206,4 +208,6 @@ def frames_to_hyper(
                     df, connection=connection, table=table, table_mode=table_mode
                 )
 
-        shutil.move(tmp_db, database)
+        # In Python 3.9+ we can just pass the path object, but due to bpo 32689
+        # and subsequent typeshed changes it is easier to just pass as str for now                
+        shutil.move(str(tmp_db), database)
