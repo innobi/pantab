@@ -2,7 +2,12 @@ import os
 import sys
 
 from setuptools import Extension, find_packages, setup
-from tableauhyperapi.impl.util import find_hyper_api_dll
+
+try:
+    from tableauhyperapi.impl.util import find_hyper_api_dll
+except ImportError:  # renamed in version 0.0.10309
+    from tableauhyperapi.impl.util import find_hyper_api_library as find_hyper_api_dll
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 dll_path = find_hyper_api_dll()
@@ -19,7 +24,7 @@ if sys.platform.startswith("win32"):
 
     data = urlopen(
         "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64"
-        "-release-hyperapi_release_4.0.0.9746.rc378815c.zip"
+        "-release-hyperapi_release_6.0.0.10309.rf8b2e5f7.zip"
     )
     target = dll_path.parent / "tableauhyperapi.lib"
     print(f"extract lib to {target}")
@@ -27,7 +32,7 @@ if sys.platform.startswith("win32"):
         target.write_bytes(
             archive.open(
                 "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release"
-                "_4.0.0.9746.rc378815c/lib/tableauhyperapi.lib"
+                "_6.0.0.10309.rf8b2e5f7/lib/tableauhyperapi.lib"
             ).read()
         )
 
