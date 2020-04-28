@@ -1,7 +1,6 @@
 import pathlib
 import sys
 
-
 PKG = pathlib.Path(__file__).resolve().parent
 
 
