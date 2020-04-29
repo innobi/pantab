@@ -22,6 +22,7 @@ typedef enum {
     BOOLEANNA,
     DATETIME64_NS = 100,
     DATETIME64_NS_UTC,
+    DATE,
     TIMEDELTA64_NS = 200,
     OBJECT = 220,
     STRING,
@@ -43,6 +44,7 @@ static const struct {
                  {BOOLEAN, "boolean"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
+                 {DATE, "date"},  // TODO: this isn't actually a dtype
                  {TIMEDELTA64_NS, "timedelta64[ns]"},
                  {STRING, "string"},
                  {OBJECT, "object"}};

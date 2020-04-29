@@ -32,9 +32,12 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
     case STRING:
     case OBJECT:
-        // TODO: are there any platforms where we cant cast char* and
-        // unsigned char* ???
         return PyUnicode_FromStringAndSize((const char *)value, *size);
+
+    case DATE: {
+        hyper_date_components_t date = hyper_decode_date(*((hyper_date_t *)value));
+        return PyDate_FromDate(date.year, date.month, date.day);
+    }
 
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
@@ -127,7 +130,6 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     const size_t *sizes;
     const int8_t *null_flags;
 
-    // TODO: support platforms where uintptr_t may not equal unsigned long long
     ok = PyArg_ParseTuple(args, "OsO!", &connectionObj, &query, &PyTuple_Type,
                           &dtypes);
     if (!ok)
@@ -140,6 +142,7 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
         return NULL;
     }
 
+    // TODO: we need to free these somewhere as these currently leak...
     DTYPE *enumeratedDtypes = makeEnumeratedDtypes(dtypes);
     if (enumeratedDtypes == NULL)
         return NULL;

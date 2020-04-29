@@ -38,6 +38,12 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     df = pd.DataFrame(libreader.read_hyper_query(connection._cdata, query, dtype_strs))
 
     df.columns = dtypes.keys()
+
+    # TODO: remove this hackery...
+    for k, v in dtypes.items():
+        if v == "date":
+            dtypes[k] = "datetime64[ns]"
+
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
