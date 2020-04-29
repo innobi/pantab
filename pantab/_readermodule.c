@@ -149,6 +149,7 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
         return NULL;
     }
 
+    // Iterate over each result chunk
     while (1) {
 
         hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
@@ -167,12 +168,14 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
             goto ERROR_CLEANUP;
         }
 
+        // For each row inside the chunk...
         for (size_t i = 0; i < num_rows; i++) {
             row = PyTuple_New(num_cols);
             if (row == NULL) {
                 goto ERROR_CLEANUP;
             }
 
+            // For each column inside the row...
             for (size_t j = 0; j < num_cols; j++) {
                 PyObject *val;
                 if (*null_flags == 1) {
@@ -186,22 +189,6 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
                 values++, sizes++, null_flags++;
 
                 if (val == NULL) {
-                    for (Py_ssize_t i = 0; i < PyList_GET_SIZE(result); i++) {
-                        PyObject *tup = PyList_GET_ITEM(result, i);
-                        for (Py_ssize_t j = 0; j < PyTuple_GET_SIZE(tup); j++) {
-                            Py_DECREF(PyTuple_GET_ITEM(tup, j));
-                        }
-
-                        Py_DECREF(tup);
-                    }
-
-                    // Stop at j - 2 columns because side effect will have
-                    // incremented j at start of loop, and current value cannot
-                    // be decrefed
-                    for (size_t j2 = 0; j2 < j - 2; j2++) {
-                        Py_DECREF(PyTuple_GET_ITEM(row, j2));
-                    }
-
                     goto ERROR_CLEANUP;
                 }
 
@@ -210,24 +197,9 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
 
             int ret = PyList_Append(result, row);
             if (ret != 0) {
-                // Clean up any previously inserted elements
-                for (Py_ssize_t i = 0; i < PyList_GET_SIZE(result); i++) {
-                    PyObject *tup = PyList_GET_ITEM(result, i);
-                    for (Py_ssize_t j = 0; j < PyTuple_GET_SIZE(tup); j++) {
-                        Py_DECREF(PyTuple_GET_ITEM(tup, j));
-                    }
-
-                    Py_DECREF(tup);
-                }
-
-                // Clean up current elements
-                for (Py_ssize_t j = 0; j < PyTuple_GET_SIZE(row); j++) {
-                    Py_DECREF(PyTuple_GET_ITEM(row, j));
-                }
                 goto ERROR_CLEANUP;
             }
         }
-
         hyper_destroy_rowset_chunk(chunk);
     }
 
