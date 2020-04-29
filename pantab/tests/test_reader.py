@@ -1,3 +1,4 @@
+from tableauhyperapi import TableName
 import pytest
 
 import pantab
@@ -58,3 +59,10 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
         ValueError, match=r"Cannot read Intervals with month components\."
     ):
         pantab.frame_from_hyper(tmp_hyper, table="test")
+
+
+def test_read_non_roundtrippable():
+    df = pantab.frame_from_hyper("pantab/tests/dates.hyper", table=TableName("Extract", "Extract"))
+    assert df["Order Date"].dtype == "datetime64[ns]"
+    assert df["Ship Date"].dtype == "datetime64[ns]"
+    
