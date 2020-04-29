@@ -1,5 +1,6 @@
-from tableauhyperapi import TableName
+import pandas.testing as tm
 import pytest
+from tableauhyperapi import TableName
 
 import pantab
 import pandas as pd
@@ -62,7 +63,6 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
 
 
 def test_read_non_roundtrippable():
-    df = pantab.frame_from_hyper("pantab/tests/dates.hyper", table=TableName("Extract", "Extract"))
-    assert df["Order Date"].dtype == "datetime64[ns]"
-    assert df["Ship Date"].dtype == "datetime64[ns]"
-    
+    result = pantab.frame_from_hyper("pantab/tests/dates.hyper", table=TableName("Extract", "Extract"))
+    expected = pd.DataFrame([["1900-01-01", "2000-01-01"], [pd.NaT, "2050-01-01"]], columns=["Date1", "Date2"], dtype="datetime64[ns]")
+    tm.assert_frame_equal(result, expected)
