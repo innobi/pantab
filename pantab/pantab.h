@@ -44,7 +44,7 @@ static const struct {
                  {BOOLEAN, "boolean"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
-                 {DATE, "date"},  // TODO: this isn't actually a dtype
+                 {DATE, "date"}, // TODO: this isn't actually a dtype
                  {TIMEDELTA64_NS, "timedelta64[ns]"},
                  {STRING, "string"},
                  {OBJECT, "object"}};

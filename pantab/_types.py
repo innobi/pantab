@@ -50,4 +50,6 @@ else:
 _pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 
 # Add things that we can't write to Hyper but can read
-_pandas_types[_ColumnType(tab_api.SqlType.date(), tab_api.Nullability.NULLABLE)] = "date"
+_pandas_types[
+    _ColumnType(tab_api.SqlType.date(), tab_api.Nullability.NULLABLE)
+] = "date"

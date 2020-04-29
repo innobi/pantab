@@ -35,7 +35,8 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
         return PyUnicode_FromStringAndSize((const char *)value, *size);
 
     case DATE: {
-        hyper_date_components_t date = hyper_decode_date(*((hyper_date_t *)value));
+        hyper_date_components_t date =
+            hyper_decode_date(*((hyper_date_t *)value));
         return PyDate_FromDate(date.year, date.month, date.day);
     }
 
