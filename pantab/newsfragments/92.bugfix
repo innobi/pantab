@@ -1,0 +1,1 @@
+Attempting to read a Hyper extract with unsupported data types will now raise a ``TypeError``
