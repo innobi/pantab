@@ -1,3 +1,5 @@
+import pathlib
+
 import pandas as pd
 import pandas.testing as tm
 import pytest
@@ -16,6 +18,19 @@ def test_read_doesnt_modify_existing_file(df, tmp_hyper):
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
+
+
+def test_reports_unsupported_type():
+    """
+    Test that we report an error if we encounter an unsupported column type.
+    Previously, we did not do so but instead assumed that all unsupported columns
+    would be string columns. This led to very fascinating failures.
+    """
+    db_path = pathlib.Path(__file__).parent / "geography.hyper"
+    with pytest.raises(
+        TypeError, match=r"Column \"x\" has unsupported datatype GEOGRAPHY"
+    ):
+        pantab.frame_from_hyper(db_path, table="test")
 
 
 def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):

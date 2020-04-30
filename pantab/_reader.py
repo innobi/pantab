@@ -13,13 +13,6 @@ import pantab._types as pantab_types
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
-def _tableau_to_pandas_type(typ: tab_api.TableDefinition.Column) -> str:
-    try:
-        return pantab_types._pandas_types[typ]
-    except KeyError:
-        return "object"
-
-
 def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataFrame:
     if isinstance(table, str):
         table = tab_api.TableName(table)
@@ -30,7 +23,12 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
     dtypes: Dict[str, str] = {}
     for column in columns:
         column_type = pantab_types._ColumnType(column.type, column.nullability)
-        dtypes[column.name.unescaped] = _tableau_to_pandas_type(column_type)
+        try:
+            dtypes[column.name.unescaped] = pantab_types._pandas_types[column_type]
+        except KeyError as e:
+            raise TypeError(
+                f"Column {column.name} has unsupported datatype {column.type}"
+            ) from e
 
     query = f"SELECT * from {table}"
     dtype_strs = tuple(dtypes.values())
