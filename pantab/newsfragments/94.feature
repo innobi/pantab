@@ -1,0 +1,1 @@
+Added support for reading Hyper DATE columns as datetime64 objects in pandas
