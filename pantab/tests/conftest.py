@@ -1,3 +1,5 @@
+import pathlib
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -153,3 +155,9 @@ def table_mode(request):
 def table_name(request):
     """Various ways to represent a table in Tableau."""
     return request.param
+
+
+@pytest.fixture
+def datapath():
+    """Location of data files in test folder."""
+    return pathlib.Path(__file__).parent / "data"
