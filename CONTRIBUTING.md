@@ -23,10 +23,8 @@ conda env create -f environment.yml
 The first time you work with the source code. Then activate your virtual environment any time you are working with the code
 
 ```sh
-conda activate pantab
+conda activate pantab-dev
 ```
-
-Additionally you should install the Tableau Hyper API. As of writing this is not available on PyPi, so you should install the appropriate package for your platform listed on the [Hyper API Download Page](https://www.tableau.com/support/releases/hyper-api/0.0.9273#esdalt)
 
 ## Building and Modifying Documentation
 

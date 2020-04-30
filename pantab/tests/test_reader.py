@@ -1,7 +1,9 @@
+import pathlib
+
+import pandas as pd
 import pytest
 
 import pantab
-import pathlib
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
@@ -47,3 +49,27 @@ def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
         ValueError, match=r"Cannot read Intervals with month components\."
     ):
         pantab.frames_from_hyper(tmp_hyper)
+
+
+def test_error_on_first_column(df, tmp_hyper, monkeypatch):
+    """
+    We had a defect due to which pantab segfaulted when an error occured in one of
+    the first two columns. This test case is a regression test against that.
+    """
+    # Monkeypatch a new constructor that hard codes months
+    def __init__(self, months: int, days: int, microseconds: int):
+        self.months = 1
+        self.days = days
+        self.microseconds = microseconds
+
+    monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
+
+    df = pd.DataFrame(
+        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"],
+    ).astype({"timedelta64": "timedelta64[ns]"})
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+    with pytest.raises(
+        ValueError, match=r"Cannot read Intervals with month components\."
+    ):
+        pantab.frame_from_hyper(tmp_hyper, table="test")

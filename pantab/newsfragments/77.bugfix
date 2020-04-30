@@ -1,0 +1,1 @@
+Fixed issue where Python would crash instead of throwing an error when reading invalid records from a Hyper file
