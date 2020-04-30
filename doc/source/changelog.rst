@@ -4,6 +4,8 @@ Changelog
 Pantab 1.1.0 (2020-04-30)
 =========================
 
+Special thanks to `Adrian Vogelsgesang <https://github.com/vogelsgesang>`_ for contributing to this release.
+
 Features
 --------
 
