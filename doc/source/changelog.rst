@@ -1,6 +1,23 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 1.0.1 (2020-04-30)
+=========================
+
+Features
+--------
+
+- Added support for reading Hyper DATE columns as datetime64 objects in pandas (#94)
+
+
+Bugfixes
+--------
+
+- Fixed issue where Python would crash instead of throwing an error when reading invalid records from a Hyper file (#77)
+- Fixed ImportError when building from source with tableauhyperapi versions 0.0.10309 and greater (#88)
+- Attempting to read a Hyper extract with unsupported data types will now raise a ``TypeError`` (#92)
+
+
 Pantab 1.0.1 (2020-02-03)
 =========================
 

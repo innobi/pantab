@@ -1,1 +1,0 @@
-Fixed ImportError when building from source with tableauhyperapi versions 0.0.10309 and greater
