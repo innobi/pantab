@@ -20,13 +20,13 @@ def test_read_doesnt_modify_existing_file(df, tmp_hyper):
     assert last_modified == tmp_hyper.stat().st_mtime
 
 
-def test_reports_unsupported_type():
+def test_reports_unsupported_type(datapath):
     """
     Test that we report an error if we encounter an unsupported column type.
     Previously, we did not do so but instead assumed that all unsupported columns
     would be string columns. This led to very fascinating failures.
     """
-    db_path = pathlib.Path(__file__).parent / "geography.hyper"
+    db_path = datapath / "geography.hyper"
     with pytest.raises(
         TypeError, match=r"Column \"x\" has unsupported datatype GEOGRAPHY"
     ):
@@ -77,9 +77,9 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
         pantab.frame_from_hyper(tmp_hyper, table="test")
 
 
-def test_read_non_roundtrippable():
+def test_read_non_roundtrippable(datapath):
     result = pantab.frame_from_hyper(
-        "pantab/tests/dates.hyper", table=TableName("Extract", "Extract")
+        datapath / "dates.hyper", table=TableName("Extract", "Extract")
     )
     expected = pd.DataFrame(
         [["1900-01-01", "2000-01-01"], [pd.NaT, "2050-01-01"]],
