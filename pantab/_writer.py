@@ -164,8 +164,17 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableType,
     table_mode: str = "w",
+    **kwargs: Union[str, list]
 ) -> None:
     """See api.rst for documentation"""
+    if 'date_column' in kwargs:
+        date_column = kwargs.get('date_column')
+        if isinstance(date_column, list):
+            for col in date_column:
+                df[col] = pd.to_datetime(df[col])
+        elif isinstance(date_column, str):
+            df[date_column] = pd.to_datetime(df[date_column])
+
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
     ) as hpe:
