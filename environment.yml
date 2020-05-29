@@ -11,7 +11,7 @@ dependencies:
   - python
   - pytest
   - sphinx
+  - sphinx_rtd_theme
   - pip:
     - asv
-    - sphinx_rtd_theme
     - tableauhyperapi
