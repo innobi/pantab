@@ -85,3 +85,23 @@ def test_bad_value_gives_clear_message(tmp_hyper):
 
     with pytest.raises(TypeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+
+def test_geo_datatype(tmp_hyper):
+    geopandas = pytest.importorskip("geopandas")
+
+    # Taken from geopandas Examples docs
+    df = pd.DataFrame(
+        {'City': ['Buenos Aires', 'Brasilia', 'Santiago', 'Bogota', 'Caracas'],
+         'Country': ['Argentina', 'Brazil', 'Chile', 'Colombia', 'Venezuela'],
+         'Latitude': [-34.58, -15.78, -33.45, 4.60, 10.48],
+        'Longitude': [-58.66, -47.91, -70.66, -74.08, -66.86]}
+    )
+
+    gdf = geopandas.GeoDataFrame(
+        df, geometry=geopandas.points_from_xy(df.Longitude, df.Latitude)
+    )
+
+    pantab.frame_to_hyper(df, tmp_hyper, table="geo_test")
+
+    
