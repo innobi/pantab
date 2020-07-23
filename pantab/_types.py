@@ -31,6 +31,7 @@ _column_types = {
         tab_api.SqlType.interval(), tab_api.Nullability.NULLABLE
     ),
     "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
+    "geometry": _ColumnType(tab_api.SqlType.geography(), tab_api.Nullability.NULLABLE),
 }
 
 if compat.PANDAS_100:

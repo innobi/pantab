@@ -119,11 +119,26 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
         Py_ssize_t len;
         // TODO: CPython uses a const char* buffer but Hyper accepts
         // const unsigned char* - is this always safe?
-        const unsigned char *buf =
-            (const unsigned char *)PyUnicode_AsUTF8AndSize(data, &len);
-        result = hyper_inserter_buffer_add_binary(insertBuffer, buf, len);
+        const char *buf = PyUnicode_AsUTF8AndSize(data, &len);
+        result = hyper_inserter_buffer_add_binary(insertBuffer, (const uint8_t *)buf, len);
         break;
     }
+
+    case GEOMETRY: {
+      // Use the str representation of the geography, which should look like
+      // POINT(12345 67890)
+      Py_ssize_t len;
+      PyObject *str = PyObject_Str(data);
+      if (str == NULL) {
+	return NULL;
+      }
+
+      const char *buf = PyUnicode_AsUTF8AndSize(str, &len);
+      result = hyper_inserter_buffer_add_binary(insertBuffer, (const uint8_t *)buf, len);
+      Py_DECREF(str);
+      break;
+    }
+
     default: {
         PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
         PyErr_SetObject(PyExc_ValueError, errMsg);

@@ -26,6 +26,7 @@ typedef enum {
     TIMEDELTA64_NS = 200,
     OBJECT = 220,
     STRING,
+    GEOMETRY = 230,
     UNKNOWN = 255
 } DTYPE;
 
@@ -47,7 +48,8 @@ static const struct {
                  {DATE, "date"}, // TODO: this isn't actually a dtype
                  {TIMEDELTA64_NS, "timedelta64[ns]"},
                  {STRING, "string"},
-                 {OBJECT, "object"}};
+                 {OBJECT, "object"},
+		 {GEOMETRY, "geometry"}};
 
 // creates an enumeration from a tuple of strings,
 // so ("int16", "int32") -> [INT16_, INT32_]

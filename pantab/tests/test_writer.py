@@ -102,6 +102,5 @@ def test_geo_datatype(tmp_hyper):
         df, geometry=geopandas.points_from_xy(df.Longitude, df.Latitude)
     )
 
-    pantab.frame_to_hyper(df, tmp_hyper, table="geo_test")
+    pantab.frame_to_hyper(gdf, tmp_hyper, table="geo_test")
 
-    
