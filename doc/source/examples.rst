@@ -54,6 +54,11 @@ By default tables will be written to the "public" schema. You can control this b
    # Can also be round-tripped
    df2 = pantab.frame_from_hyper("example.hyper", table=table)
 
+.. note::
+
+   If you want to publish a hyper file using the Tableau Server REST API and you're using using a version prior to 2020.1 you'll need to have a single table named ``Extract`` that uses the ``Extract`` schema (``Extract.Extract``).
+
+
 Reading and Writing Multiple Tables
 -----------------------------------
 
