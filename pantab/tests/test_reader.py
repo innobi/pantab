@@ -96,5 +96,5 @@ def test_reads_non_writeable_strings(datapath):
     expected = pd.DataFrame([["row1"], ["row2"]], columns=["Non-Nullable String"])
     if compat.PANDAS_100:
         expected = expected.astype("string")
-        
+
     tm.assert_frame_equal(result, expected)
