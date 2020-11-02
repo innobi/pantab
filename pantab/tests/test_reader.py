@@ -66,7 +66,8 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
     monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
 
     df = pd.DataFrame(
-        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"],
+        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]],
+        columns=["timedelta64"],
     ).astype({"timedelta64": "timedelta64[ns]"})
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
