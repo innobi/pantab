@@ -1,11 +1,10 @@
-import pathlib
-
 import pandas as pd
 import pandas.testing as tm
 import pytest
 from tableauhyperapi import TableName
 
 import pantab
+import pantab._compat as compat
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
@@ -95,3 +94,7 @@ def test_reads_non_writeable_strings(datapath):
     )
 
     expected = pd.DataFrame([["row1"], ["row2"]], columns=["Non-Nullable String"])
+    if compat.PANDAS_100:
+        expected = expected.astype("string")
+        
+    tm.assert_frame_equal(result, expected)
