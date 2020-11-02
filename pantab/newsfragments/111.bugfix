@@ -1,0 +1,1 @@
+Fixed issue where pantab would throw ``TypeError: Column "COLUMN_NAME" has unsupported datatype TEXT`` when reading Non-Nullable string columns from Hyper
