@@ -1,6 +1,15 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 1.1.1 (2020-11-02)
+=========================
+
+Bugfixes
+--------
+
+- Fixed issue where pantab would throw ``TypeError: Column "COLUMN_NAME" has unsupported datatype TEXT`` when reading Non-Nullable string columns from Hyper (#111)
+
+
 Pantab 1.1.0 (2020-04-30)
 =========================
 
