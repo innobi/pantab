@@ -1,11 +1,10 @@
-import pathlib
-
 import pandas as pd
 import pandas.testing as tm
 import pytest
 from tableauhyperapi import TableName
 
 import pantab
+import pantab._compat as compat
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
@@ -67,7 +66,8 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
     monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
 
     df = pd.DataFrame(
-        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"],
+        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]],
+        columns=["timedelta64"],
     ).astype({"timedelta64": "timedelta64[ns]"})
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
@@ -86,4 +86,16 @@ def test_read_non_roundtrippable(datapath):
         columns=["Date1", "Date2"],
         dtype="datetime64[ns]",
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reads_non_writeable_strings(datapath):
+    result = pantab.frame_from_hyper(
+        datapath / "non_pantab_writeable.hyper", table=TableName("public", "table")
+    )
+
+    expected = pd.DataFrame([["row1"], ["row2"]], columns=["Non-Nullable String"])
+    if compat.PANDAS_100:
+        expected = expected.astype("string")
+
     tm.assert_frame_equal(result, expected)
