@@ -87,3 +87,11 @@ def test_read_non_roundtrippable(datapath):
         dtype="datetime64[ns]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_reads_non_writeable_strings(datapath):
+    result = pantab.frame_from_hyper(
+        datapath / "non_pantab_writeable.hyper", table=TableName("public", "table")
+    )
+
+    expected = pd.DataFrame([["row1"], ["row2"]], columns=["Non-Nullable String"])
