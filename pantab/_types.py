@@ -53,3 +53,11 @@ _pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 _pandas_types[
     _ColumnType(tab_api.SqlType.date(), tab_api.Nullability.NULLABLE)
 ] = "date"
+if compat.PANDAS_100:
+    _pandas_types[
+        _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
+    ] = "string"
+else:
+    _pandas_types[
+        _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
+    ] = "object"

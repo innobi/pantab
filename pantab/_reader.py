@@ -27,7 +27,8 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
             dtypes[column.name.unescaped] = pantab_types._pandas_types[column_type]
         except KeyError as e:
             raise TypeError(
-                f"Column {column.name} has unsupported datatype {column.type}"
+                f"Column {column.name} has unsupported datatype {column.type} "
+                f"with nullability {column.nullability}"
             ) from e
 
     query = f"SELECT * from {table}"
