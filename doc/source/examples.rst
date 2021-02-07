@@ -108,3 +108,39 @@ By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloa
    pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a")
 
 Please note that ``table_mode="a"`` will create the table(s) if they do not already exist.
+
+
+Providing your own HyperProcess
+-------------------------------
+
+For convenience, pantab's functions internally spawn a `HyperProcess<https://help.tableau.com/current/api/hyper_api/en-us/reference/py/tableauhyperapi.html#tableauhyperapi.HyperProcess>`_. In case you prefer to spawn your own ``HyperProcess``, you can supply it to pantab through the ``hyper_process`` keyword argument.
+
+By using your own ``HyperProcess``, you have full control over all its startup paramters.
+In the following example we use that flexibility to:
+
+- enable telemetry, thereby making sure the Hyper team at Tableau knows about our use case and potential issues we might be facing
+- `disable log files<https://help.tableau.com/current/api/hyper_api/en-us/reference/sql/loggingsettings.html#LOG_CONFIG>`_, as we operate in some environment with really tight disk space
+- opt-in to the `new Hyper file format<https://help.tableau.com/current/api/hyper_api/en-us/reference/sql/databasesettings.html#DEFAULT_DATABASE_VERSION>`_
+
+By reusing the same ``HyperProcess`` for multiple operations, we also save a few milliseconds. While not noteworthy in this simple example, this might be a good optimization in case you call ``frame_to_hyper`` repeatedly in a loop.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+   from tableauhyperapi import HyperProcess, Telemetry
+
+   df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+   ], columns=["animal", "num_of_legs"])
+
+   parameters = {"log_config": "", "default_database_version": "1"}
+
+   with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters) as hyper:
+       # Insert some initial data
+       pantab.frame_to_hyper(df, "example.hyper", table="animals", hyper_process=hyper)
+
+       # Append additional data to the same table using `table_mode="a"`
+       new_data = pd.DataFrame([["moose", 4]], columns=["animal", "num_of_legs"])
+       pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a", hyper_process=hyper)

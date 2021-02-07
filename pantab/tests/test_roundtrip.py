@@ -1,7 +1,8 @@
 import numpy as np
+from pathlib import Path
 import pandas as pd
 import pandas.testing as tm
-import tableauhyperapi as tab_api
+from tableauhyperapi import TableName, HyperProcess, Telemetry
 
 import pantab
 import pantab._compat as compat
@@ -50,11 +51,26 @@ def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     # some test trickery here
-    if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
-        table_name = tab_api.TableName("public", table_name)
+    if not isinstance(table_name, TableName) or table_name.schema_name is None:
+        table_name = TableName("public", table_name)
 
-    assert set(result.keys()) == set(
-        (table_name, tab_api.TableName("public", "table2"))
-    )
+    assert set(result.keys()) == set((table_name, TableName("public", "table2")))
     for val in result.values():
         assert_roundtrip_equal(val, expected)
+
+
+def test_roundtrip_with_external_hyper_process(df, tmp_hyper):
+    default_log_path = Path.cwd() / "hyperd.log"
+    if default_log_path.exists():
+        default_log_path.unlink()
+
+    # By passing in a pre-spawned HyperProcess, one can e.g. avoid creating a log file
+    parameters = {"log_config": ""}
+    with HyperProcess(
+        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters
+    ) as hyper:
+        pantab.frame_to_hyper(df, tmp_hyper, table="test", hyper_process=hyper)
+        pantab.frame_from_hyper(tmp_hyper, table="test", hyper_process=hyper)
+        pantab.frames_from_hyper(tmp_hyper, hyper_process=hyper)
+
+    assert not default_log_path.exists()

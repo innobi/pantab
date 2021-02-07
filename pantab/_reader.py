@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 import tempfile
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,7 @@ import tableauhyperapi as tab_api
 
 import libreader  # type: ignore
 import pantab._types as pantab_types
+from pantab._hyper_util import ensure_hyper_process
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
@@ -50,11 +51,15 @@ def _read_table(*, connection: tab_api.Connection, table: TableType) -> pd.DataF
 
 
 def frame_from_hyper(
-    database: Union[str, pathlib.Path], *, table: TableType
+    database: Union[str, pathlib.Path],
+    *,
+    table: TableType,
+    hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> pd.DataFrame:
     """See api.rst for documentation"""
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+
+    with tempfile.TemporaryDirectory() as tmp_dir, ensure_hyper_process(
+        hyper_process
     ) as hpe:
         tmp_db = shutil.copy(database, tmp_dir)
         with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
@@ -62,12 +67,14 @@ def frame_from_hyper(
 
 
 def frames_from_hyper(
-    database: Union[str, pathlib.Path]
+    database: Union[str, pathlib.Path],
+    *,
+    hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> Dict[tab_api.TableName, pd.DataFrame]:
     """See api.rst for documentation."""
     result: Dict[TableType, pd.DataFrame] = {}
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    with tempfile.TemporaryDirectory() as tmp_dir, ensure_hyper_process(
+        hyper_process
     ) as hpe:
         tmp_db = shutil.copy(database, tmp_dir)
         with tab_api.Connection(hpe.endpoint, tmp_db) as connection:

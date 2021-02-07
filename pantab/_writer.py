@@ -11,6 +11,7 @@ import tableauhyperapi as tab_api
 
 import libwriter  # type: ignore
 import pantab._types as pantab_types
+from pantab._hyper_util import ensure_hyper_process
 
 
 def _pandas_to_tableau_type(typ: str) -> pantab_types._ColumnType:
@@ -164,11 +165,10 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableType,
     table_mode: str = "w",
+    hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> None:
     """See api.rst for documentation"""
-    with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
-    ) as hpe:
+    with ensure_hyper_process(hyper_process) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         if table_mode == "a" and pathlib.Path(database).exists():
@@ -188,13 +188,13 @@ def frames_to_hyper(
     dict_of_frames: Dict[pantab_types.TableType, pd.DataFrame],
     database: Union[str, pathlib.Path],
     table_mode: str = "w",
+    *,
+    hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
 
-    with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
-    ) as hpe:
+    with ensure_hyper_process(hyper_process) as hpe:
         tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
         if table_mode == "a" and pathlib.Path(database).exists():
