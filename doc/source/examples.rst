@@ -110,6 +110,44 @@ By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloa
 Please note that ``table_mode="a"`` will create the table(s) if they do not already exist.
 
 
+Issuing SQL queries
+-------------------
+
+With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper file and retrieve the resulting data as a DataFrame. This can be used, e.g. to retrieve only a part of the data (using a ``WHERE`` clause) or to offload computations to Hyper.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab
+
+   df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+       ["moose", 4],
+       ["centipede", 100],
+   ], columns=["animal", "num_of_legs"])
+
+   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+
+   # Read a subset of the data from the Hyper file
+   query = """
+   SELECT animal
+   FROM animals
+   WHERE num_of_legs > 4
+   """
+   df = pantab.frame_from_hyper_query("example.hyper", query)
+   print(df)
+
+   # Let Hyper do an aggregation for us - it could also do joins, window queries, ...
+   query = """
+   SELECT num_of_legs, COUNT(*)
+   FROM animals
+   GROUP BY num_of_legs
+   """
+   df = pantab.frame_from_hyper_query("example.hyper", query)
+   print(df)
+
+
 Providing your own HyperProcess
 -------------------------------
 
@@ -125,18 +163,14 @@ In the following example we use that flexibility to:
 By reusing the same ``HyperProcess`` for multiple operations, we also save a few milliseconds. While not noteworthy in this simple example, this might be a good optimization in case you call ``frame_to_hyper`` repeatedly in a loop.
 
 .. code-block:: python
-
    import pandas as pd
    import pantab
    from tableauhyperapi import HyperProcess, Telemetry
-
    df = pd.DataFrame([
        ["dog", 4],
        ["cat", 4],
    ], columns=["animal", "num_of_legs"])
-
    parameters = {"log_config": "", "default_database_version": "1"}
-
    with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters) as hyper:
        # Insert some initial data
        pantab.frame_to_hyper(df, "example.hyper", table="animals", hyper_process=hyper)

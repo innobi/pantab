@@ -1,7 +1,7 @@
 import pandas as pd
 import pandas.testing as tm
 import pytest
-from tableauhyperapi import TableName
+from tableauhyperapi import TableName, HyperProcess, Telemetry, Connection
 
 import pantab
 import pantab._compat as compat
@@ -97,5 +97,21 @@ def test_reads_non_writeable_strings(datapath):
     expected = pd.DataFrame([["row1"], ["row2"]], columns=["Non-Nullable String"])
     if compat.PANDAS_100:
         expected = expected.astype("string")
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_query(df, tmp_hyper):
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+    query = "SELECT int16 AS i, '_' || int32 AS _i2 FROM test"
+    result = pantab.frame_from_hyper_query(tmp_hyper, query)
+
+    expected = pd.DataFrame(
+        [[1, "_2"], [6, "_7"], [0, "_0"]],
+        columns=["i", "_i2"],
+    )
+    str_type = "string" if compat.PANDAS_100 else "object"
+    expected = expected.astype({"i": "Int16", "_i2": str_type})
 
     tm.assert_frame_equal(result, expected)
