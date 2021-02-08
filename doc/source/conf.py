@@ -1,3 +1,4 @@
+from typing import List
 # -- Project information -----------------------------------------------------
 
 project = 'pantab'
@@ -13,7 +14,7 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns: List[str] = []
 
 
 # -- Options for HTML output -------------------------------------------------
