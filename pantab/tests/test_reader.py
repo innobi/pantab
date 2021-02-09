@@ -1,7 +1,7 @@
 import pandas as pd
 import pandas.testing as tm
 import pytest
-from tableauhyperapi import TableName, HyperProcess, Telemetry, Connection
+from tableauhyperapi import TableName
 
 import pantab
 import pantab._compat as compat

@@ -26,3 +26,10 @@ def ensure_hyper_process(hyper_process: Optional[tab_api.HyperProcess]):
         # Wrap the HyperProcess into a nullcontext such that the `with` doesn't close
         # the HyperProcess
         return nullcontext(hyper_process)
+
+
+def forbid_hyper_process(hyper_process: Optional[tab_api.HyperProcess]):
+    if hyper_process is not None:
+        raise ValueError(
+            "hyper_process parameter is useless because `Connection` is provided"
+        )
