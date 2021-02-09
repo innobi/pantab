@@ -1,13 +1,7 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Optional
 
 import tableauhyperapi as tab_api
-
-
-# As soon as we drop support for Python 3.6: Use `contextlib.nullcontext` instead
-@contextmanager
-def nullcontext(enter_result=None):
-    yield enter_result
 
 
 def ensure_hyper_process(hyper_process: Optional[tab_api.HyperProcess]):
