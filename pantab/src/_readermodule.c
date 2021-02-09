@@ -50,14 +50,6 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
         hyper_date_components_t date = hyper_decode_date(encoded_date);
         hyper_time_components_t time = hyper_decode_time(encoded_time);
 
-        // Special case NULL value as it isn't contained in null_flags
-        // Note that the sentinel to compare to varies by platform, so
-        // have to fully parse and compare components for now
-        if ((date.year == 1) && (date.month == 1) && (date.day == 1) &&
-            (time.hour == 0) && (time.minute == 0) && (time.microsecond == 0)) {
-            Py_RETURN_NONE;
-        }
-
         return PyDateTime_FromDateAndTime(date.year, date.month, date.day,
                                           time.hour, time.minute, time.second,
                                           time.microsecond);
