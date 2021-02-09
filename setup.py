@@ -4,41 +4,10 @@ from glob import glob
 
 from setuptools import Extension, find_packages, setup
 
-try:
-    from tableauhyperapi.impl.util import find_hyper_api_dll
-except ImportError:  # renamed in version 0.0.10309
-    from tableauhyperapi.impl.util import find_hyper_api_library as find_hyper_api_dll
-
-
 here = os.path.abspath(os.path.dirname(__file__))
-dll_path = find_hyper_api_dll()
 
 with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
-
-if sys.platform.startswith("win32"):
-    # Looks like the Tableau Python source doesn't have the needed lib file
-    # so extract from C++ distributions
-    import io
-    import zipfile
-    from urllib.request import urlopen
-
-    data = urlopen(
-        "http://downloads.tableau.com/tssoftware/tableauhyperapi-cxx-windows-x86_64"
-        "-release-hyperapi_release_6.0.0.10309.rf8b2e5f7.zip"
-    )
-    target = dll_path.parent / "tableauhyperapi.lib"
-    print(f"extract lib to {target}")
-    with zipfile.ZipFile(io.BytesIO(data.read())) as archive:
-        target.write_bytes(
-            archive.open(
-                "tableauhyperapi-cxx-windows-x86_64-release-hyperapi_release"
-                "_6.0.0.10309.rf8b2e5f7/lib/tableauhyperapi.lib"
-            ).read()
-        )
-
-
-extra_compile_args = ["-Wextra"]
 
 
 # MSVC compiler has different flags; assume that's what we are using on Windows
@@ -51,8 +20,6 @@ else:
 pantab_module = Extension(
     "libpantab",
     sources=list(glob("pantab/src/*.c")),
-    library_dirs=[str(dll_path.parent.resolve())],
-    libraries=[dll_path.stem.replace("lib", "")],
     depends=list(glob("pantab/src/*.h")),
     extra_compile_args=extra_compile_args,
 )
