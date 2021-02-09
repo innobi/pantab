@@ -1,5 +1,5 @@
 #include "cffi.h"
-#include "pantab.h"
+#include "type.h"
 #include <datetime.h>
 
 // TODO: Make error handling consistent. Right now errors occur if
@@ -140,7 +140,7 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
 // in data matches the length of the callables supplied at every step
 // in the process,though note that this is critical!
 // If this doesn't hold true behavior is undefined
-static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
+PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *data, *iterator, *row, *val, *dtypes, *null_mask,
         *insertBufferObj;
@@ -148,6 +148,8 @@ static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     hyper_inserter_buffer_t *insertBuffer;
     hyper_error_t *result;
     Py_buffer buf;
+
+    PyDateTime_IMPORT;
 
     // TOOD: Find better way to accept buffer pointer than putting in long
     ok = PyArg_ParseTuple(args, "OOOnO!", &data, &null_mask, &insertBufferObj,
@@ -231,18 +233,4 @@ static PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
         return NULL;
 
     Py_RETURN_NONE;
-}
-
-static PyMethodDef WriterMethods[] = {{"write_to_hyper", write_to_hyper,
-                                       METH_VARARGS,
-                                       "Writes a numpy array to a hyper file."},
-                                      {NULL, NULL, 0, NULL}};
-
-static struct PyModuleDef writermodule = {.m_base = PyModuleDef_HEAD_INIT,
-                                          .m_name = "libwriter",
-                                          .m_methods = WriterMethods};
-
-PyMODINIT_FUNC PyInit_libwriter(void) {
-    PyDateTime_IMPORT;
-    return PyModule_Create(&writermodule);
 }

@@ -1,5 +1,6 @@
 import os
 import sys
+from glob import glob
 
 from setuptools import Extension, find_packages, setup
 
@@ -47,21 +48,12 @@ else:
     extra_compile_args = ["-Wextra", "-Werror"]
 
 
-writer_module = Extension(
-    "libwriter",
-    sources=["pantab/src/pantab.c", "pantab/src/_writermodule.c"],
+pantab_module = Extension(
+    "libpantab",
+    sources=list(glob("pantab/src/*.c")),
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/src/pantab.h", "pantab/src/cffi.h"],
-    extra_compile_args=extra_compile_args,
-)
-
-reader_module = Extension(
-    "libreader",
-    sources=["pantab/src/pantab.c", "pantab/src/_readermodule.c"],
-    library_dirs=[str(dll_path.parent.resolve())],
-    libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/src/pantab.h", "pantab/src/cffi.h"],
+    depends=list(glob("pantab/src/*.h")),
     extra_compile_args=extra_compile_args,
 )
 
@@ -92,5 +84,5 @@ setup(
     python_requires=">=3.7",
     install_requires=["pandas", "tableauhyperapi"],
     extras_require={"dev": ["pytest"]},
-    ext_modules=[writer_module, reader_module],
+    ext_modules=[pantab_module],
 )
