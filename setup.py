@@ -49,19 +49,19 @@ else:
 
 writer_module = Extension(
     "libwriter",
-    sources=["pantab/pantab.c", "pantab/_writermodule.c"],
+    sources=["pantab/src/pantab.c", "pantab/src/_writermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/pantab.h", "pantab/cffi.h"],
+    depends=["pantab/src/pantab.h", "pantab/src/cffi.h"],
     extra_compile_args=extra_compile_args,
 )
 
 reader_module = Extension(
     "libreader",
-    sources=["pantab/pantab.c", "pantab/_readermodule.c"],
+    sources=["pantab/src/pantab.c", "pantab/src/_readermodule.c"],
     library_dirs=[str(dll_path.parent.resolve())],
     libraries=[dll_path.stem.replace("lib", "")],
-    depends=["pantab/pantab.h", "pantab/cffi.h"],
+    depends=["pantab/src/pantab.h", "pantab/src/cffi.h"],
     extra_compile_args=extra_compile_args,
 )
 
@@ -69,7 +69,7 @@ reader_module = Extension(
 setup(
     name="pantab",
     version="1.1.1",
-    description="Converts pandas DataFrames into Tableau Hyper Extracts",
+    description="Converts pandas DataFrames into Tableau Hyper Extracts and back",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/WillAyd/pantab",
