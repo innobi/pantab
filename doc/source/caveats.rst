@@ -42,12 +42,14 @@ pantab maps the following dtypes from pandas to the equivalent column type in Ta
 
 Any dtype not explicitly listed in the above table will raise a ValueError if trying to write out data.
 
+When reading data through ``frame_from_hyper_query``, pantab will always assume that all result columns are nullable.
+
 .. versionadded:: 1.0.0
    If using pandas 1.0 and above, text data will be read back into a ``string`` dtype rather than an ``object`` dtype.
 
 .. note::
 
-   Most objects can maintain their type when "round-tripping" to/from Hyper extracts, with the exception of the float32 object as only DOUBLE is available for floating point storage in Hyper. After pandas 1.0 / pantab 1.0, object dtypes written will be read back in as string.
+   Most objects can maintain their type when "round-tripping" to/from Hyper extracts, with the exception of the float32 object as only DOUBLE is available for floating point storage in Hyper. After pandas 1.0 / pantab 1.0, object dtypes written will be read back in as string. Also, reading data back through ``frame_from_hyper_query`` will likely read back different dtypes, as ``frame_from_hyper_query`` assumes all columns to be nullable.
 
 Index / Column Handling
 -----------------------

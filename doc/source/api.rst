@@ -37,3 +37,13 @@ API Reference
    :param database: Name / location of the Hyper file to read from.
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
    :rtype: Dict[tableauhyperapi.TableName, pd.DataFrame]
+
+
+.. py:function:: frame_from_hyper_query(database: Union[str, pathlib.Path], query: str, *, hyper_process: Optional[HyperProcess]) -> pd.DataFrame:
+
+   Executes a SQL query and returns the result as a pandas dataframe
+
+   :param database: Name / location of the Hyper file to be read.
+   :param query: SQL query to execute
+   :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
+   :rtype: Dict[tableauhyperapi.TableName, pd.DataFrame]
