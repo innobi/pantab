@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
-import libreader  # type: ignore
+import libpantab  # type: ignore
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process
 
@@ -36,7 +36,7 @@ def _read_query_result(
 
     # Call native library to read tuples from result set
     dtype_strs = tuple(dtypes.values())
-    df = pd.DataFrame(libreader.read_hyper_query(result._Result__cdata, dtype_strs))
+    df = pd.DataFrame(libpantab.read_hyper_query(result._Result__cdata, dtype_strs))
 
     df.columns = dtypes.keys()
 

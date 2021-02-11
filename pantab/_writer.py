@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
-import libwriter  # type: ignore
+import libpantab  # type: ignore
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process
 
@@ -149,7 +149,7 @@ def _insert_frame(
     df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        libwriter.write_to_hyper(
+        libpantab.write_to_hyper(
             df.itertuples(index=False, name=None),
             null_mask,
             inserter._buffer,

@@ -1,5 +1,5 @@
 #include "cffi.h"
-#include "pantab.h"
+#include "type.h"
 #include <datetime.h>
 
 static PyObject *cls_timedelta = NULL;
@@ -109,7 +109,7 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
     }
 }
 
-static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
+PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *row = NULL, *resultObj;
     PyTupleObject *dtypes;
@@ -120,6 +120,8 @@ static PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     const uint8_t *const *values;
     const size_t *sizes;
     const int8_t *null_flags;
+
+    PyDateTime_IMPORT;
 
     ok = PyArg_ParseTuple(args, "OO!", &resultObj, &PyTuple_Type, &dtypes);
     if (!ok)
@@ -204,18 +206,4 @@ ERROR_CLEANUP:
         hyper_destroy_rowset_chunk(chunk);
 
     return NULL;
-}
-
-static PyMethodDef ReaderMethods[] = {
-    {"read_hyper_query", read_hyper_query, METH_VARARGS,
-     "Reads a hyper query from a given connection."},
-    {NULL, NULL, 0, NULL}};
-
-static struct PyModuleDef readermodule = {.m_base = PyModuleDef_HEAD_INIT,
-                                          .m_name = "libreader",
-                                          .m_methods = ReaderMethods};
-
-PyMODINIT_FUNC PyInit_libreader(void) {
-    PyDateTime_IMPORT;
-    return PyModule_Create(&readermodule);
 }
