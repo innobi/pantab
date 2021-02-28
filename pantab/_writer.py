@@ -81,13 +81,15 @@ def _assert_columns_equal(
     raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
 
 
-def _maybe_convert_datetime_or_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
+def _maybe_convert_datetime_or_timedelta(
+    df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
     """
     Hyper uses a different storage format than pandas / Python for timedeltas.
 
     Ultimately this should be pushed to the C extension, but doesn't look to fully work
     at the moment anyway so keep in Python until complete.
-    
+
     For datetimes, Hyper uses "microseconds since midnight 24-11-4714 BC".
     # https://community.tableau.com/s/question/0D54T00000C5Qd1SAF/tableau-hyper-api-datetime-int64-format
 
@@ -108,10 +110,9 @@ def _maybe_convert_datetime_or_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame
                 df.iloc[:, index] = content.apply(_timedelta_to_interval)
             if content.dtype == "datetime64[ns]":
                 df.iloc[:, index] = content.astype(int) // 1000 + (
-                    # 2440588 is the # of days between 
-                    # 86400 seconds in a day
-                    # 1_000_000 microseconds in a second
-                    2_440_588 * 86400 * 1_000_000
+                    2_440_588  # of days between Tableau and Unix epochs
+                    * 86400  # seconds in a day
+                    * 1_000_000  # microseconds in a second
                 )
 
     return df, orig_dtypes
