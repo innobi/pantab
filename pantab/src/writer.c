@@ -48,7 +48,6 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
         int64_t val = (int64_t)PyLong_AsLongLong(data);
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
-        // hyper_
     }
     case TIMEDELTA64_NS: {
         // TODO: Add error message for failed attribute access
