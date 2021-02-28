@@ -45,27 +45,10 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
     }
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
-        hyper_date_components_t date_components = {
-            .year = PyDateTime_GET_YEAR(data),
-            .month = PyDateTime_GET_MONTH(data),
-            .day = PyDateTime_GET_DAY(data)};
-
-        hyper_time_components_t time_components = {
-            .hour = PyDateTime_DATE_GET_HOUR(data),
-            .minute = PyDateTime_DATE_GET_MINUTE(data),
-            .second = PyDateTime_DATE_GET_SECOND(data),
-            .microsecond = PyDateTime_DATE_GET_MICROSECOND(data)};
-
-        hyper_date_t date = hyper_encode_date(date_components);
-        hyper_time_t time = hyper_encode_time(time_components);
-
-        // TODO: Tableau uses typedefs for unsigned 32 / 64 integers for
-        // date and time respectively, but stores as int64; here we cast
-        // explicitly but should probably bounds check for overflow as well
-        int64_t val = (int64_t)time + (int64_t)date * MICROSECONDS_PER_DAY;
-
+        int64_t val = (int64_t)PyLong_AsLongLong(data);
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
+        // hyper_
     }
     case TIMEDELTA64_NS: {
         // TODO: Add error message for failed attribute access

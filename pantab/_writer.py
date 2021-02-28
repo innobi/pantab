@@ -81,17 +81,24 @@ def _assert_columns_equal(
     raise TypeError(f"Mismatched column definitions: {c1_str} != {c2_str}")
 
 
-def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
+def _maybe_convert_datetime_or_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str, ...]]:
     """
     Hyper uses a different storage format than pandas / Python for timedeltas.
 
     Ultimately this should be pushed to the C extension, but doesn't look to fully work
     at the moment anyway so keep in Python until complete.
+    
+    For datetimes, Hyper uses "microseconds since midnight 24-11-4714 BC".
+    # https://community.tableau.com/s/question/0D54T00000C5Qd1SAF/tableau-hyper-api-datetime-int64-format
+
+    Note that the official Julian Epoch begins at noon but Hyper starts at
+    midnight so the offset between Julian and unix 01-01-1970 AD epoch
+    is 2_440_588 days
     """
     orig_dtypes = tuple(map(str, df.dtypes))
-    deltas = df.select_dtypes(include=["timedelta64[ns]"])
+    date_or_deltas = df.select_dtypes(include=["timedelta64[ns]", "datetime64[ns]"])
 
-    if deltas.empty:
+    if date_or_deltas.empty:
         pass
     else:
         df = df.copy()
@@ -99,6 +106,13 @@ def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str,
         for index, (_, content) in enumerate(df.items()):
             if content.dtype == "timedelta64[ns]":
                 df.iloc[:, index] = content.apply(_timedelta_to_interval)
+            if content.dtype == "datetime64[ns]":
+                df.iloc[:, index] = content.astype(int) // 1000 + (
+                    # 2440588 is the # of days between 
+                    # 86400 seconds in a day
+                    # 1_000_000 microseconds in a second
+                    2_440_588 * 86400 * 1_000_000
+                )
 
     return df, orig_dtypes
 
@@ -146,7 +160,7 @@ def _insert_frame(
 
     null_mask = np.ascontiguousarray(pd.isnull(df))
     # Special handling for conversions
-    df, dtypes = _maybe_convert_timedelta(df)
+    df, dtypes = _maybe_convert_datetime_or_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
         libpantab.write_to_hyper(
