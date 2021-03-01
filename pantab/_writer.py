@@ -109,7 +109,7 @@ def _maybe_convert_datetime_or_timedelta(
             if content.dtype == "timedelta64[ns]":
                 df.iloc[:, index] = content.apply(_timedelta_to_interval)
             if content.dtype == "datetime64[ns]":
-                df.iloc[:, index] = content.astype(int) // 1000 + (
+                df.iloc[:, index] = pd.to_numeric(content) // 1000 + (
                     2_440_588  # of days between Tableau and Unix epochs
                     * 86400  # seconds in a day
                     * 1_000_000  # microseconds in a second
