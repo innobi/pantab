@@ -2,7 +2,8 @@ import numpy as np
 from pathlib import Path
 import pandas as pd
 import pandas.testing as tm
-from tableauhyperapi import TableName, HyperProcess, Telemetry
+import pytest
+from tableauhyperapi import Connection, TableName, HyperProcess, Telemetry, CreateMode
 
 import pantab
 import pantab._compat as compat
@@ -30,8 +31,6 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
 
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
-
-    expected["float32"] = expected["float32"].astype(np.float64)
 
     assert_roundtrip_equal(result, expected)
 
@@ -69,8 +68,65 @@ def test_roundtrip_with_external_hyper_process(df, tmp_hyper):
     with HyperProcess(
         Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters
     ) as hyper:
+        # test frame_to_hyper/frame_from_hyper
         pantab.frame_to_hyper(df, tmp_hyper, table="test", hyper_process=hyper)
-        pantab.frame_from_hyper(tmp_hyper, table="test", hyper_process=hyper)
-        pantab.frames_from_hyper(tmp_hyper, hyper_process=hyper)
+        result = pantab.frame_from_hyper(tmp_hyper, table="test", hyper_process=hyper)
+        assert_roundtrip_equal(result, df)
+
+        # test frame_from_hyper_query
+        result = pantab.frame_from_hyper_query(
+            tmp_hyper, "SELECT * FROM test", hyper_process=hyper
+        )
+        assert result.size == 63
+
+        # test frames_to_hyper/frames_from_hyper
+        pantab.frames_to_hyper(
+            {"test2": df, "test": df}, tmp_hyper, hyper_process=hyper
+        )
+        result = pantab.frames_from_hyper(tmp_hyper, hyper_process=hyper)
+        assert set(result.keys()) == set(
+            (TableName("public", "test"), TableName("public", "test2"))
+        )
+        for val in result.values():
+            assert_roundtrip_equal(val, df)
 
     assert not default_log_path.exists()
+
+
+def test_roundtrip_with_external_hyper_connection(df, tmp_hyper):
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        pantab.frames_to_hyper(
+            {"test": df, "test2": df}, tmp_hyper, hyper_process=hyper
+        )
+
+        with Connection(hyper.endpoint, tmp_hyper, CreateMode.NONE) as connection:
+            result = pantab.frame_from_hyper(connection, table="test")
+            assert_roundtrip_equal(result, df)
+
+            result = pantab.frame_from_hyper_query(connection, "SELECT * FROM test")
+            assert result.size == 63
+
+            result = pantab.frames_from_hyper(connection)
+            assert set(result.keys()) == set(
+                (TableName("public", "test"), TableName("public", "test2"))
+            )
+            for val in result.values():
+                assert_roundtrip_equal(val, df)
+
+
+def test_external_hyper_connection_and_process_error(df, tmp_hyper):
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(hyper.endpoint, tmp_hyper, CreateMode.CREATE) as connection:
+            expected_msg = (
+                "hyper_process parameter is useless because `Connection` is provided"
+            )
+            with pytest.raises(ValueError, match=expected_msg):
+                pantab.frame_from_hyper(connection, table="test", hyper_process=hyper)
+
+            with pytest.raises(ValueError, match=expected_msg):
+                pantab.frame_from_hyper_query(
+                    connection, "SELECT * FROM test", hyper_process=hyper
+                )
+
+            with pytest.raises(ValueError, match=expected_msg):
+                pantab.frames_from_hyper(connection, hyper_process=hyper)
