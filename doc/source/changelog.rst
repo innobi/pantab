@@ -1,6 +1,25 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 2.0.0 (2021-04-15)
+=========================
+
+Special thanks to `Adrian Vogelsgesang <https://github.com/vogelsgesang>`_ for contributing to this release.
+
+API Breaking Changes
+--------------------
+
+- Users may now pass an existing connection as the first argument to pantab's read functions. As part of this, the first argument was renamed from ``database`` to ``source`` (#123)
+
+Enhancements
+------------
+
+- Added support for Python 3.9 while dropping support for 3.6 (#122)
+- A new ``frame_from_hyper_query`` method has been added, providing support for executing SQL statements against a Hyper file (#118)
+- Users may now create their own Hyper process and pass it as an argument to the reading and writing functions (#39, #51)
+- The value 0001-01-01 will no longer be read as a NULL timestamp (#121)
+
+
 Pantab 1.1.1 (2020-11-02)
 =========================
 

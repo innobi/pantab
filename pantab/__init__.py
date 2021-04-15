@@ -1,4 +1,4 @@
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 
 import libpantab  # type: ignore
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
