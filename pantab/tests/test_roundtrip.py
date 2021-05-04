@@ -1,9 +1,10 @@
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 import pandas.testing as tm
 import pytest
-from tableauhyperapi import Connection, TableName, HyperProcess, Telemetry, CreateMode
+from tableauhyperapi import Connection, CreateMode, HyperProcess, TableName, Telemetry
 
 import pantab
 import pantab._compat as compat
@@ -17,6 +18,14 @@ def assert_roundtrip_equal(result, expected):
     if compat.PANDAS_100:
         expected["object"] = expected["object"].astype("string")
         expected["non-ascii"] = expected["non-ascii"].astype("string")
+
+    if compat.PANDAS_120:
+        # convert float32, float64, and Float32 to Float64
+        expected = expected.astype(
+            dict.fromkeys(
+                expected.select_dtypes(["float32", "float64", "Float32"]), "Float64"
+            )
+        )
 
     tm.assert_frame_equal(result, expected)
 
@@ -77,7 +86,7 @@ def test_roundtrip_with_external_hyper_process(df, tmp_hyper):
         result = pantab.frame_from_hyper_query(
             tmp_hyper, "SELECT * FROM test", hyper_process=hyper
         )
-        assert result.size == 63
+        assert result.size == df.size
 
         # test frames_to_hyper/frames_from_hyper
         pantab.frames_to_hyper(
@@ -104,7 +113,7 @@ def test_roundtrip_with_external_hyper_connection(df, tmp_hyper):
             assert_roundtrip_equal(result, df)
 
             result = pantab.frame_from_hyper_query(connection, "SELECT * FROM test")
-            assert result.size == 63
+            assert result.size == df.size
 
             result = pantab.frames_from_hyper(connection)
             assert set(result.keys()) == set(

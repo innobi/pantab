@@ -45,6 +45,14 @@ else:
         tab_api.SqlType.text(), tab_api.Nullability.NULLABLE
     )
 
+if compat.PANDAS_120:
+    _column_types["Float32"] = _ColumnType(
+        tab_api.SqlType.double(), tab_api.Nullability.NULLABLE
+    )
+    _column_types["Float64"] = _ColumnType(
+        tab_api.SqlType.double(), tab_api.Nullability.NULLABLE
+    )
+
 
 # Invert this, but exclude float32 as that does not roundtrip
 _pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
@@ -53,6 +61,9 @@ _pandas_types = {v: k for k, v in _column_types.items() if k != "float32"}
 _pandas_types[
     _ColumnType(tab_api.SqlType.date(), tab_api.Nullability.NULLABLE)
 ] = "date"
+_pandas_types[
+    _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NOT_NULLABLE)
+] = "float64"
 if compat.PANDAS_100:
     _pandas_types[
         _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)

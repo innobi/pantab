@@ -25,6 +25,10 @@ pantab maps the following dtypes from pandas to the equivalent column type in Ta
 +--------------------+-----------------+------------+
 |float64             |DOUBLE           |NULLABLE    |
 +--------------------+-----------------+------------+
+|Float32             |DOUBLE           |NULLABLE    |
++--------------------+-----------------+------------+
+|Float64             |DOUBLE           |NULLABLE    |
++--------------------+-----------------+------------+
 |bool                |BOOL             |NOT NULLABLE|
 +--------------------+-----------------+------------+
 |boolean             |BOOL             |NULLABLE    |
