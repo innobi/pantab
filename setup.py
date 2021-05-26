@@ -2,6 +2,7 @@ import os
 import sys
 from glob import glob
 
+import numpy as np
 from setuptools import Extension, find_packages, setup
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -19,6 +20,8 @@ else:
 
 pantab_module = Extension(
     "libpantab",
+    include_dirs=[np.get_include()],
+    define_macros=[("NPY_NO_DEPRECATED_API", "0")],
     sources=list(glob("pantab/src/*.c")),
     depends=list(glob("pantab/src/*.h")),
     extra_compile_args=extra_compile_args,

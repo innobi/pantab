@@ -44,6 +44,8 @@ static PyMethodDef methods[] = {
      "Initializes the HyperAPI functions used by pantab."},
     {"write_to_hyper", write_to_hyper, METH_VARARGS,
      "Writes a numpy array to a hyper file."},
+    {"write_to_hyper_new", write_to_hyper_new, METH_VARARGS,
+     "Writes a dataframe array to a hyper file."},    
     {"read_hyper_query", read_hyper_query, METH_VARARGS,
      "Reads a hyper query from a given connection."},
     {NULL, NULL, 0, NULL}};

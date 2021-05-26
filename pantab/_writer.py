@@ -149,12 +149,11 @@ def _insert_frame(
     df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        libpantab.write_to_hyper(
-            df.itertuples(index=False, name=None),
+        libpantab.write_to_hyper_new(
+            df,
             null_mask,
             inserter._buffer,
-            df.shape[1],
-            dtypes,
+            dtypes
         )
         inserter.execute()
 
