@@ -16,6 +16,8 @@ if os.name == "nt":
     extra_compile_args = ["/WX"]
 else:
     extra_compile_args = ["-Wextra", "-Werror"]
+    if "--debug" in sys.argv:
+        extra_compile_args.extend(["-g", "-UNDEBUG", "-O0"])
 
 
 pantab_module = Extension(

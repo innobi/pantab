@@ -88,6 +88,11 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
 	result = hyper_inserter_buffer_add_bool(insertBuffer, val);
         break;
     }
+    case DATETIME64_NS:
+    case DATETIME64_NS_UTC: {
+      result = NULL;
+      break;
+    }
       /*
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
