@@ -10,22 +10,27 @@ import pantab
 import pantab._compat as compat
 
 
-def assert_roundtrip_equal(result, expected):
+def assert_roundtrip_equal(result, expected, use_float_na=False):
     """Compat helper for comparing round-tripped results."""
 
-    expected["float32"] = expected["float32"].astype(np.float64)
+    # expected["float32"] = expected["float32"].astype(np.float64)
 
-    if compat.PANDAS_100:
-        expected["object"] = expected["object"].astype("string")
-        expected["non-ascii"] = expected["non-ascii"].astype("string")
-
-    if compat.PANDAS_120:
-        # convert float32, float64, and Float32 to Float64
+    if use_float_na:
         expected = expected.astype(
             dict.fromkeys(
                 expected.select_dtypes(["float32", "float64", "Float32"]), "Float64"
             )
         )
+    else:
+        expected = expected.astype(
+            dict.fromkeys(
+                expected.select_dtypes(["float32", "float64", "Float32"]), "float64"
+            )
+        )
+
+    if compat.PANDAS_100:
+        expected["object"] = expected["object"].astype("string")
+        expected["non-ascii"] = expected["non-ascii"].astype("string")
 
     tm.assert_frame_equal(result, expected)
 
@@ -42,6 +47,16 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
     assert_roundtrip_equal(result, expected)
+
+
+def test_use_float_na_flag(df, tmp_hyper, table_name):
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name, use_float_na=False)
+    expected = df.copy()
+    assert_roundtrip_equal(result, expected)
+
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name, use_float_na=True)
+    assert_roundtrip_equal(result, expected, use_float_na=True)
 
 
 def test_multiple_tables(df, tmp_hyper, table_name, table_mode):
