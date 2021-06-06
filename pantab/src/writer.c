@@ -23,9 +23,14 @@ static NpyIter **initiateIters(PyObject *arrList) {
         PyArrayObject *arr = (PyArrayObject *)PyList_GET_ITEM(arrList, i);
 
         // Check contents of each numpy array
-        NpyIter *iter = NpyIter_New(arr, NPY_ITER_READONLY, NPY_KEEPORDER,
-                                    NPY_NO_CASTING, NULL);
+        NpyIter *iter = NpyIter_New(arr,
+				    NPY_ITER_READONLY | NPY_ITER_REFS_OK,
+				    NPY_KEEPORDER,
+                                    NPY_NO_CASTING,
+				    NULL);
 
+	// TODO: do we need to check NpyIter_IterationNeedsAPI(iter) anywhere?
+	// Applicable because of NPY_ITER_REFS_OK flags
         if (iter == NULL) {
             if (i > 0) {
                 while (--i) {
@@ -60,31 +65,36 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
     switch (dtype) {
     case INT16_:
     case INT16NA: {
-        int16_t val = (npy_int16) **dataptr;
+        int16_t **ptr = (int16_t **) dataptr;
+        int16_t val = **ptr;
         result = hyper_inserter_buffer_add_int16(insertBuffer, val);
         break;
     }
     case INT32_:
     case INT32NA: {
-        int32_t val = (npy_int32) **dataptr;
+        int32_t **ptr = (int32_t **) dataptr;
+        int32_t val = **ptr;
         result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
     case INT64_:
     case INT64NA: {
-        int64_t val = (npy_int64) **dataptr;
+        int64_t **ptr = (int64_t **) dataptr;
+        int64_t val = **ptr;
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
     }
     case FLOAT32_: 
     case FLOAT64_: {
-      double val = (npy_double) **dataptr;  // TODO: always safe???
-        result = hyper_inserter_buffer_add_double(insertBuffer, val);
+      double **ptr = (npy_double **) dataptr;
+      npy_double val = **ptr;  // TODO: always safe???
+      result = hyper_inserter_buffer_add_double(insertBuffer, (double)val);
         break;
     }
     case BOOLEAN:
     case BOOLEANNA: {
-        int val = (npy_bool) **dataptr;
+        npy_bool **ptr = (npy_bool **) dataptr;
+        npy_bool val = **ptr;
 	result = hyper_inserter_buffer_add_bool(insertBuffer, val);
         break;
     }
@@ -151,9 +161,11 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
         Py_DECREF(months);
         break;
     }
+    */
     case STRING:
     case OBJECT: {
-      PyObject *obj = (PyObject *)**dataptr;
+      PyObject ***ptr = (PyObject ***) dataptr;      
+      PyObject *obj = **ptr;
         if (dtype == OBJECT) {
             // N.B. all other dtypes in pandas are well defined, but object is
             // really anything For purposes of Tableau these need to be strings,
@@ -161,8 +173,7 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
             // pandas once released (1.0.0)
             if (!PyUnicode_Check(obj)) {
                 PyObject *errMsg = PyUnicode_FromFormat(
-                    "Invalid value \"%R\" found (row %zd column %zd)", obj,
-                    row, col);
+                    "Invalid value \"%R\" found", obj);
                 PyErr_SetObject(PyExc_TypeError, errMsg);
                 Py_DECREF(errMsg);
                 return NULL;
@@ -176,7 +187,6 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
         result = hyper_inserter_buffer_add_binary(insertBuffer, buf, len);
         break;
     }
-      */
     default: {
         PyObject *errMsg = PyUnicode_FromFormat("Invalid dtype: \"%s\"");
         PyErr_SetObject(PyExc_ValueError, errMsg);
@@ -492,6 +502,10 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
     Py_ssize_t colcount = PyObject_Length(arrList);
     Py_ssize_t bufPos;
     NpyIter **npyIters = initiateIters(arrList);
+    if (npyIters == NULL) {
+      free(enumerated_dtypes);
+      return NULL;
+    }
     NpyIter *iter;
     NpyIter_IterNextFunc *iternext;
     char **dataptr;
