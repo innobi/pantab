@@ -65,40 +65,72 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
                                        hyper_inserter_buffer_t *insertBuffer) {
     hyper_error_t *result;
     switch (dtype) {
-    case INT16_:
-    case INT16NA: {
+    case INT16_: {
         int16_t **ptr = (int16_t **) dataptr;
         int16_t val = **ptr;
         result = hyper_inserter_buffer_add_int16(insertBuffer, val);
         break;
     }
-    case INT32_:
-    case INT32NA: {
+    case INT16NA: {
+      PyObject ***ptr = (PyObject ***) dataptr;
+      // The fact that NA datatypes are stored as objects is a bit
+      // unfortunate for sizing, as the CPython API only exposes
+      // Long / LongLong data types
+      PyObject *obj = **ptr;
+      long val = PyLong_AsLong(obj);
+      result = hyper_inserter_buffer_add_int16(insertBuffer, (int16_t) val);
+      break;
+    }
+    case INT32_: {
         int32_t **ptr = (int32_t **) dataptr;
         int32_t val = **ptr;
         result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
-    case INT64_:
-    case INT64NA: {
+    case INT32NA: {
+      PyObject ***ptr = (PyObject ***) dataptr;
+      PyObject *obj = **ptr;
+      long val = PyLong_AsLong(obj);
+      result = hyper_inserter_buffer_add_int32(insertBuffer, (int32_t) val);
+      break;
+    }
+    case INT64_: {
         int64_t **ptr = (int64_t **) dataptr;
         int64_t val = **ptr;
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
     }
-    case FLOAT32_: 
-    case FLOAT64_: {
-      double **ptr = (npy_double **) dataptr;
-      npy_double val = **ptr;  // TODO: always safe???
-      result = hyper_inserter_buffer_add_double(insertBuffer, (double)val);
+    case INT64NA: {
+      PyObject ***ptr = (PyObject ***) dataptr;
+      PyObject *obj = **ptr;
+      long long val = PyLong_AsLongLong(obj);
+      result = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t) val);
+      break;
+    }      
+    case FLOAT32_: {
+      float_t **ptr = (float_t **) dataptr;
+      float_t val = **ptr;
+      result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
-    case BOOLEAN:
-    case BOOLEANNA: {
+    case FLOAT64_: {
+      double_t **ptr = (double_t **) dataptr;
+      double_t val = **ptr;
+      result = hyper_inserter_buffer_add_double(insertBuffer, val);
+      break;
+    }
+    case BOOLEAN: {
         npy_bool **ptr = (npy_bool **) dataptr;
         npy_bool val = **ptr;
 	result = hyper_inserter_buffer_add_bool(insertBuffer, val);
         break;
+    }
+    case BOOLEANNA: {
+      PyObject ***ptr = (PyObject ***) dataptr;
+      PyObject *obj = **ptr;
+      int val = obj == Py_True;
+      result = hyper_inserter_buffer_add_bool(insertBuffer, val);
+      break;
     }
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
