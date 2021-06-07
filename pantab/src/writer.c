@@ -1,9 +1,11 @@
 #include "cffi.h"
 #include "type.h"
 #include <datetime.h>
+#define PY_ARRAY_UNIQUE_SYMBOL PANTAB_ARRAY_API
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
+#include "numpy_datetime.h"
 
 
 /*
@@ -100,22 +102,35 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
     }
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
-      result = NULL;
-      break;
-    }
-      /*
-    case DATETIME64_NS:
-    case DATETIME64_NS_UTC: {
+        npy_datetime **ptr = (npy_datetime **) dataptr;      
+        npy_datetime val = **ptr;
+
+	npy_datetimestruct dts;
+
+	// TODO: here we are using dummy metadata, but ideally
+	// should get from array in case pandas ever allows for
+	// different precision datetimes
+	PyArray_DatetimeMetaData meta = { .base = NPY_FR_ns, .num = 1};
+	int ret = convert_datetime_to_datetimestruct(&meta, val, &dts);
+	if (ret != 0) {
+	  PyObject *errMsg = PyUnicode_FromFormat("Failed to convert numpy datetime");
+	  PyErr_SetObject(PyExc_RuntimeError, errMsg);
+	  Py_DECREF(errMsg);
+	  return NULL;
+	}
+      
         hyper_date_components_t date_components = {
-            .year = PyDateTime_GET_YEAR(data),
-            .month = PyDateTime_GET_MONTH(data),
-            .day = PyDateTime_GET_DAY(data)};
+	  .year = dts.year,
+	  .month = dts.month,
+	  .day = dts.day
+	};
 
         hyper_time_components_t time_components = {
-            .hour = PyDateTime_DATE_GET_HOUR(data),
-            .minute = PyDateTime_DATE_GET_MINUTE(data),
-            .second = PyDateTime_DATE_GET_SECOND(data),
-            .microsecond = PyDateTime_DATE_GET_MICROSECOND(data)};
+            .hour = dts.hour,
+            .minute = dts.min,
+            .second = dts.sec,
+            .microsecond = dts.us
+	};
 
         hyper_date_t date = hyper_encode_date(date_components);
         hyper_time_t time = hyper_encode_time(time_components);
@@ -123,12 +138,15 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
         // TODO: Tableau uses typedefs for unsigned 32 / 64 integers for
         // date and time respectively, but stores as int64; here we cast
         // explicitly but should probably bounds check for overflow as well
-        int64_t val = (int64_t)time + (int64_t)date * MICROSECONDS_PER_DAY;
+        int64_t ms = (int64_t)time + (int64_t)date * MICROSECONDS_PER_DAY;
 
-        result = hyper_inserter_buffer_add_int64(insertBuffer, val);
+        result = hyper_inserter_buffer_add_int64(insertBuffer, ms);
         break;
     }
     case TIMEDELTA64_NS: {
+        PyObject ***ptr = (PyObject ***) dataptr;      
+        PyObject *data = **ptr;
+	
         // TODO: Add error message for failed attribute access
         PyObject *us = PyObject_GetAttrString(data, "microseconds");
         if (us == NULL) {
@@ -161,7 +179,6 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
         Py_DECREF(months);
         break;
     }
-    */
     case STRING:
     case OBJECT: {
       PyObject ***ptr = (PyObject ***) dataptr;      
