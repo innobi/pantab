@@ -50,6 +50,51 @@ static NpyIter **initiateIters(PyObject *arrList) {
     return npyIters;
 }
 
+/* Initiate iters outside of any loop for performance.
+   Caller is responsible for releasing memory.
+
+   Returns NULL on error
+*/
+static NpyIter_IterNextFunc **initiateIterNextFuncs(NpyIter **npyIters, Py_ssize_t len) {
+  NpyIter_IterNextFunc **npyIterNextFuncs =
+    PyObject_Malloc(sizeof(NpyIter_IterNextFunc *) * len);
+  if (npyIterNextFuncs == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
+  
+  for (Py_ssize_t i = 0; i < len; i++) {
+    NpyIter_IterNextFunc *func = NpyIter_GetIterNext(npyIters[i], NULL);
+    if (func == NULL)  {
+      return NULL;
+    }
+
+    npyIterNextFuncs[i] = func;
+  }
+
+  return npyIterNextFuncs;
+}
+
+static char ***initiateDataPtrs(NpyIter **npyIters, Py_ssize_t len) {
+  char ***dataptrs =
+    PyObject_Malloc(sizeof(char **) * len);
+  if (dataptrs == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
+  
+  for (Py_ssize_t i = 0; i < len; i++) {
+    char **dataptr = NpyIter_GetDataPtrArray(npyIters[i]);
+    if (dataptr == NULL)  {
+      return NULL;
+    }
+
+    dataptrs[i] = dataptr;
+  }
+
+  return dataptrs;
+}
+
 /*
 Free an array of numpy array iterators.
 
@@ -555,6 +600,20 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
       free(enumerated_dtypes);
       return NULL;
     }
+    NpyIter_IterNextFunc **npyIterNextFuncs = initiateIterNextFuncs(npyIters, colcount);
+    if (npyIterNextFuncs == NULL) {
+      freeIters(npyIters, colcount);
+      free(enumerated_dtypes);
+      return NULL;
+    }
+
+    char ***dataptrs = initiateDataPtrs(npyIters, colcount);
+    if (dataptrs == NULL) {
+      freeIters(npyIters, colcount);
+      free(enumerated_dtypes);
+      return NULL;
+    }
+    
     NpyIter *iter;
     NpyIter_IterNextFunc *iternext;
     char **dataptr;
@@ -563,15 +622,8 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
       for (Py_ssize_t colIndex = 0; colIndex < colcount; colIndex++) {
 	bufPos = (rowIndex * colcount) + colIndex;
 	iter = npyIters[colIndex];
-	iternext = NpyIter_GetIterNext(iter, NULL);
-	if (iternext == NULL) {
-	  freeIters(npyIters, colcount);
-	  free(enumerated_dtypes);
-	  PyBuffer_Release(&buf);
-	  return NULL;
-	}
-
-	dataptr = NpyIter_GetDataPtrArray(iter);	    
+	iternext = npyIterNextFuncs[colIndex];
+	dataptr = dataptrs[colIndex];
 	if (((uint8_t *)buf.buf)[bufPos] == 1) {
 	  result = hyper_inserter_buffer_add_null(insertBuffer);
 	} else {
