@@ -7,7 +7,6 @@
 #include <numpy/ndarraytypes.h>
 #include "numpy_datetime.h"
 
-
 /*
 Creates an array of NpyIter structs in the same order as the arrays supplied.
 
@@ -25,14 +24,11 @@ static NpyIter **initiateIters(PyObject *arrList) {
         PyArrayObject *arr = (PyArrayObject *)PyList_GET_ITEM(arrList, i);
 
         // Check contents of each numpy array
-        NpyIter *iter = NpyIter_New(arr,
-				    NPY_ITER_READONLY | NPY_ITER_REFS_OK,
-				    NPY_KEEPORDER,
-                                    NPY_NO_CASTING,
-				    NULL);
+        NpyIter *iter = NpyIter_New(arr, NPY_ITER_READONLY | NPY_ITER_REFS_OK,
+                                    NPY_KEEPORDER, NPY_NO_CASTING, NULL);
 
-	// TODO: do we need to check NpyIter_IterationNeedsAPI(iter) anywhere?
-	// Applicable because of NPY_ITER_REFS_OK flags
+        // TODO: do we need to check NpyIter_IterationNeedsAPI(iter) anywhere?
+        // Applicable because of NPY_ITER_REFS_OK flags
         if (iter == NULL) {
             if (i > 0) {
                 while (--i) {
@@ -55,44 +51,44 @@ static NpyIter **initiateIters(PyObject *arrList) {
 
    Returns NULL on error
 */
-static NpyIter_IterNextFunc **initiateIterNextFuncs(NpyIter **npyIters, Py_ssize_t len) {
-  NpyIter_IterNextFunc **npyIterNextFuncs =
-    PyObject_Malloc(sizeof(NpyIter_IterNextFunc *) * len);
-  if (npyIterNextFuncs == NULL) {
-    PyErr_NoMemory();
-    return NULL;
-  }
-  
-  for (Py_ssize_t i = 0; i < len; i++) {
-    NpyIter_IterNextFunc *func = NpyIter_GetIterNext(npyIters[i], NULL);
-    if (func == NULL)  {
-      return NULL;
+static NpyIter_IterNextFunc **initiateIterNextFuncs(NpyIter **npyIters,
+                                                    Py_ssize_t len) {
+    NpyIter_IterNextFunc **npyIterNextFuncs =
+        PyObject_Malloc(sizeof(NpyIter_IterNextFunc *) * len);
+    if (npyIterNextFuncs == NULL) {
+        PyErr_NoMemory();
+        return NULL;
     }
 
-    npyIterNextFuncs[i] = func;
-  }
+    for (Py_ssize_t i = 0; i < len; i++) {
+        NpyIter_IterNextFunc *func = NpyIter_GetIterNext(npyIters[i], NULL);
+        if (func == NULL) {
+            return NULL;
+        }
 
-  return npyIterNextFuncs;
+        npyIterNextFuncs[i] = func;
+    }
+
+    return npyIterNextFuncs;
 }
 
 static char ***initiateDataPtrs(NpyIter **npyIters, Py_ssize_t len) {
-  char ***dataptrs =
-    PyObject_Malloc(sizeof(char **) * len);
-  if (dataptrs == NULL) {
-    PyErr_NoMemory();
-    return NULL;
-  }
-  
-  for (Py_ssize_t i = 0; i < len; i++) {
-    char **dataptr = NpyIter_GetDataPtrArray(npyIters[i]);
-    if (dataptr == NULL)  {
-      return NULL;
+    char ***dataptrs = PyObject_Malloc(sizeof(char **) * len);
+    if (dataptrs == NULL) {
+        PyErr_NoMemory();
+        return NULL;
     }
 
-    dataptrs[i] = dataptr;
-  }
+    for (Py_ssize_t i = 0; i < len; i++) {
+        char **dataptr = NpyIter_GetDataPtrArray(npyIters[i]);
+        if (dataptr == NULL) {
+            return NULL;
+        }
 
-  return dataptrs;
+        dataptrs[i] = dataptr;
+    }
+
+    return dataptrs;
 }
 
 /*
@@ -106,108 +102,105 @@ static void freeIters(NpyIter **iters, Py_ssize_t length) {
     }
 }
 
-static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
-                                       hyper_inserter_buffer_t *insertBuffer) {
+static hyper_error_t *
+writeNonNullDataNew(char **dataptr, DTYPE dtype,
+                    hyper_inserter_buffer_t *insertBuffer) {
     hyper_error_t *result;
     switch (dtype) {
     case INT16_: {
-        int16_t **ptr = (int16_t **) dataptr;
+        int16_t **ptr = (int16_t **)dataptr;
         int16_t val = **ptr;
         result = hyper_inserter_buffer_add_int16(insertBuffer, val);
         break;
     }
     case INT16NA: {
-      PyObject ***ptr = (PyObject ***) dataptr;
-      // The fact that NA datatypes are stored as objects is a bit
-      // unfortunate for sizing, as the CPython API only exposes
-      // Long / LongLong data types
-      PyObject *obj = **ptr;
-      long val = PyLong_AsLong(obj);
-      result = hyper_inserter_buffer_add_int16(insertBuffer, (int16_t) val);
-      break;
+        PyObject ***ptr = (PyObject ***)dataptr;
+        // The fact that NA datatypes are stored as objects is a bit
+        // unfortunate for sizing, as the CPython API only exposes
+        // Long / LongLong data types
+        PyObject *obj = **ptr;
+        long val = PyLong_AsLong(obj);
+        result = hyper_inserter_buffer_add_int16(insertBuffer, (int16_t)val);
+        break;
     }
     case INT32_: {
-        int32_t **ptr = (int32_t **) dataptr;
+        int32_t **ptr = (int32_t **)dataptr;
         int32_t val = **ptr;
         result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
     case INT32NA: {
-      PyObject ***ptr = (PyObject ***) dataptr;
-      PyObject *obj = **ptr;
-      long val = PyLong_AsLong(obj);
-      result = hyper_inserter_buffer_add_int32(insertBuffer, (int32_t) val);
-      break;
+        PyObject ***ptr = (PyObject ***)dataptr;
+        PyObject *obj = **ptr;
+        long val = PyLong_AsLong(obj);
+        result = hyper_inserter_buffer_add_int32(insertBuffer, (int32_t)val);
+        break;
     }
     case INT64_: {
-        int64_t **ptr = (int64_t **) dataptr;
+        int64_t **ptr = (int64_t **)dataptr;
         int64_t val = **ptr;
         result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
     }
     case INT64NA: {
-      PyObject ***ptr = (PyObject ***) dataptr;
-      PyObject *obj = **ptr;
-      long long val = PyLong_AsLongLong(obj);
-      result = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t) val);
-      break;
-    }      
+        PyObject ***ptr = (PyObject ***)dataptr;
+        PyObject *obj = **ptr;
+        long long val = PyLong_AsLongLong(obj);
+        result = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t)val);
+        break;
+    }
     case FLOAT32_: {
-      float_t **ptr = (float_t **) dataptr;
-      float_t val = **ptr;
-      result = hyper_inserter_buffer_add_double(insertBuffer, val);
+        float_t **ptr = (float_t **)dataptr;
+        float_t val = **ptr;
+        result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
     case FLOAT64_: {
-      double_t **ptr = (double_t **) dataptr;
-      double_t val = **ptr;
-      result = hyper_inserter_buffer_add_double(insertBuffer, val);
-      break;
+        double_t **ptr = (double_t **)dataptr;
+        double_t val = **ptr;
+        result = hyper_inserter_buffer_add_double(insertBuffer, val);
+        break;
     }
     case BOOLEAN: {
-        npy_bool **ptr = (npy_bool **) dataptr;
+        npy_bool **ptr = (npy_bool **)dataptr;
         npy_bool val = **ptr;
-	result = hyper_inserter_buffer_add_bool(insertBuffer, val);
+        result = hyper_inserter_buffer_add_bool(insertBuffer, val);
         break;
     }
     case BOOLEANNA: {
-      PyObject ***ptr = (PyObject ***) dataptr;
-      PyObject *obj = **ptr;
-      int val = obj == Py_True;
-      result = hyper_inserter_buffer_add_bool(insertBuffer, val);
-      break;
+        PyObject ***ptr = (PyObject ***)dataptr;
+        PyObject *obj = **ptr;
+        int val = obj == Py_True;
+        result = hyper_inserter_buffer_add_bool(insertBuffer, val);
+        break;
     }
     case DATETIME64_NS:
     case DATETIME64_NS_UTC: {
-        npy_datetime **ptr = (npy_datetime **) dataptr;      
+        npy_datetime **ptr = (npy_datetime **)dataptr;
         npy_datetime val = **ptr;
 
-	npy_datetimestruct dts;
+        npy_datetimestruct dts;
 
-	// TODO: here we are using dummy metadata, but ideally
-	// should get from array in case pandas ever allows for
-	// different precision datetimes
-	PyArray_DatetimeMetaData meta = { .base = NPY_FR_ns, .num = 1};
-	int ret = convert_datetime_to_datetimestruct(&meta, val, &dts);
-	if (ret != 0) {
-	  PyObject *errMsg = PyUnicode_FromFormat("Failed to convert numpy datetime");
-	  PyErr_SetObject(PyExc_RuntimeError, errMsg);
-	  Py_DECREF(errMsg);
-	  return NULL;
-	}
-      
+        // TODO: here we are using dummy metadata, but ideally
+        // should get from array in case pandas ever allows for
+        // different precision datetimes
+        PyArray_DatetimeMetaData meta = {.base = NPY_FR_ns, .num = 1};
+        int ret = convert_datetime_to_datetimestruct(&meta, val, &dts);
+        if (ret != 0) {
+            PyObject *errMsg =
+                PyUnicode_FromFormat("Failed to convert numpy datetime");
+            PyErr_SetObject(PyExc_RuntimeError, errMsg);
+            Py_DECREF(errMsg);
+            return NULL;
+        }
+
         hyper_date_components_t date_components = {
-	  .year = dts.year,
-	  .month = dts.month,
-	  .day = dts.day
-	};
+            .year = dts.year, .month = dts.month, .day = dts.day};
 
-        hyper_time_components_t time_components = {
-            .hour = dts.hour,
-            .minute = dts.min,
-            .second = dts.sec,
-            .microsecond = dts.us
-	};
+        hyper_time_components_t time_components = {.hour = dts.hour,
+                                                   .minute = dts.min,
+                                                   .second = dts.sec,
+                                                   .microsecond = dts.us};
 
         hyper_date_t date = hyper_encode_date(date_components);
         hyper_time_t time = hyper_encode_time(time_components);
@@ -221,9 +214,9 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
         break;
     }
     case TIMEDELTA64_NS: {
-        PyObject ***ptr = (PyObject ***) dataptr;      
+        PyObject ***ptr = (PyObject ***)dataptr;
         PyObject *data = **ptr;
-	
+
         // TODO: Add error message for failed attribute access
         PyObject *us = PyObject_GetAttrString(data, "microseconds");
         if (us == NULL) {
@@ -258,16 +251,16 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
     }
     case STRING:
     case OBJECT: {
-      PyObject ***ptr = (PyObject ***) dataptr;      
-      PyObject *obj = **ptr;
+        PyObject ***ptr = (PyObject ***)dataptr;
+        PyObject *obj = **ptr;
         if (dtype == OBJECT) {
             // N.B. all other dtypes in pandas are well defined, but object is
             // really anything For purposes of Tableau these need to be strings,
             // so error out if not In the future should enforce StringDtype from
             // pandas once released (1.0.0)
             if (!PyUnicode_Check(obj)) {
-                PyObject *errMsg = PyUnicode_FromFormat(
-                    "Invalid value \"%R\" found", obj);
+                PyObject *errMsg =
+                    PyUnicode_FromFormat("Invalid value \"%R\" found", obj);
                 PyErr_SetObject(PyExc_TypeError, errMsg);
                 Py_DECREF(errMsg);
                 return NULL;
@@ -291,7 +284,6 @@ static hyper_error_t *writeNonNullDataNew(char **dataptr, DTYPE dtype,
 
     return result;
 }
-
 
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
@@ -581,15 +573,15 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
 
     PyObject *mgr = PyObject_GetAttrString(df, "_mgr");
     if (mgr == NULL) {
-      free(enumerated_dtypes);
-      return NULL;
+        free(enumerated_dtypes);
+        return NULL;
     }
 
     PyObject *arrList = PyObject_GetAttrString(mgr, "column_arrays");
     Py_DECREF(mgr);
     if (arrList == NULL) {
-      free(enumerated_dtypes);
-      return NULL;
+        free(enumerated_dtypes);
+        return NULL;
     }
 
     Py_ssize_t rowcount = PyObject_Length(df);
@@ -597,48 +589,49 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
     Py_ssize_t bufPos;
     NpyIter **npyIters = initiateIters(arrList);
     if (npyIters == NULL) {
-      free(enumerated_dtypes);
-      return NULL;
+        free(enumerated_dtypes);
+        return NULL;
     }
-    NpyIter_IterNextFunc **npyIterNextFuncs = initiateIterNextFuncs(npyIters, colcount);
+    NpyIter_IterNextFunc **npyIterNextFuncs =
+        initiateIterNextFuncs(npyIters, colcount);
     if (npyIterNextFuncs == NULL) {
-      freeIters(npyIters, colcount);
-      free(enumerated_dtypes);
-      return NULL;
+        freeIters(npyIters, colcount);
+        free(enumerated_dtypes);
+        return NULL;
     }
 
     char ***dataptrs = initiateDataPtrs(npyIters, colcount);
     if (dataptrs == NULL) {
-      freeIters(npyIters, colcount);
-      free(enumerated_dtypes);
-      return NULL;
+        freeIters(npyIters, colcount);
+        free(enumerated_dtypes);
+        return NULL;
     }
-    
+
     NpyIter *iter;
     NpyIter_IterNextFunc *iternext;
     char **dataptr;
-    
-    for (Py_ssize_t rowIndex = 0; rowIndex < rowcount; rowIndex++) {
-      for (Py_ssize_t colIndex = 0; colIndex < colcount; colIndex++) {
-	bufPos = (rowIndex * colcount) + colIndex;
-	iter = npyIters[colIndex];
-	iternext = npyIterNextFuncs[colIndex];
-	dataptr = dataptrs[colIndex];
-	if (((uint8_t *)buf.buf)[bufPos] == 1) {
-	  result = hyper_inserter_buffer_add_null(insertBuffer);
-	} else {
-	  result = writeNonNullDataNew(dataptr, enumerated_dtypes[colIndex],
-				       insertBuffer);
-	}
-	iternext(iter);
 
-	if ((result != NULL) || (PyErr_Occurred())) {
-	  freeIters(npyIters, colcount);
-	  free(enumerated_dtypes);
-	  PyBuffer_Release(&buf);
-	  return NULL;
-	}
-      }
+    for (Py_ssize_t rowIndex = 0; rowIndex < rowcount; rowIndex++) {
+        for (Py_ssize_t colIndex = 0; colIndex < colcount; colIndex++) {
+            bufPos = (rowIndex * colcount) + colIndex;
+            iter = npyIters[colIndex];
+            iternext = npyIterNextFuncs[colIndex];
+            dataptr = dataptrs[colIndex];
+            if (((uint8_t *)buf.buf)[bufPos] == 1) {
+                result = hyper_inserter_buffer_add_null(insertBuffer);
+            } else {
+                result = writeNonNullDataNew(
+                    dataptr, enumerated_dtypes[colIndex], insertBuffer);
+            }
+            iternext(iter);
+
+            if ((result != NULL) || (PyErr_Occurred())) {
+                freeIters(npyIters, colcount);
+                free(enumerated_dtypes);
+                PyBuffer_Release(&buf);
+                return NULL;
+            }
+        }
     }
 
     freeIters(npyIters, colcount);
@@ -650,4 +643,3 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
 
     Py_RETURN_NONE;
 }
-
