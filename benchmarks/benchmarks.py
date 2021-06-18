@@ -63,14 +63,16 @@ class TimeSuite:
         path = "test.hyper"
         pantab.frame_to_hyper(df, path, table="test")
         self.hyper = HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU)
-            
+
         return df
 
     def teardown(self):
         self.hyper.close()
 
     def time_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
+        pantab.frame_to_hyper(
+            self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper
+        )
 
     def time_read_frame(self):
         pantab.frame_from_hyper("test.hyper", table="test", hyper_process=self.hyper)
@@ -85,10 +87,14 @@ class TimeWriteLong:
         self.hyper.close()
 
     def time_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
+        pantab.frame_to_hyper(
+            self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper
+        )
 
     def peakmem_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
+        pantab.frame_to_hyper(
+            self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper
+        )
 
 
 class TimeReadLong:
@@ -99,7 +105,7 @@ class TimeReadLong:
         pantab.frame_to_hyper(df, path, table="test", hyper_process=self.hyper)
 
     def teardown(self):
-        self.hyper.close()        
+        self.hyper.close()
 
     def time_read_frame(self):
         pantab.frame_from_hyper("test.hyper", table="test", hyper_process=self.hyper)
