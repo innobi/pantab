@@ -102,10 +102,9 @@ static void freeIters(NpyIter **iters, Py_ssize_t length) {
     }
 }
 
-static hyper_error_t *
-writeNonNullData(char **dataptr, DTYPE dtype,
-		 hyper_inserter_buffer_t *insertBuffer,
-		 Py_ssize_t row, Py_ssize_t col) {
+static hyper_error_t *writeNonNullData(char **dataptr, DTYPE dtype,
+                                       hyper_inserter_buffer_t *insertBuffer,
+                                       Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
     switch (dtype) {
     case INT16_: {
@@ -261,8 +260,8 @@ writeNonNullData(char **dataptr, DTYPE dtype,
             // pandas once released (1.0.0)
             if (!PyUnicode_Check(obj)) {
                 PyObject *errMsg = PyUnicode_FromFormat(
-							"Invalid value \"%R\" found (row %zd column %zd)", obj,
-							row, col);
+                    "Invalid value \"%R\" found (row %zd column %zd)", obj, row,
+                    col);
                 PyErr_SetObject(PyExc_TypeError, errMsg);
                 Py_DECREF(errMsg);
                 return NULL;
@@ -290,9 +289,10 @@ writeNonNullData(char **dataptr, DTYPE dtype,
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
-static hyper_error_t *writeNonNullDataLegacy(PyObject *data, DTYPE dtype,
-                                       hyper_inserter_buffer_t *insertBuffer,
-                                       Py_ssize_t row, Py_ssize_t col) {
+static hyper_error_t *
+writeNonNullDataLegacy(PyObject *data, DTYPE dtype,
+                       hyper_inserter_buffer_t *insertBuffer, Py_ssize_t row,
+                       Py_ssize_t col) {
     hyper_error_t *result;
     switch (dtype) {
     case INT16_:
@@ -495,7 +495,7 @@ PyObject *write_to_hyper_legacy(PyObject *Py_UNUSED(dummy), PyObject *args) {
             } else {
                 val = PyTuple_GET_ITEM(row, i);
                 result = writeNonNullDataLegacy(val, enumerated_dtypes[i],
-                                          insertBuffer, row_counter, i);
+                                                insertBuffer, row_counter, i);
             }
 
             if ((result != NULL) || (PyErr_Occurred())) {
@@ -622,8 +622,8 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
             if (((uint8_t *)buf.buf)[bufPos] == 1) {
                 result = hyper_inserter_buffer_add_null(insertBuffer);
             } else {
-                result = writeNonNullData(
-					  dataptr, enumerated_dtypes[colIndex], insertBuffer, rowIndex, colIndex);
+                result = writeNonNullData(dataptr, enumerated_dtypes[colIndex],
+                                          insertBuffer, rowIndex, colIndex);
             }
             iternext(iter);
 
