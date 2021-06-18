@@ -13,7 +13,9 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 
 # MSVC compiler has different flags; assume that's what we are using on Windows
 if os.name == "nt":
-    extra_compile_args = ["/WX"]
+    # Enable extra warnings except implicit cast, which throws a few
+    # see https://bugzilla.mozilla.org/show_bug.cgi?id=857863 for justification
+    extra_compile_args = ["/WX", "/wd4244"]
 else:
     extra_compile_args = ["-Wextra", "-Werror"]
     if "--debug" in sys.argv:
