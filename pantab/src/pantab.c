@@ -42,9 +42,9 @@ HYPERAPI_FUNCTIONS(C)
 static PyMethodDef methods[] = {
     {"load_hapi_functions", load_hapi_functions, METH_VARARGS,
      "Initializes the HyperAPI functions used by pantab."},
+    {"write_to_hyper_legacy", write_to_hyper_legacy, METH_VARARGS,
+     "Legacy method to Write a numpy array to a hyper file."},
     {"write_to_hyper", write_to_hyper, METH_VARARGS,
-     "Writes a numpy array to a hyper file."},
-    {"write_to_hyper_new", write_to_hyper_new, METH_VARARGS,
      "Writes a dataframe array to a hyper file."},    
     {"read_hyper_query", read_hyper_query, METH_VARARGS,
      "Reads a hyper query from a given connection."},

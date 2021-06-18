@@ -103,7 +103,7 @@ static void freeIters(NpyIter **iters, Py_ssize_t length) {
 }
 
 static hyper_error_t *
-writeNonNullDataNew(char **dataptr, DTYPE dtype,
+writeNonNullData(char **dataptr, DTYPE dtype,
                     hyper_inserter_buffer_t *insertBuffer) {
     hyper_error_t *result;
     switch (dtype) {
@@ -288,7 +288,7 @@ writeNonNullDataNew(char **dataptr, DTYPE dtype,
 // TODO: Make error handling consistent. Right now errors occur if
 // 1. The return value is non-NULL OR
 // 2. PyErr is set within this function
-static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
+static hyper_error_t *writeNonNullDataLegacy(PyObject *data, DTYPE dtype,
                                        hyper_inserter_buffer_t *insertBuffer,
                                        Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
@@ -423,7 +423,7 @@ static hyper_error_t *writeNonNullData(PyObject *data, DTYPE dtype,
 // in data matches the length of the callables supplied at every step
 // in the process,though note that this is critical!
 // If this doesn't hold true behavior is undefined
-PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
+PyObject *write_to_hyper_legacy(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *data, *iterator, *row, *val, *dtypes, *null_mask,
         *insertBufferObj;
@@ -492,7 +492,7 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
                 result = hyper_inserter_buffer_add_null(insertBuffer);
             } else {
                 val = PyTuple_GET_ITEM(row, i);
-                result = writeNonNullData(val, enumerated_dtypes[i],
+                result = writeNonNullDataLegacy(val, enumerated_dtypes[i],
                                           insertBuffer, row_counter, i);
             }
 
@@ -518,7 +518,7 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     Py_RETURN_NONE;
 }
 
-PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
+PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     int ok;
     PyObject *df, *dtypes, *null_mask, *insertBufferObj;
     hyper_inserter_buffer_t *insertBuffer;
@@ -620,7 +620,7 @@ PyObject *write_to_hyper_new(PyObject *Py_UNUSED(dummy), PyObject *args) {
             if (((uint8_t *)buf.buf)[bufPos] == 1) {
                 result = hyper_inserter_buffer_add_null(insertBuffer);
             } else {
-                result = writeNonNullDataNew(
+                result = writeNonNullData(
                     dataptr, enumerated_dtypes[colIndex], insertBuffer);
             }
             iternext(iter);
