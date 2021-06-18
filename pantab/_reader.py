@@ -15,7 +15,8 @@ TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
 def _read_query_result(
-    result: tab_api.Result, dtypes: Optional[Dict[str, str]],
+    result: tab_api.Result,
+    dtypes: Optional[Dict[str, str]],
 ) -> pd.DataFrame:
     if dtypes is None:
         dtypes = {}
