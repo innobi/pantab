@@ -521,7 +521,7 @@ PyObject *write_to_hyper_legacy(PyObject *Py_UNUSED(dummy), PyObject *args) {
 }
 
 PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
-    int ok;
+    int ok, success = 1;
     PyObject *df, *dtypes, *null_mask, *insertBufferObj;
     hyper_inserter_buffer_t *insertBuffer;
     hyper_error_t *result;
@@ -535,14 +535,6 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
                           &PyTuple_Type, &dtypes);
     if (!ok)
         return NULL;
-
-    // TODO: check is a DataFrame
-    /*
-    if (!PyIter_Check(data)) {
-        PyErr_SetString(PyExc_TypeError, "First argument must be iterable");
-        return NULL;
-    }
-    */
 
     if (!PyObject_CheckBuffer(null_mask)) {
         PyErr_SetString(PyExc_TypeError,
@@ -575,6 +567,7 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
 
     PyObject *mgr = PyObject_GetAttrString(df, "_mgr");
     if (mgr == NULL) {
+        PyBuffer_Release(&buf);
         free(enumerated_dtypes);
         return NULL;
     }
@@ -582,6 +575,7 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     PyObject *arrList = PyObject_GetAttrString(mgr, "column_arrays");
     Py_DECREF(mgr);
     if (arrList == NULL) {
+        PyBuffer_Release(&buf);
         free(enumerated_dtypes);
         return NULL;
     }
@@ -591,22 +585,21 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     Py_ssize_t bufPos;
     NpyIter **npyIters = initiateIters(arrList);
     if (npyIters == NULL) {
+        PyBuffer_Release(&buf);
         free(enumerated_dtypes);
         return NULL;
     }
     NpyIter_IterNextFunc **npyIterNextFuncs =
         initiateIterNextFuncs(npyIters, colcount);
     if (npyIterNextFuncs == NULL) {
-        freeIters(npyIters, colcount);
-        free(enumerated_dtypes);
-        return NULL;
+        success = 0;
+        goto CLEANUP;
     }
 
     char ***dataptrs = initiateDataPtrs(npyIters, colcount);
     if (dataptrs == NULL) {
-        freeIters(npyIters, colcount);
-        free(enumerated_dtypes);
-        return NULL;
+        success = 0;
+        goto CLEANUP;
     }
 
     NpyIter *iter;
@@ -628,20 +621,19 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
             iternext(iter);
 
             if ((result != NULL) || (PyErr_Occurred())) {
-                freeIters(npyIters, colcount);
-                free(enumerated_dtypes);
-                PyBuffer_Release(&buf);
-                return NULL;
+                success = 0;
+                goto CLEANUP;
             }
         }
     }
 
+CLEANUP:
     freeIters(npyIters, colcount);
     free(enumerated_dtypes);
     PyBuffer_Release(&buf);
 
-    if (PyErr_Occurred())
+    if (success)
+        Py_RETURN_NONE;
+    else
         return NULL;
-
-    Py_RETURN_NONE;
 }
