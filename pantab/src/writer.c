@@ -1,6 +1,7 @@
 #include "cffi.h"
 #include "type.h"
 #include <datetime.h>
+#define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL PANTAB_ARRAY_API
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
@@ -526,9 +527,6 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
     hyper_inserter_buffer_t *insertBuffer;
     hyper_error_t *result;
     Py_buffer buf;
-
-    PyDateTime_IMPORT;
-    import_array(); // TODO: better in module init?
 
     // TOOD: Find better way to accept buffer pointer than putting in long
     ok = PyArg_ParseTuple(args, "OOOO!", &df, &null_mask, &insertBufferObj,
