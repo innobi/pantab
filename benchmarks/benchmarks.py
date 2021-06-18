@@ -71,7 +71,6 @@ class TimeSuite:
 
 
 class TimeWriteLong:
-
     def setup(self):
         self.df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
 
@@ -80,6 +79,7 @@ class TimeWriteLong:
 
     def peakmem_write_frame(self):
         pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+
 
 class TimeReadLong:
     def setup_cache(self):

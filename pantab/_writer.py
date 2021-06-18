@@ -151,19 +151,14 @@ def _insert_frame(
 
     with tab_api.Inserter(connection, table_def) as inserter:
         if compat.PANDAS_130:
-            libpantab.write_to_hyper(
-                df,
-                null_mask,
-                inserter._buffer,
-                dtypes
-            )
+            libpantab.write_to_hyper(df, null_mask, inserter._buffer, dtypes)
         else:
             libpantab.write_to_hyper_legacy(
                 df.itertuples(index=False, name=None),
                 null_mask,
                 inserter._buffer,
                 df.shape[1],
-                dtypes
+                dtypes,
             )
         inserter.execute()
 

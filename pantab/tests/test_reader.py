@@ -66,8 +66,7 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
     monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
 
     df = pd.DataFrame(
-        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]],
-        columns=["timedelta64"],
+        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"],
     ).astype({"timedelta64": "timedelta64[ns]"})
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
@@ -107,10 +106,7 @@ def test_read_query(df, tmp_hyper):
     query = "SELECT int16 AS i, '_' || int32 AS _i2 FROM test"
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
 
-    expected = pd.DataFrame(
-        [[1, "_2"], [6, "_7"], [0, "_0"]],
-        columns=["i", "_i2"],
-    )
+    expected = pd.DataFrame([[1, "_2"], [6, "_7"], [0, "_0"]], columns=["i", "_i2"],)
     str_type = "string" if compat.PANDAS_100 else "object"
     expected = expected.astype({"i": "Int16", "_i2": str_type})
 
