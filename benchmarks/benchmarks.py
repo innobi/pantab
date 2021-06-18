@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
+from tableauhyperapi import HyperProcess, Telemetry
 
 import pantab
 
 
 class TimeSuite:
-    def setup_cache(self):
+    def setup(self):
         nrows = 10_000
         data = [
             [
@@ -44,7 +45,7 @@ class TimeSuite:
             ],
         )
 
-        df = df.astype(
+        self.df = df.astype(
             {
                 "int16": np.int16,
                 "int32": np.int32,
@@ -61,34 +62,47 @@ class TimeSuite:
 
         path = "test.hyper"
         pantab.frame_to_hyper(df, path, table="test")
+        self.hyper = HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU)
+            
         return df
 
-    def time_write_frame(self, df):
-        pantab.frame_to_hyper(df, "dummy.hyper", table="dummy")
+    def teardown(self):
+        self.hyper.close()
 
-    def time_read_frame(self, _):
-        pantab.frame_from_hyper("test.hyper", table="test")
+    def time_write_frame(self):
+        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
+
+    def time_read_frame(self):
+        pantab.frame_from_hyper("test.hyper", table="test", hyper_process=self.hyper)
 
 
 class TimeWriteLong:
     def setup(self):
+        self.hyper = HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU)
         self.df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
 
+    def teardown(self):
+        self.hyper.close()
+
     def time_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
 
     def peakmem_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy", hyper_process=self.hyper)
 
 
 class TimeReadLong:
-    def setup_cache(self):
+    def setup(self):
         df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
         path = "test.hyper"
-        pantab.frame_to_hyper(df, path, table="test")
+        self.hyper = HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU)
+        pantab.frame_to_hyper(df, path, table="test", hyper_process=self.hyper)
+
+    def teardown(self):
+        self.hyper.close()        
 
     def time_read_frame(self):
-        pantab.frame_from_hyper("test.hyper", table="test")
+        pantab.frame_from_hyper("test.hyper", table="test", hyper_process=self.hyper)
 
     def peakmem_read_frame(self):
-        pantab.frame_from_hyper("test.hyper", table="test")
+        pantab.frame_from_hyper("test.hyper", table="test", hyper_process=self.hyper)

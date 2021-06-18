@@ -93,7 +93,7 @@ jobs:
         python -m pip install pytest
         python -m pytest
 
-  build-linux-pandas1.3:
+  build-linux-pandas13:
 
     runs-on: ubuntu-latest
     strategy:
@@ -126,7 +126,7 @@ jobs:
         python -m pip install pytest
         python -m pytest
 
-  build-macos:
+  build-macos-pandas13:
 
     runs-on: macos-latest
     strategy:
@@ -152,7 +152,7 @@ jobs:
         python -m pip install pytest
         python -m pytest
 
-  build-windows:
+  build-windows-pandas13:
 
     runs-on: windows-latest
     strategy:
