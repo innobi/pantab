@@ -104,7 +104,8 @@ static void freeIters(NpyIter **iters, Py_ssize_t length) {
 
 static hyper_error_t *
 writeNonNullData(char **dataptr, DTYPE dtype,
-                    hyper_inserter_buffer_t *insertBuffer) {
+		 hyper_inserter_buffer_t *insertBuffer,
+		 Py_ssize_t row, Py_ssize_t col) {
     hyper_error_t *result;
     switch (dtype) {
     case INT16_: {
@@ -259,8 +260,9 @@ writeNonNullData(char **dataptr, DTYPE dtype,
             // so error out if not In the future should enforce StringDtype from
             // pandas once released (1.0.0)
             if (!PyUnicode_Check(obj)) {
-                PyObject *errMsg =
-                    PyUnicode_FromFormat("Invalid value \"%R\" found", obj);
+                PyObject *errMsg = PyUnicode_FromFormat(
+							"Invalid value \"%R\" found (row %zd column %zd)", obj,
+							row, col);
                 PyErr_SetObject(PyExc_TypeError, errMsg);
                 Py_DECREF(errMsg);
                 return NULL;
@@ -621,7 +623,7 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
                 result = hyper_inserter_buffer_add_null(insertBuffer);
             } else {
                 result = writeNonNullData(
-                    dataptr, enumerated_dtypes[colIndex], insertBuffer);
+					  dataptr, enumerated_dtypes[colIndex], insertBuffer, rowIndex, colIndex);
             }
             iternext(iter);
 
