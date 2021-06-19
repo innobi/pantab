@@ -107,7 +107,7 @@ def df():
             "int32": np.int32,
             "Int32": "Int32",
             "int64": np.int64,
-            "Int32": "Int32",
+            "Int64": "Int64",
             "float32": np.float32,
             "float64": np.float64,
             "bool": np.bool,
@@ -127,6 +127,10 @@ def df():
     if compat.PANDAS_100:
         df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
         df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
+
+    if compat.PANDAS_120:
+        df["Float32"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float32")
+        df["Float64"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float64")
 
     return df
 

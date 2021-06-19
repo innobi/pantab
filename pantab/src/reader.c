@@ -28,6 +28,8 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 
     case FLOAT32_:
     case FLOAT64_:
+    case FLOAT32NA:
+    case FLOAT64NA:
         return PyFloat_FromDouble(*((double *)value));
 
     case STRING:

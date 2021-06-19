@@ -11,13 +11,14 @@ API Reference
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
 
 
-.. py:function:: frame_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], hyper_process: Optional[HyperProcess]) -> pd.DataFrame:
+.. py:function:: frame_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], hyper_process: Optional[HyperProcess], use_float_na: bool = False) -> pd.DataFrame:
 
    Extracts a DataFrame from a .hyper extract.
 
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param table: Table to read. Must be supplied as a keyword argument.
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
+   :param use_float_na: Flag indicating whether to use the pandas `Float32`/`Float64` dtypes which support the new pandas missing value  `pd.NA`, default False
    :rtype: pd.DataFrame
 
 
@@ -30,16 +31,17 @@ API Reference
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
 
 
-.. py:function:: frames_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, hyper_process: Optional[HyperProcess]) -> Dict[tableauhyperapi.TableName, pd.DataFrame]:
+.. py:function:: frames_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, hyper_process: Optional[HyperProcess]) -> Dict[tableauhyperapi.TableName, pd.DataFrame, use_float_na: bool = False]:
 
    Extracts tables from a .hyper extract.
 
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
+   :param use_float_na: Flag indicating whether to use the pandas `Float32`/`Float64` dtypes which support the new pandas missing value  `pd.NA`, default False
    :rtype: Dict[tableauhyperapi.TableName, pd.DataFrame]
 
 
-.. py:function:: frame_from_hyper_query(source: Union[str, pathlib.Path, tab_api.Connection], query: str, *, hyper_process: Optional[HyperProcess]) -> pd.DataFrame:
+.. py:function:: frame_from_hyper_query(source: Union[str, pathlib.Path, tab_api.Connection], query: str, *, hyper_process: Optional[HyperProcess], use_float_na: bool = False) -> pd.DataFrame:
 
 .. versionadded:: 2.0
 
@@ -48,4 +50,5 @@ API Reference
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param query: SQL query to execute.
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
+   :param use_float_na: Flag indicating whether to use the pandas `Float32`/`Float64` dtypes which support the new pandas missing value  `pd.NA`, default False
    :rtype: Dict[tableauhyperapi.TableName, pd.DataFrame]
