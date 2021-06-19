@@ -315,7 +315,9 @@ writeNonNullDataLegacy(PyObject *data, DTYPE dtype,
         break;
     }
     case FLOAT32_:
-    case FLOAT64_: {
+    case FLOAT64_:
+    case FLOAT32NA:
+    case FLOAT64NA: {
         double val = PyFloat_AsDouble(data);
         result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;

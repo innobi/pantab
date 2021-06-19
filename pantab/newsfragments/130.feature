@@ -1,0 +1,1 @@
+Added support for Float32/Float64 dtypes in pandas >= 1.2.0

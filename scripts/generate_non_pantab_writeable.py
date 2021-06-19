@@ -13,7 +13,12 @@ if __name__ == "__main__":
                 name="Non-Nullable String",
                 type=tab_api.SqlType.text(),
                 nullability=tab_api.NOT_NULLABLE,
-            )
+            ),
+            tab_api.TableDefinition.Column(
+                name="Non-Nullable Float",
+                type=tab_api.SqlType.double(),
+                nullability=tab_api.NOT_NULLABLE,
+            ),
         ],
     )
 
@@ -28,5 +33,5 @@ if __name__ == "__main__":
             connection.catalog.create_table(table_definition=table)
 
             with tab_api.Inserter(connection, table) as inserter:
-                inserter.add_rows([["row1"], ["row2"]])
+                inserter.add_rows([["row1", 1.0], ["row2", 2.0]])
                 inserter.execute()
