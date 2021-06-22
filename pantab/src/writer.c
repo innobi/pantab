@@ -134,7 +134,7 @@ static hyper_error_t *writeNonNullData(char **dataptr, DTYPE dtype,
         PyObject ***ptr = (PyObject ***)dataptr;
         PyObject *obj = **ptr;
         long val = PyLong_AsLong(obj);
-        result = hyper_inserter_buffer_add_int32(insertBuffer, (int32_t)val);
+        result = hyper_inserter_buffer_add_int32(insertBuffer, val);
         break;
     }
     case INT64_: {
@@ -147,7 +147,7 @@ static hyper_error_t *writeNonNullData(char **dataptr, DTYPE dtype,
         PyObject ***ptr = (PyObject ***)dataptr;
         PyObject *obj = **ptr;
         long long val = PyLong_AsLongLong(obj);
-        result = hyper_inserter_buffer_add_int64(insertBuffer, (int64_t)val);
+        result = hyper_inserter_buffer_add_int64(insertBuffer, val);
         break;
     }
     case FLOAT32_: {
@@ -159,6 +159,14 @@ static hyper_error_t *writeNonNullData(char **dataptr, DTYPE dtype,
     case FLOAT64_: {
         double_t **ptr = (double_t **)dataptr;
         double_t val = **ptr;
+        result = hyper_inserter_buffer_add_double(insertBuffer, val);
+        break;
+    }
+    case FLOAT32NA:
+    case FLOAT64NA: {
+        PyObject ***ptr = (PyObject ***)dataptr;
+        PyObject *obj = **ptr;
+        double_t val = PyFloat_AsDouble(obj);
         result = hyper_inserter_buffer_add_double(insertBuffer, val);
         break;
     }
