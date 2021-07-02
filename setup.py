@@ -2,6 +2,7 @@ import os
 import sys
 from glob import glob
 
+import numpy as np
 from setuptools import Extension, find_packages, setup
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -12,13 +13,19 @@ with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
 
 # MSVC compiler has different flags; assume that's what we are using on Windows
 if os.name == "nt":
-    extra_compile_args = ["/WX"]
+    # Enable extra warnings except implicit cast, which throws a few
+    # see https://bugzilla.mozilla.org/show_bug.cgi?id=857863 for justification
+    extra_compile_args = ["/WX", "/wd4244"]
 else:
     extra_compile_args = ["-Wextra", "-Werror"]
+    if "--debug" in sys.argv:
+        extra_compile_args.extend(["-g", "-UNDEBUG", "-O0"])
 
 
 pantab_module = Extension(
     "libpantab",
+    include_dirs=[np.get_include()],
+    define_macros=[("NPY_NO_DEPRECATED_API", "0")],
     sources=list(glob("pantab/src/*.c")),
     depends=list(glob("pantab/src/*.h")),
     extra_compile_args=extra_compile_args,

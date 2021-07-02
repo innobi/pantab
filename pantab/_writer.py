@@ -11,6 +11,7 @@ import tableauhyperapi as tab_api
 
 import libpantab  # type: ignore
 import pantab._types as pantab_types
+import pantab._compat as compat
 from pantab._hyper_util import ensure_hyper_process
 
 
@@ -149,13 +150,16 @@ def _insert_frame(
     df, dtypes = _maybe_convert_timedelta(df)
 
     with tab_api.Inserter(connection, table_def) as inserter:
-        libpantab.write_to_hyper(
-            df.itertuples(index=False, name=None),
-            null_mask,
-            inserter._buffer,
-            df.shape[1],
-            dtypes,
-        )
+        if compat.PANDAS_130:
+            libpantab.write_to_hyper(df, null_mask, inserter._buffer, dtypes)
+        else:
+            libpantab.write_to_hyper_legacy(
+                df.itertuples(index=False, name=None),
+                null_mask,
+                inserter._buffer,
+                df.shape[1],
+                dtypes,
+            )
         inserter.execute()
 
 

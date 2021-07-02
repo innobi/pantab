@@ -45,7 +45,7 @@ static const struct {
                  {FLOAT32NA, "Float32"},
                  {FLOAT64NA, "Float64"},
                  {BOOLEAN, "bool"},
-                 {BOOLEAN, "boolean"},
+                 {BOOLEANNA, "boolean"},
                  {DATETIME64_NS, "datetime64[ns]"},
                  {DATETIME64_NS_UTC, "datetime64[ns, UTC]"},
                  {DATE, "date"}, // TODO: this isn't actually a dtype
