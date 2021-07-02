@@ -1,6 +1,17 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 2.1.0 (2021-07-02)
+=========================
+Special thanks to `Caleb Overman <https://github.com/caleboverman>`_ for contributing to  this release.
+
+Enhancments
+-----------
+
+- A new ``use_float_na`` parameter has been added to reading functions, which will convert doubles from Hyper files to the pandas ``Float64`` Extension dtype rather than using the standard numpy float dtype (#131)
+- Writing ``Float32`` and ``Float64`` dtypes is now supported (#131)
+- Writing to a Hyper file  is now up to 50% faster (#132)
+
 Pantab 2.0.0 (2021-04-15)
 =========================
 
