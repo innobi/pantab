@@ -1,6 +1,7 @@
 __version__ = "2.0.0"
 
 import libpantab  # type: ignore
+
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
 from ._tester import test
 from ._writer import frame_to_hyper, frames_to_hyper
@@ -37,7 +38,7 @@ versions which triggered this error.
 """
 
 try:
-    from tableauhyperapi.impl.dll import lib, ffi
+    from tableauhyperapi.impl.dll import ffi, lib
 except ImportError as e:
     raise NotImplementedError(api_incompatibility_msg) from e
 
