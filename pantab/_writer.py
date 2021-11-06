@@ -172,20 +172,7 @@ def frame_to_hyper(
     hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> None:
     """See api.rst for documentation"""
-    with ensure_hyper_process(hyper_process) as hpe:
-        tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
-
-        if table_mode == "a" and pathlib.Path(database).exists():
-            shutil.copy(database, tmp_db)
-
-        with tab_api.Connection(
-            hpe.endpoint, tmp_db, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
-        ) as connection:
-            _insert_frame(df, connection=connection, table=table, table_mode=table_mode)
-
-        # In Python 3.9+ we can just pass the path object, but due to bpo 32689
-        # and subsequent typeshed changes it is easier to just pass as str for now
-        shutil.move(str(tmp_db), database)
+    frames_to_hyper({table: df}, database, table_mode, hyper_process=hyper_process)
 
 
 def frames_to_hyper(
