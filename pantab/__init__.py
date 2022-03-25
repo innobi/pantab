@@ -1,5 +1,7 @@
 __version__ = "2.0.0"
 
+from tableauhyperapi import __version__ as hyperapi_version
+
 import libpantab  # type: ignore
 
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
@@ -30,12 +32,14 @@ __all__ = [
 # actionable as possible and guide users in the right direction.
 
 api_incompatibility_msg = """
-pantab is incompatible with the version of Tableau Hyper API installed on your
-system. Please upgrade both `tableauhyperapi` and `pantab` to the latest version.
-If doing so does not fix this issue, please file an issue at
-https://github.com/innobi/pantab/issues mentioning the exact pantab and HyperAPI
-versions which triggered this error.
-"""
+pantab is incompatible with version {} of Tableau Hyper API. Please upgrade
+both `tableauhyperapi` and `pantab` to the latest version. If doing so does not
+fix this issue, please file an issue at https://github.com/innobi/pantab/issues
+mentioning the exact pantab and HyperAPI versions which triggered this error.
+As a temporary workaround, consider downgrading HyperAPI and/or pantab.
+""".format(
+    hyperapi_version
+)
 
 try:
     from tableauhyperapi.impl.dll import ffi, lib
@@ -109,6 +113,6 @@ libpantab.load_hapi_functions(
     ),
     _get_hapi_function(
         "hyper_rowset_chunk_field_values",
-        "struct hyper_error_t *(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *, int8_t * *)",
+        "void(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *)",
     ),
 )
