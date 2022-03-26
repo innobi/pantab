@@ -1,5 +1,8 @@
+#!/bin/bash
+
 set -e
 
-black --check /pantab
-isort /pantab -c
+black /pantab
+isort /pantab
 mypy /pantab
+
