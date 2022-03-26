@@ -168,8 +168,9 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       }
 
       if (hyper14567_compat) {
-        hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, &values,
-                                        &sizes);
+	// Some trickery to support different APIs
+	// See https://stackoverflow.com/questions/71630729/provide-compatability-for-various-function-signatures-from-shared-library
+	((void (*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, const uint8_t* const **, const size_t **)) &hyper_rowset_chunk_field_values)(chunk, &num_cols, &num_rows, &values, &sizes);
         null_flags = NULL;
       } else {
         hyper_err = hyper_rowset_chunk_field_values(

@@ -69,7 +69,7 @@ typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
     (hyper_rowset_chunk_t * rowset_chunk, size_t * col_count,                  \
      size_t * row_count, const uint8_t *const *values[],                       \
      const size_t *sizes[],                                                    \
-     ...)) // hyper_rowset_chunk_field_values is hacked to provide compat across
+     const int8_t *null_flags[])) // hyper_rowset_chunk_field_values is hacked to provide compat across
            // different versions. actual signature varies starting in Hyper
            // 0.0.14567
 
