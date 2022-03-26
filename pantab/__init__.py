@@ -2,6 +2,7 @@ __version__ = "2.0.0"
 
 import libpantab  # type: ignore
 
+from ._compat import HYPER_0_0_14567
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
 from ._tester import test
 from ._writer import frame_to_hyper, frames_to_hyper
@@ -63,6 +64,17 @@ def _get_hapi_function(name, sig):
     return f
 
 
+if HYPER_0_0_14567:
+    compat_chunk_field_values_func = lambda: _get_hapi_function(
+        "hyper_rowset_chunk_field_values",
+        "void(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *)",
+    )
+else:
+    compat_chunk_field_values_func = lambda: _get_hapi_function(
+        "hyper_rowset_chunk_field_values",
+        "struct hyper_error_t *(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *, int8_t * *)",
+    )
+
 libpantab.load_hapi_functions(
     _get_hapi_function("hyper_decode_date", "hyper_date_components_t(*)(uint32_t)"),
     _get_hapi_function("hyper_encode_date", "uint32_t(*)(hyper_date_components_t)"),
@@ -107,8 +119,5 @@ libpantab.load_hapi_functions(
     _get_hapi_function(
         "hyper_destroy_rowset_chunk", "void(*)(struct hyper_rowset_chunk_t *)"
     ),
-    _get_hapi_function(
-        "hyper_rowset_chunk_field_values",
-        "struct hyper_error_t *(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *, int8_t * *)",
-    ),
+    compat_chunk_field_values_func(),
 )

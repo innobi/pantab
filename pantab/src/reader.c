@@ -121,11 +121,17 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
   const size_t *sizes;
   const int8_t *null_flags;
 
-  PyDateTime_IMPORT;
+    // For a quick fix to issue #145 we are using a boolean flag
+    // to determine which method should be called at runtime
+    // a more robust solution would be to define a hyper compat enum
+    // which can handle future compat issues
+    const int hyper14567_compat;
 
-  ok = PyArg_ParseTuple(args, "OO!", &resultObj, &PyTuple_Type, &dtypes);
-  if (!ok)
-    return NULL;
+    PyDateTime_IMPORT;
+
+    ok = PyArg_ParseTuple(args, "OO!p", &resultObj, &PyTuple_Type, &dtypes, &hyper14567_compat);
+    if (!ok)
+        return NULL;
 
   // TODO: check that we get an instance of CDataObject; else will segfault
   rowset = (hyper_rowset_t *)((CDataObject *)resultObj)->c_data;
@@ -148,8 +154,68 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       goto ERROR_CLEANUP;
     }
 
-    if (chunk == NULL) {
-      break; // No more to parse
+    // Iterate over each result chunk
+    while (1) {
+
+        hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
+        if (hyper_err) {
+            goto ERROR_CLEANUP;
+        }
+
+        if (chunk == NULL) {
+            break; // No more to parse
+        }
+
+	if (hyper14567_compat) {
+	  hyper_rowset_chunk_field_values(
+	    chunk, &num_cols, &num_rows, &values, &sizes);
+	  null_flags = NULL;
+	} else {
+	  hyper_err = hyper_rowset_chunk_field_values(
+            chunk, &num_cols, &num_rows, &values, &sizes, &null_flags);
+
+	  if (hyper_err) {
+            goto ERROR_CLEANUP;
+	  }
+	}
+
+        // For each row inside the chunk...
+        for (size_t i = 0; i < num_rows; i++) {
+            row = PyTuple_New(num_cols);
+            if (row == NULL) {
+                goto ERROR_CLEANUP;
+            }
+
+            // For each column inside the row...
+            for (size_t j = 0; j < num_cols; j++) {
+                PyObject *val;
+		if ((hyper14567_compat && *values == NULL) || (!hyper14567_compat && *null_flags == 1)) {
+
+                    val = Py_None;
+                    Py_INCREF(val);
+                } else {
+                    DTYPE dtype = enumeratedDtypes[j];
+                    val = read_value(*values, dtype, sizes);
+                }
+
+                values++, sizes++;
+		if (!hyper14567_compat) {
+		  null_flags++;
+		}
+
+                if (val == NULL) {
+                    goto ERROR_CLEANUP;
+                }
+
+                PyTuple_SET_ITEM(row, j, val);
+            }
+
+            int ret = PyList_Append(result, row);
+            if (ret != 0) {
+                goto ERROR_CLEANUP;
+            }
+        }
+        hyper_destroy_rowset_chunk(chunk);
     }
 
     hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
