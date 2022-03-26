@@ -3,6 +3,6 @@
 set -e
 
 black /pantab
-isort /pantab
+isort /pantab/**/*.py
 mypy /pantab
 
