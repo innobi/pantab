@@ -6,7 +6,6 @@
 #include "numpy_datetime.h"
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
-#include <numpy/ndarraytypes.h>
 
 /*
 Creates an array of NpyIter structs in the same order as the arrays supplied.
