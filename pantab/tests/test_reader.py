@@ -96,9 +96,7 @@ def test_reads_non_writeable(datapath):
         [["row1", 1.0], ["row2", 2.0]],
         columns=["Non-Nullable String", "Non-Nullable Float"],
     )
-    expected["Non-Nullable String"] = expected["Non-Nullable String"].astype(
-        "string"
-    )
+    expected["Non-Nullable String"] = expected["Non-Nullable String"].astype("string")
 
     tm.assert_frame_equal(result, expected)
 
