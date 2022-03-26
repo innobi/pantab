@@ -125,7 +125,7 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
   // to determine which method should be called at runtime
   // a more robust solution would be to define a hyper compat enum
   // which can handle future compat issues
-  const int hyper14567_compat;
+  int hyper14567_compat = 0;
 
   PyDateTime_IMPORT;
 
