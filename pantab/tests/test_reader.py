@@ -4,7 +4,6 @@ import pytest
 from tableauhyperapi import TableName
 
 import pantab
-import pantab._compat as compat
 
 
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
@@ -97,10 +96,9 @@ def test_reads_non_writeable(datapath):
         [["row1", 1.0], ["row2", 2.0]],
         columns=["Non-Nullable String", "Non-Nullable Float"],
     )
-    if compat.PANDAS_100:
-        expected["Non-Nullable String"] = expected["Non-Nullable String"].astype(
-            "string"
-        )
+    expected["Non-Nullable String"] = expected["Non-Nullable String"].astype(
+        "string"
+    )
 
     tm.assert_frame_equal(result, expected)
 
@@ -112,7 +110,6 @@ def test_read_query(df, tmp_hyper):
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
 
     expected = pd.DataFrame([[1, "_2"], [6, "_7"], [0, "_0"]], columns=["i", "_i2"])
-    str_type = "string" if compat.PANDAS_100 else "object"
-    expected = expected.astype({"i": "Int16", "_i2": str_type})
+    expected = expected.astype({"i": "Int16", "_i2": "string"})
 
     tm.assert_frame_equal(result, expected)
