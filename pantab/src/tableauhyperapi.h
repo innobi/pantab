@@ -65,7 +65,13 @@ typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
     (hyper_rowset_t * rowset, hyper_rowset_chunk_t * *rowset_chunk))           \
   C(void, hyper_destroy_rowset_chunk,                                          \
     (const hyper_rowset_chunk_t *rowset_chunk))                                \
-    C(hyper_error_t *, hyper_rowset_chunk_field_values, (hyper_rowset_chunk_t *rowset_chunk, size_t *col_count, size_t *row_count, const uint8_t *const *values[], const size_t *sizes[], ...))  // hyper_rowset_chunk_field_values is hacked to provide compat across different versions. actual signature varies starting in Hyper 0.0.14567
+  C(hyper_error_t *, hyper_rowset_chunk_field_values,                          \
+    (hyper_rowset_chunk_t * rowset_chunk, size_t * col_count,                  \
+     size_t * row_count, const uint8_t *const *values[],                       \
+     const size_t *sizes[],                                                    \
+     ...)) // hyper_rowset_chunk_field_values is hacked to provide compat across
+           // different versions. actual signature varies starting in Hyper
+           // 0.0.14567
 
 #define C(RET, NAME, ARGS) extern RET(*NAME) ARGS;
 HYPERAPI_FUNCTIONS(C)

@@ -46,7 +46,11 @@ def _read_query_result(
 
     # Call native library to read tuples from result set
     dtype_strs = tuple(dtypes.values())
-    df = pd.DataFrame(libpantab.read_hyper_query(result._Result__cdata, dtype_strs, compat.HYPER_0_0_14567))
+    df = pd.DataFrame(
+        libpantab.read_hyper_query(
+            result._Result__cdata, dtype_strs, compat.HYPER_0_0_14567
+        )
+    )
 
     df.columns = dtypes.keys()
 
