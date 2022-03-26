@@ -117,9 +117,9 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
   hyper_rowset_chunk_t *chunk;
   hyper_error_t *hyper_err;
   size_t num_cols, num_rows;
-  const uint8_t *const *values;
-  const size_t *sizes;
-  const int8_t *null_flags;
+  uint8_t **values;
+  size_t *sizes;
+  int8_t *null_flags;
 
   // For a quick fix to issue #145 we are using a boolean flag
   // to determine which method should be called at runtime
@@ -155,14 +155,6 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       goto ERROR_CLEANUP;
     }
 
-    // Iterate over each result chunk
-    while (1) {
-
-      hyper_err = hyper_rowset_get_next_chunk(rowset, &chunk);
-      if (hyper_err) {
-        goto ERROR_CLEANUP;
-      }
-
       if (chunk == NULL) {
         break; // No more to parse
       }
@@ -170,7 +162,7 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       if (hyper14567_compat) {
 	// Some trickery to support different APIs
 	// See https://stackoverflow.com/questions/71630729/provide-compatability-for-various-function-signatures-from-shared-library
-	((void (*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, const uint8_t* const **, const size_t **)) &hyper_rowset_chunk_field_values)(chunk, &num_cols, &num_rows, &values, &sizes);
+	((void (*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t ***, size_t **)) &hyper_rowset_chunk_field_values)(chunk, &num_cols, &num_rows, &values, &sizes);
         null_flags = NULL;
       } else {
         hyper_err = hyper_rowset_chunk_field_values(
@@ -180,53 +172,6 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
           goto ERROR_CLEANUP;
         }
       }
-
-      // For each row inside the chunk...
-      for (size_t i = 0; i < num_rows; i++) {
-        row = PyTuple_New(num_cols);
-        if (row == NULL) {
-          goto ERROR_CLEANUP;
-        }
-
-        // For each column inside the row...
-        for (size_t j = 0; j < num_cols; j++) {
-          PyObject *val;
-          if ((hyper14567_compat && *values == NULL) ||
-              (!hyper14567_compat && *null_flags == 1)) {
-
-            val = Py_None;
-            Py_INCREF(val);
-          } else {
-            DTYPE dtype = enumeratedDtypes[j];
-            val = read_value(*values, dtype, sizes);
-          }
-
-          values++, sizes++;
-          if (!hyper14567_compat) {
-            null_flags++;
-          }
-
-          if (val == NULL) {
-            goto ERROR_CLEANUP;
-          }
-
-          PyTuple_SET_ITEM(row, j, val);
-        }
-
-        int ret = PyList_Append(result, row);
-        if (ret != 0) {
-          goto ERROR_CLEANUP;
-        }
-      }
-      hyper_destroy_rowset_chunk(chunk);
-    }
-
-    hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
-                                                &values, &sizes, &null_flags);
-
-    if (hyper_err) {
-      goto ERROR_CLEANUP;
-    }
 
     // For each row inside the chunk...
     for (size_t i = 0; i < num_rows; i++) {
