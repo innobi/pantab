@@ -66,10 +66,11 @@ typedef struct hyper_rowset_chunk_t hyper_rowset_chunk_t;
   C(void, hyper_destroy_rowset_chunk,                                          \
     (const hyper_rowset_chunk_t *rowset_chunk))                                \
   C(hyper_error_t *, hyper_rowset_chunk_field_values,                          \
-    (struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *, int8_t * *))
-      // hyper_rowset_chunk_field_values is hacked to provide compat across
-           // different versions. actual signature varies starting in Hyper
-           // 0.0.14567
+    (struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t ***,           \
+     size_t **, int8_t **))
+// hyper_rowset_chunk_field_values is hacked to provide compat across
+// different versions. actual signature varies starting in Hyper
+// 0.0.14567
 
 #define C(RET, NAME, ARGS) extern RET(*NAME) ARGS;
 HYPERAPI_FUNCTIONS(C)

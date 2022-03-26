@@ -155,23 +155,27 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       goto ERROR_CLEANUP;
     }
 
-      if (chunk == NULL) {
-        break; // No more to parse
-      }
+    if (chunk == NULL) {
+      break; // No more to parse
+    }
 
-      if (hyper14567_compat) {
-	// Some trickery to support different APIs
-	// See https://stackoverflow.com/questions/71630729/provide-compatability-for-various-function-signatures-from-shared-library
-	((void (*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t ***, size_t **)) &hyper_rowset_chunk_field_values)(chunk, &num_cols, &num_rows, &values, &sizes);
-        null_flags = NULL;
-      } else {
-        hyper_err = hyper_rowset_chunk_field_values(
-            chunk, &num_cols, &num_rows, &values, &sizes, &null_flags);
+    if (hyper14567_compat) {
+      // Some trickery to support different APIs
+      // See
+      // https://stackoverflow.com/questions/71630729/provide-compatability-for-various-function-signatures-from-shared-library
+      ((void (*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t ***,
+                 size_t **)) &
+       hyper_rowset_chunk_field_values)(chunk, &num_cols, &num_rows, &values,
+                                        &sizes);
+      null_flags = NULL;
+    } else {
+      hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
+                                                  &values, &sizes, &null_flags);
 
-        if (hyper_err) {
-          goto ERROR_CLEANUP;
-        }
+      if (hyper_err) {
+        goto ERROR_CLEANUP;
       }
+    }
 
     // For each row inside the chunk...
     for (size_t i = 0; i < num_rows; i++) {
