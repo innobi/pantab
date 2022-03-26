@@ -7,33 +7,33 @@
 #include <inttypes.h>
 
 #define MICROSECONDS_PER_DAY                                                   \
-    (INT64_C(24) * INT64_C(60) * INT64_C(60) * INT64_C(1000000))
+  (INT64_C(24) * INT64_C(60) * INT64_C(60) * INT64_C(1000000))
 
 typedef enum {
-    INT16_ = 1,
-    INT32_,
-    INT64_,
-    INT16NA = 6,
-    INT32NA,
-    INT64NA,
-    FLOAT32_ = 11,
-    FLOAT64_,
-    FLOAT32NA,
-    FLOAT64NA,
-    BOOLEAN = 50,
-    BOOLEANNA,
-    DATETIME64_NS = 100,
-    DATETIME64_NS_UTC,
-    DATE,
-    TIMEDELTA64_NS = 200,
-    OBJECT = 220,
-    STRING,
-    UNKNOWN = 255
+  INT16_ = 1,
+  INT32_,
+  INT64_,
+  INT16NA = 6,
+  INT32NA,
+  INT64NA,
+  FLOAT32_ = 11,
+  FLOAT64_,
+  FLOAT32NA,
+  FLOAT64NA,
+  BOOLEAN = 50,
+  BOOLEANNA,
+  DATETIME64_NS = 100,
+  DATETIME64_NS_UTC,
+  DATE,
+  TIMEDELTA64_NS = 200,
+  OBJECT = 220,
+  STRING,
+  UNKNOWN = 255
 } DTYPE;
 
 static const struct {
-    DTYPE dtype;
-    const char *str;
+  DTYPE dtype;
+  const char *str;
 } dtype_map[] = {{INT16_, "int16"},
                  {INT32_, "int32"},
                  {INT64_, "int64"},
