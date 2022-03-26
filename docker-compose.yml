@@ -1,0 +1,8 @@
+services:
+  lint:
+    image: python3.10
+    build:
+      dockerfile: ci/docker/pantab-lint.dockerfile
+    volumes:
+      - .:/pantab
+    command: ["/pantab/ci/scripts/lint.sh"]
