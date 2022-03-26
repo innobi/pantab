@@ -4,6 +4,7 @@
 
 #ifndef _NPY_PRIVATE__DATETIME_H_
 #define _NPY_PRIVATE__DATETIME_H_
+#include <numpy/ndarraytypes.h>
 
 /*
  * Converts a datetime based on the given metadata into a datetimestruct
