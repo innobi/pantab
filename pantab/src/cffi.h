@@ -37,37 +37,37 @@ documentation is licensed as follows:
 #include <Python.h>
 
 typedef struct _ctypedescr {
-    PyObject_VAR_HEAD
+  PyObject_VAR_HEAD
 
-        struct _ctypedescr *ct_itemdescr; /* ptrs and arrays: the item type */
-    PyObject *ct_stuff;                   /* structs: dict of the fields
-                                             arrays: ctypedescr of the ptr type
-                                             function: tuple(abi, ctres, ctargs..)
-                                             enum: pair {"name":x},{x:"name"}
-                                             ptrs: lazily, ctypedescr of array */
-    void *ct_extra;                       /* structs: first field (not a ref!)
-                                             function types: cif_description
-                                             primitives: prebuilt "cif" object */
+      struct _ctypedescr *ct_itemdescr; /* ptrs and arrays: the item type */
+  PyObject *ct_stuff;                   /* structs: dict of the fields
+                                           arrays: ctypedescr of the ptr type
+                                           function: tuple(abi, ctres, ctargs..)
+                                           enum: pair {"name":x},{x:"name"}
+                                           ptrs: lazily, ctypedescr of array */
+  void *ct_extra;                       /* structs: first field (not a ref!)
+                                           function types: cif_description
+                                           primitives: prebuilt "cif" object */
 
-    PyObject *ct_weakreflist; /* weakref support */
+  PyObject *ct_weakreflist; /* weakref support */
 
-    PyObject *ct_unique_key; /* key in unique_cache (a string, but not
-                                human-readable) */
+  PyObject *ct_unique_key; /* key in unique_cache (a string, but not
+                              human-readable) */
 
-    Py_ssize_t ct_size;   /* size of instances, or -1 if unknown */
-    Py_ssize_t ct_length; /* length of arrays, or -1 if unknown;
-                             or alignment of primitive and struct types;
-                             always -1 for pointers */
-    int ct_flags;         /* CT_xxx flags */
+  Py_ssize_t ct_size;   /* size of instances, or -1 if unknown */
+  Py_ssize_t ct_length; /* length of arrays, or -1 if unknown;
+                           or alignment of primitive and struct types;
+                           always -1 for pointers */
+  int ct_flags;         /* CT_xxx flags */
 
-    int ct_name_position; /* index in ct_name of where to put a var name */
-    char ct_name[1];      /* string, e.g. "int *" for pointers to ints */
+  int ct_name_position; /* index in ct_name of where to put a var name */
+  char ct_name[1];      /* string, e.g. "int *" for pointers to ints */
 } CTypeDescrObject;
 
 typedef struct {
-    PyObject_HEAD CTypeDescrObject *c_type;
-    char *c_data;
-    PyObject *c_weakreflist;
+  PyObject_HEAD CTypeDescrObject *c_type;
+  char *c_data;
+  PyObject *c_weakreflist;
 } CDataObject;
 
 #endif

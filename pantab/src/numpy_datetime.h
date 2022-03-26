@@ -5,14 +5,12 @@
 #ifndef _NPY_PRIVATE__DATETIME_H_
 #define _NPY_PRIVATE__DATETIME_H_
 
-
 /*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
-int
-convert_datetime_to_datetimestruct(PyArray_DatetimeMetaData *meta,
-                                    npy_datetime dt,
-                                    npy_datetimestruct *out);
+int convert_datetime_to_datetimestruct(PyArray_DatetimeMetaData *meta,
+                                       npy_datetime dt,
+                                       npy_datetimestruct *out);
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
@@ -22,9 +20,8 @@ convert_datetime_to_datetimestruct(PyArray_DatetimeMetaData *meta,
  *
  * Returns 0 on success, -1 on failure.
  */
-int
-convert_datetimestruct_to_datetime(PyArray_DatetimeMetaData *meta,
-                                    const npy_datetimestruct *dts,
-                                    npy_datetime *out);
+int convert_datetimestruct_to_datetime(PyArray_DatetimeMetaData *meta,
+                                       const npy_datetimestruct *dts,
+                                       npy_datetime *out);
 
 #endif
