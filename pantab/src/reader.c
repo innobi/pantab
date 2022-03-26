@@ -187,7 +187,8 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       // For each column inside the row...
       for (size_t j = 0; j < num_cols; j++) {
         PyObject *val;
-        if (*null_flags == 1) {
+        if ((hyper14567_compat && *values == NULL) ||
+            (!hyper14567_compat && *null_flags == 1)) {
           val = Py_None;
           Py_INCREF(val);
         } else {
