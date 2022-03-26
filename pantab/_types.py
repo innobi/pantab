@@ -33,17 +33,12 @@ _column_types = {
     "object": _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NULLABLE),
 }
 
-if compat.PANDAS_100:
-    _column_types["string"] = _ColumnType(
-        tab_api.SqlType.text(), tab_api.Nullability.NULLABLE
-    )
-    _column_types["boolean"] = _ColumnType(
-        tab_api.SqlType.bool(), tab_api.Nullability.NULLABLE
-    )
-else:
-    _column_types["object"] = _ColumnType(
-        tab_api.SqlType.text(), tab_api.Nullability.NULLABLE
-    )
+_column_types["string"] = _ColumnType(
+    tab_api.SqlType.text(), tab_api.Nullability.NULLABLE
+)
+_column_types["boolean"] = _ColumnType(
+    tab_api.SqlType.bool(), tab_api.Nullability.NULLABLE
+)
 
 if compat.PANDAS_120:
     _column_types["Float32"] = _ColumnType(
@@ -64,11 +59,6 @@ _pandas_types[
 _pandas_types[
     _ColumnType(tab_api.SqlType.double(), tab_api.Nullability.NOT_NULLABLE)
 ] = "float64"
-if compat.PANDAS_100:
-    _pandas_types[
-        _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
-    ] = "string"
-else:
-    _pandas_types[
-        _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
-    ] = "object"
+_pandas_types[
+    _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
+] = "string"

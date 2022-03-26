@@ -7,15 +7,13 @@ import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, TableName, Telemetry
 
 import pantab
-import pantab._compat as compat
 
 
 def assert_roundtrip_equal(result, expected):
     """Compat helper for comparing round-tripped results."""
 
-    if compat.PANDAS_100:
-        expected["object"] = expected["object"].astype("string")
-        expected["non-ascii"] = expected["non-ascii"].astype("string")
+    expected["object"] = expected["object"].astype("string")
+    expected["non-ascii"] = expected["non-ascii"].astype("string")
 
     tm.assert_frame_equal(result, expected)
 
