@@ -3,9 +3,9 @@ from typing import List
 # -- Project information -----------------------------------------------------
 
 project = "pantab"
-copyright = "2019-2021, Will Ayd, innobi, LLC"
+copyright = "2019-2022, Will Ayd, innobi, LLC"
 author = "Will Ayd, innobi, LLC"
-release = "2.1.0"
+release = "2.1.1"
 
 
 # -- General configuration ---------------------------------------------------
