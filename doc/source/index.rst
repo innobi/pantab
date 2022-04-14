@@ -10,6 +10,10 @@ pantab
    changelog
    support
 
+.. important::
+
+   pantab is currently incompatible with tableauhyperapi>=0.0.14567. For details and status updates see `GitHub issue #145 <https://github.com/innobi/pantab/issues/145>`_
+
 What is it?
 -----------
 
