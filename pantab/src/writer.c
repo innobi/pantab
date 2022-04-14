@@ -584,6 +584,8 @@ PyObject *write_to_hyper(PyObject *Py_UNUSED(dummy), PyObject *args) {
   Py_ssize_t colcount = PyObject_Length(arrList);
   Py_ssize_t bufPos;
   NpyIter **npyIters = initiateIters(arrList);
+  Py_DECREF(arrList);
+
   if (npyIters == NULL) {
     PyBuffer_Release(&buf);
     free(enumerated_dtypes);
