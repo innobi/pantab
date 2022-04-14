@@ -41,8 +41,8 @@ While minor documentation edits / typo fixes can be pushed without an issue, for
 In your local `pantab` copy make sure that you have the latest and greatest updates before creating a dedicated branch for development.
 
 ```sh
-git checkout master
-git pull upstream master
+git checkout main
+git pull upstream main
 git checkout -b a-new-branch
 ```
 
@@ -102,7 +102,7 @@ git commit -m "<Message for your change>"
 For performance critical code or improvements, you may be asked to add benchmark(s). These can be found in the `benchmarks` folder. To run the suite, execute
 
 ```sh
-asv continuous upstream/master HEAD
+asv continuous upstream/main HEAD
 ```
 
 to compare results to the latest commit on your branch. Output should be copy/pasted into any pull request.
