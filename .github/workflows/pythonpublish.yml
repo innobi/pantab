@@ -90,7 +90,7 @@ jobs:
       run: |
         mkdir temp
         cd temp
-        python -m pip install pandas pytest
+        python -m pip install pandas "pytest<7.1"
         python -m pip install pantab --no-index -f ../dist
         python -c "import pantab; pantab.test()"
         cd ..
