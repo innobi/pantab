@@ -164,18 +164,13 @@ def test_external_hyper_connection_and_process_error(df, tmp_hyper):
 
 
 @pytest.mark.skip(reason="currently failing #163")
-def test_zero_rows(datapath):
+def test_zero_rows(tmp_hyper, table_name, table_mode):
     """#163 zero row dataframes"""
-    db_path = datapath / "zero_row.hyper"
     df = pd.DataFrame(columns=['A'])
-    table = TableName("not_public", "norows")
 
-    pantab.frame_to_hyper(df, db_path, table=table)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
 
     expected = df.copy()
-    result = pantab.frame_from_hyper(db_path, table=table)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
     assert_roundtrip_equal(result, expected)
-
-    # delete the file, or should I make my own fixture?
-    db_path.unlink()
