@@ -166,11 +166,15 @@ def test_external_hyper_connection_and_process_error(df, tmp_hyper):
 def test_zero_rows(datapath):
     """#163 zero row dataframes"""
     db_path = datapath / "zero_row.hyper"
-    expected = pd.DataFrame(columns = ['A'])
+    df = pd.DataFrame(columns = ['A'])
     table = TableName("not_public", "norows")
 
-    pantab.frame_to_hyper(expected, db_path, table=table)
+    pantab.frame_to_hyper(df, db_path, table=table)
 
+    expected = df.copy()
     result = pantab.frame_from_hyper(db_path, table=table)
 
-    tm.assert_frame_equal(result, expected)
+    assert_roundtrip_equal(result, expected)
+
+    # delete the file, or should I make my own fixture?
+    db_path.unlink()
