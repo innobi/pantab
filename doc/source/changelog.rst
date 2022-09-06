@@ -1,6 +1,12 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 2.1.1 (2022-04-13)
+=========================
+
+- Fixed a memory leak with ``frame_to_hyper``
+- Fixed issue where ``pantab.__version__`` was misreporting the version string
+
 Pantab 2.1.0 (2021-07-02)
 =========================
 Special thanks to `Caleb Overman <https://github.com/caleboverman>`_ for contributing to  this release.

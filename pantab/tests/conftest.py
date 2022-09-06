@@ -124,9 +124,8 @@ def df():
         }
     )
 
-    if compat.PANDAS_100:
-        df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
-        df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
+    df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
+    df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
 
     if compat.PANDAS_120:
         df["Float32"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float32")
