@@ -147,6 +147,10 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       goto ERROR_CLEANUP;
     }
 
+    if (chunk == NULL) {
+      break; // No more to parse
+    }
+
     hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
                                                 &values, &sizes);
 
