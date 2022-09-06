@@ -1,4 +1,5 @@
 import itertools
+import os
 import pathlib
 import shutil
 import tempfile
@@ -172,25 +173,32 @@ def _insert_frame(
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
-            tbl = pa.Table.from_pandas(df)
-            non_nullable = {"int16", "int32", "int64", "bool"}
-            new_fields = []
-            for field, dtype in zip(tbl.schema, df.dtypes):
-                if dtype.name in non_nullable:
-                    new_fields.append(
-                        pa.field(name=field.name, type=field.type, nullable=False)
-                    )
-                else:
-                    new_fields.append(field)
+        tbl = pa.Table.from_pandas(df)
+        non_nullable = {"int16", "int32", "int64", "bool"}
+        new_fields = []
+        for field, dtype in zip(tbl.schema, df.dtypes):
+            if dtype.name in non_nullable:
+                new_fields.append(
+                    pa.field(name=field.name, type=field.type, nullable=False)
+                )
+            else:
+                new_fields.append(field)
 
-            new_schema = pa.schema(new_fields)
-            tbl = tbl.cast(new_schema)
+        new_schema = pa.schema(new_fields)
+        tbl = tbl.cast(new_schema)
+
+        # Windows can't read and write a NamedTemporaryFile in one pass
+        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp:
             pq.write_table(tbl, tmp)
-            tmp.seek(0)
-            connection.execute_command(
-                f"COPY {table} FROM '{tmp.name}' WITH (FORMAT 'parquet')"
-            )
+
+        connection.execute_command(
+            f"COPY {table} FROM '{tmp.name}' WITH (FORMAT 'parquet')"
+        )
+
+        try:
+            os.unlink(tmp.name)
+        except FileNotFoundError:
+            pass
 
 
 def frame_to_hyper(
