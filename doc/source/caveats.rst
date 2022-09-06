@@ -11,7 +11,7 @@ pantab leverages C/C++ code to reduce any Python overhead and maximize performan
 |version|API        |
 |       |version    |
 +=======+===========+
-|<=2.1.X|<=0.0.14567|
+|<=2.1.X|<0.0.14567 |
 +-------+-----------+
 |>=3.X  |>=0.0.14567|
 +-------+-----------+
