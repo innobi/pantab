@@ -33,10 +33,8 @@ __all__ = [
 
 api_incompatibility_msg = """
 pantab is incompatible with version {} of Tableau Hyper API. Please upgrade
-both `tableauhyperapi` and `pantab` to the latest version. If doing so does not
-fix this issue, please file an issue at https://github.com/innobi/pantab/issues
-mentioning the exact pantab and HyperAPI versions which triggered this error.
-As a temporary workaround, consider downgrading HyperAPI and/or pantab.
+both `tableauhyperapi` and `pantab` to the latest version. See also
+https://pantab.readthedocs.io/en/latest/caveats.html#tableauhyperapi-compatability
 """.format(
     hyperapi_version
 )
