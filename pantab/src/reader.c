@@ -150,10 +150,6 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
     hyper_err = hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
                                                 &values, &sizes);
 
-    if (hyper_err) {
-      goto ERROR_CLEANUP;
-    }
-
     // For each row inside the chunk...
     for (size_t i = 0; i < num_rows; i++) {
       row = PyTuple_New(num_cols);
@@ -164,7 +160,7 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       // For each column inside the row...
       for (size_t j = 0; j < num_cols; j++) {
         PyObject *val;
-        if (*null_flags == 1) {
+        if (*values == 1) {
           val = Py_None;
           Py_INCREF(val);
         } else {
@@ -172,7 +168,7 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
           val = read_value(*values, dtype, sizes);
         }
 
-        values++, sizes++, null_flags++;
+        values++, sizes++;
 
         if (val == NULL) {
           goto ERROR_CLEANUP;
