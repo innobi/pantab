@@ -1,6 +1,6 @@
 name: pantab-dev
 channels:
-  - defaults
+  - conda-forge
 dependencies:
   - black
   - flake8
@@ -8,6 +8,7 @@ dependencies:
   - mypy
   - pandas
   - pip
+  - pyarrow
   - python
   - pytest
   - sphinx
