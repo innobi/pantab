@@ -110,15 +110,15 @@ static PyObject *read_value(const uint8_t *value, DTYPE dtype,
 }
 
 PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
-    int ok;
-    PyObject *row = NULL, *resultObj;
-    PyTupleObject *dtypes;
-    hyper_rowset_t *rowset;
-    hyper_rowset_chunk_t *chunk;
-    hyper_error_t *hyper_err;
-    size_t num_cols, num_rows;
-    const uint8_t *const *values;
-    const size_t *sizes;
+  int ok;
+  PyObject *row = NULL, *resultObj;
+  PyTupleObject *dtypes;
+  hyper_rowset_t *rowset;
+  hyper_rowset_chunk_t *chunk;
+  hyper_error_t *hyper_err;
+  size_t num_cols, num_rows;
+  const uint8_t *const *values;
+  const size_t *sizes;
 
   PyDateTime_IMPORT;
 
@@ -151,8 +151,8 @@ PyObject *read_hyper_query(PyObject *Py_UNUSED(dummy), PyObject *args) {
       break; // No more to parse
     }
 
-    hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows,
-                                    &values, &sizes);
+    hyper_rowset_chunk_field_values(chunk, &num_cols, &num_rows, &values,
+                                    &sizes);
 
     // For each row inside the chunk...
     for (size_t i = 0; i < num_rows; i++) {
