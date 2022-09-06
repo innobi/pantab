@@ -30,7 +30,7 @@ API Reference
    :param dict_of_frames: A dictionary whose keys are valid table identifiers and values are dataframes
    :param database: Name / location of the Hyper file to write to.
    :param hyper_process: A `HyperProcess` in case you want to spawn it by yourself. Optional. Must be supplied as a keyword argument.
-   :param use_parquet: Use a temporary parquet file to write into the Hyper database, which typically will yield better performance. Boolean, default False                         
+   :param use_parquet: Use a temporary parquet file to write into the Hyper database, which typically will yield better performance. Boolean, default False
 
 .. py:function:: frames_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, hyper_process: Optional[HyperProcess]) -> Dict[tableauhyperapi.TableName, pd.DataFrame, use_float_na: bool = False]:
 
