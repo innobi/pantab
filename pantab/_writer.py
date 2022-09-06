@@ -110,6 +110,7 @@ def _insert_frame(
     connection: tab_api.Connection,
     table: pantab_types.TableType,
     table_mode: str,
+    use_parquet: bool
 ) -> None:
     _validate_table_mode(table_mode)
 
@@ -145,23 +146,50 @@ def _insert_frame(
 
         connection.catalog.create_table_if_not_exists(table_def)
 
-    null_mask = np.ascontiguousarray(pd.isnull(df))
-    # Special handling for conversions
-    df, dtypes = _maybe_convert_timedelta(df)
+    if not use_parquet:
+        null_mask = np.ascontiguousarray(pd.isnull(df))
+        # Special handling for conversions
+        df, dtypes = _maybe_convert_timedelta(df)
 
-    with tab_api.Inserter(connection, table_def) as inserter:
-        if compat.PANDAS_130:
-            libpantab.write_to_hyper(df, null_mask, inserter._buffer, dtypes)
-        else:
-            libpantab.write_to_hyper_legacy(
-                df.itertuples(index=False, name=None),
-                null_mask,
-                inserter._buffer,
-                df.shape[1],
-                dtypes,
+        with tab_api.Inserter(connection, table_def) as inserter:
+            if compat.PANDAS_130:
+                libpantab.write_to_hyper(df, null_mask, inserter._buffer, dtypes)
+            else:
+                libpantab.write_to_hyper_legacy(
+                    df.itertuples(index=False, name=None),
+                    null_mask,
+                    inserter._buffer,
+                    df.shape[1],
+                    dtypes,
+                )
+            inserter.execute()
+    else:
+        if any(x.name == "timedelta64[ns]" for x in df.dtypes):
+            raise ValueError(
+                "Writing timedelta values with use_parquet=True is not yet supported."
             )
-        inserter.execute()
 
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        with tempfile.NamedTemporaryFile(suffix=".parquet") as tmp:
+            tbl = pa.Table.from_pandas(df)
+            non_nullable = {"int16", "int32", "int64", "bool"}
+            new_fields = []
+            for field, dtype in zip(tbl.schema, df.dtypes):
+                if dtype.name in non_nullable:
+                    new_fields.append(
+                        pa.field(name=field.name, type=field.type, nullable=False)
+                    )
+                else:
+                    new_fields.append(field)
+
+            new_schema = pa.schema(new_fields)
+            tbl = tbl.cast(new_schema)
+            pq.write_table(tbl, tmp)
+            tmp.seek(0)
+            connection.execute_command(
+                f"COPY {table} FROM '{tmp.name}' WITH (FORMAT 'parquet')"
+            )
 
 def frame_to_hyper(
     df: pd.DataFrame,
@@ -170,9 +198,10 @@ def frame_to_hyper(
     table: pantab_types.TableType,
     table_mode: str = "w",
     hyper_process: Optional[tab_api.HyperProcess] = None,
+    use_parquet: bool = False,
 ) -> None:
     """See api.rst for documentation"""
-    frames_to_hyper({table: df}, database, table_mode, hyper_process=hyper_process)
+    frames_to_hyper({table: df}, database, table_mode, hyper_process=hyper_process, use_parquet=use_parquet)
 
 
 def frames_to_hyper(
@@ -181,6 +210,7 @@ def frames_to_hyper(
     table_mode: str = "w",
     *,
     hyper_process: Optional[tab_api.HyperProcess] = None,
+    use_parquet: bool = False,        
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
@@ -196,7 +226,7 @@ def frames_to_hyper(
         ) as connection:
             for table, df in dict_of_frames.items():
                 _insert_frame(
-                    df, connection=connection, table=table, table_mode=table_mode
+                    df, connection=connection, table=table, table_mode=table_mode, use_parquet=use_parquet
                 )
 
         # In Python 3.9+ we can just pass the path object, but due to bpo 32689
