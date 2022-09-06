@@ -14,4 +14,4 @@ dependencies:
   - sphinx_rtd_theme
   - pip:
     - asv
-    - tableauhyperapi
+    - tableauhyperapi>=0.0.14567

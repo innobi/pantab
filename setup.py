@@ -56,7 +56,7 @@ setup(
     package_data={"": ["*.h"], "pantab.tests": ["data/*"]},
     data_files=[("", ["LICENSE.txt", "README.md"])],
     python_requires=">=3.8",
-    install_requires=["pandas>=1.0.0", "tableauhyperapi<0.0.14567", "numpy"],
+    install_requires=["pandas>=1.0.0", "tableauhyperapi>=0.0.14567", "numpy"],
     extras_require={"dev": ["pytest"]},
     ext_modules=[pantab_module],
 )

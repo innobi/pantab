@@ -1,6 +1,24 @@
 Usage Notes
 ===========
 
+TableauHyperAPI Compatability
+-----------------------------
+
+pantab leverages C/C++ code to reduce any Python overhead and maximize performance of reads / writes. Unfortunately, the Tableau Hyper API does not currently make guarantees around ABI stability, so not every version of pantab works with every version of the Hyper API. The known compatability matrix is:
+
++-------+-----------+
+|pantab |Hyper      |
+|version|API        |
+|       |version    |
++=======+===========+
+|<=2.1.X|<0.0.14567 |
++-------+-----------+
+|>=3.X  |>=0.0.14567|
++-------+-----------+
+
+If you are using supported versions and still encounter runtime compatability issues, please open a bug report on the `pantab Github issues page <https://github.com/innobi/pantab/issues>`_
+
+
 Type Mapping
 ------------
 
