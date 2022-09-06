@@ -3,11 +3,11 @@ import shutil
 import tempfile
 from typing import Dict, Optional, Union
 
-import libpantab  # type: ignore
 import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
+import libpantab  # type: ignore
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process, forbid_hyper_process
 
