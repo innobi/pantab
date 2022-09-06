@@ -33,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pandas "tableauhyperapi<0.0.14567"
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
@@ -59,7 +59,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pandas "tableauhyperapi<0.0.14567"
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
@@ -85,7 +85,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pandas "tableauhyperapi<0.0.14567"
+        python -m pip install pandas tableauhyperapi
     - name: Build extensions
       run: |
         python setup.py build_ext --inplace
