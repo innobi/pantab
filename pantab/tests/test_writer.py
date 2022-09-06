@@ -14,7 +14,9 @@ def test_bad_table_mode_raises(df, tmp_hyper, use_parquet):
 
     msg = "'table_mode' must be either 'w' or 'a'"
     with pytest.raises(ValueError, match=msg):
-        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode="x", use_parquet=use_parquet)
+        pantab.frame_to_hyper(
+            df, tmp_hyper, table="test", table_mode="x", use_parquet=use_parquet
+        )
 
     with pytest.raises(ValueError, match=msg):
         pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
@@ -29,10 +31,14 @@ def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name, use_parqu
     df = df.drop("object", axis=1)
     msg = "^Mismatched column definitions:"
     with pytest.raises(TypeError, match=msg):
-        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a", use_parquet=use_parquet)
+        pantab.frame_to_hyper(
+            df, tmp_hyper, table=table_name, table_mode="a", use_parquet=use_parquet
+        )
 
 
-def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name, use_parquet):
+def test_append_mode_raises_column_dtype_mismatch(
+    df, tmp_hyper, table_name, use_parquet
+):
     if use_parquet:
         df = df.drop(columns=["timedelta64"])
 
@@ -41,14 +47,20 @@ def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name, use
     df["int16"] = df["int16"].astype(np.int64)
     msg = "^Mismatched column definitions:"
     with pytest.raises(TypeError, match=msg):
-        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a", use_parquet=use_parquet)
+        pantab.frame_to_hyper(
+            df, tmp_hyper, table=table_name, table_mode="a", use_parquet=use_parquet
+        )
 
 
-def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mode, use_parquet):
+def test_failed_write_doesnt_overwrite_file(
+    df, tmp_hyper, monkeypatch, table_mode, use_parquet
+):
     if use_parquet:
         df = df.drop(columns=["timedelta64"])
 
-    pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode=table_mode, use_parquet=use_parquet)
+    pantab.frame_to_hyper(
+        df, tmp_hyper, table="test", table_mode=table_mode, use_parquet=use_parquet
+    )
     last_modified = tmp_hyper.stat().st_mtime
 
     # Let's patch the Inserter to fail on creation
@@ -57,14 +69,18 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mo
 
     if use_parquet:
         pytest.skip("TODO: should figure out patching here")
-        #monkeypatch.setattr(pantab._writer.pq, "write_table", failure, raising=True)
+        # monkeypatch.setattr(pantab._writer.pq, "write_table", failure, raising=True)
     else:
         monkeypatch.setattr(pantab._writer.tab_api, "Inserter", failure, raising=True)
 
     # Try out our write methods
     with pytest.raises(ValueError, match="dummy failure"):
-        pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode=table_mode, use_parquet=use_parquet)
-        pantab.frames_to_hyper({"test": df}, tmp_hyper, table_mode=table_mode, use_parquet=use_parquet)
+        pantab.frame_to_hyper(
+            df, tmp_hyper, table="test", table_mode=table_mode, use_parquet=use_parquet
+        )
+        pantab.frames_to_hyper(
+            {"test": df}, tmp_hyper, table_mode=table_mode, use_parquet=use_parquet
+        )
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime

@@ -165,6 +165,7 @@ def datapath():
     """Location of data files in test folder."""
     return pathlib.Path(__file__).parent / "data"
 
+
 @pytest.fixture(params=[False, True])
 def use_parquet(request):
     """Whether to use parquet for intermediate file storage."""
