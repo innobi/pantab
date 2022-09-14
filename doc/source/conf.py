@@ -5,7 +5,7 @@ from typing import List
 project = "pantab"
 copyright = "2019-2022, Will Ayd, innobi, LLC"
 author = "Will Ayd, innobi, LLC"
-release = "2.1.1"
+release = "3.0.0"
 
 
 # -- General configuration ---------------------------------------------------

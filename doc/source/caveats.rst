@@ -1,6 +1,8 @@
 Usage Notes
 ===========
 
+.. _compatability:
+
 TableauHyperAPI Compatability
 -----------------------------
 

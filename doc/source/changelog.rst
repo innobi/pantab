@@ -1,6 +1,13 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 3.0.0 (2022-09-14)
+=========================
+
+- Implemented a new ``use_parquet`` keyword in ``frame_to_hyper`` which uses Parquet as an intermediate storage solution instead of pantab's own internal C library. This may provide a small performance boost at the cost of additional disk usage
+- Fixed issue where pantab was not compatabile with Hyper versions 0.0.14567 and above. See the :ref:`compatability` documentation.
+
+
 Pantab 2.1.1 (2022-04-13)
 =========================
 
