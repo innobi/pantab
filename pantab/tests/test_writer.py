@@ -10,6 +10,7 @@ import pantab
 
 def test_bad_table_mode_raises(df, tmp_hyper, use_parquet):
     if use_parquet:
+        pytest.importorskip("pyarrow")
         df = df.drop(columns=["timedelta64"])
 
     msg = "'table_mode' must be either 'w' or 'a'"
@@ -24,6 +25,7 @@ def test_bad_table_mode_raises(df, tmp_hyper, use_parquet):
 
 def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name, use_parquet):
     if use_parquet:
+        pytest.importorskip("pyarrow")
         df = df.drop(columns=["timedelta64"])
 
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, use_parquet=use_parquet)
@@ -40,6 +42,7 @@ def test_append_mode_raises_column_dtype_mismatch(
     df, tmp_hyper, table_name, use_parquet
 ):
     if use_parquet:
+        pytest.importorskip("pyarrow")
         df = df.drop(columns=["timedelta64"])
 
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name, use_parquet=use_parquet)
@@ -56,6 +59,7 @@ def test_failed_write_doesnt_overwrite_file(
     df, tmp_hyper, monkeypatch, table_mode, use_parquet
 ):
     if use_parquet:
+        pytest.importorskip("pyarrow")
         df = df.drop(columns=["timedelta64"])
 
     pantab.frame_to_hyper(
@@ -68,6 +72,7 @@ def test_failed_write_doesnt_overwrite_file(
         raise ValueError("dummy failure")
 
     if use_parquet:
+        pytest.importorskip("pyarrow")
         pytest.skip("TODO: should figure out patching here")
         # monkeypatch.setattr(pantab._writer.pq, "write_table", failure, raising=True)
     else:
