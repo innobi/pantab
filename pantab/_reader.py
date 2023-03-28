@@ -15,7 +15,8 @@ TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
 def _read_query_result(
-    result: tab_api.Result, dtypes: Optional[Dict[str, str]], use_float_na: bool
+    result: tab_api.Result, dtypes: Optional[Dict[str, str]],
+    use_float_na: bool, date_errors: str = 'raise'
 ) -> pd.DataFrame:
     if dtypes is None:
         dtypes = {}
@@ -53,6 +54,9 @@ def _read_query_result(
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
+        # Option to not raise invalid timestamps
+        if 'date' in v and date_errors != 'raise':
+            df[k] = pd.to_datetime(df[k], errors=date_errors)
 
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
@@ -61,7 +65,10 @@ def _read_query_result(
 
 
 def _read_table(
-    *, connection: tab_api.Connection, table: TableType, use_float_na: bool
+    *, connection: tab_api.Connection,
+    table: TableType,
+    use_float_na: bool,
+    date_errors: str = 'raise'
 ) -> pd.DataFrame:
     if isinstance(table, str):
         table = tab_api.TableName(table)
@@ -82,7 +89,7 @@ def _read_table(
 
     query = f"SELECT * from {table}"
     with connection.execute_query(query) as result:
-        return _read_query_result(result, dtypes, use_float_na)
+        return _read_query_result(result, dtypes, use_float_na, date_errors)
 
 
 def frame_from_hyper(
@@ -91,12 +98,16 @@ def frame_from_hyper(
     table: TableType,
     hyper_process: Optional[tab_api.HyperProcess] = None,
     use_float_na: bool = False,
+    date_errors: str = 'raise'
 ) -> pd.DataFrame:
     """See api.rst for documentation"""
 
     if isinstance(source, tab_api.Connection):
         forbid_hyper_process(hyper_process)
-        return _read_table(connection=source, table=table, use_float_na=use_float_na)
+        return _read_table(connection=source,
+                           table=table,
+                           use_float_na=use_float_na,
+                           date_errors=date_errors)
     else:
         with tempfile.TemporaryDirectory() as tmp_dir, ensure_hyper_process(
             hyper_process
@@ -104,7 +115,8 @@ def frame_from_hyper(
             tmp_db = shutil.copy(source, tmp_dir)
             with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
                 return _read_table(
-                    connection=connection, table=table, use_float_na=use_float_na
+                    connection=connection, table=table, use_float_na=use_float_na,
+                    date_errors=date_errors
                 )
 
 
@@ -113,6 +125,7 @@ def frames_from_hyper(
     *,
     hyper_process: Optional[tab_api.HyperProcess] = None,
     use_float_na: bool = False,
+    date_errors: str = 'raise',
 ) -> Dict[tab_api.TableName, pd.DataFrame]:
     """See api.rst for documentation."""
     result: Dict[TableType, pd.DataFrame] = {}
@@ -123,7 +136,8 @@ def frames_from_hyper(
         for schema in connection.catalog.get_schema_names():
             for table in connection.catalog.get_table_names(schema=schema):
                 result[table] = _read_table(
-                    connection=connection, table=table, use_float_na=use_float_na
+                    connection=connection, table=table, use_float_na=use_float_na,
+                    date_errors=date_errors,
                 )
     else:
         with tempfile.TemporaryDirectory() as tmp_dir, ensure_hyper_process(
@@ -137,6 +151,7 @@ def frames_from_hyper(
                             connection=connection,
                             table=table,
                             use_float_na=use_float_na,
+                            date_errors=date_errors,
                         )
 
     return result
