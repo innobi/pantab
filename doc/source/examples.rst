@@ -223,5 +223,5 @@ Hence, pantab also allows you to pass in a HyperAPI connection instead of the na
             many_legs_df = pantab.frame_from_hyper_query(connection, query)
             print(many_legs_df)
 
-            all_animals = pantab.frame_from_hyper_query(connection, table="animals")
+            all_animals = pantab.frame_from_hyper(connection, table="animals")
             print(all_animals)
