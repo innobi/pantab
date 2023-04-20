@@ -14,7 +14,7 @@ pantab
 What is it?
 -----------
 
-``pantab`` is a Python wrapper around Tableau's `Hyper API <https://help.tableau.com/current/api/hyper_api/en-us/index.html>`_ which promotes usage of the `pandas DataFrame <https://pandas.pydata.org/pandas-docs/version/0.23.4/generated/pandas.DataFrame.html>`_ to seamlessly generate and read hyper extracts.
+``pantab`` is a Python wrapper around Tableau's `Hyper API <https://tableau.github.io/hyper-db/>`_ which promotes usage of the `pandas DataFrame <https://pandas.pydata.org/pandas-docs/version/0.23.4/generated/pandas.DataFrame.html>`_ to seamlessly generate and read hyper files.
 
 How do I get it?
 ----------------
