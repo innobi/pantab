@@ -155,14 +155,14 @@ Providing your own HyperProcess
 
 .. versionadded:: 2.0
 
-For convenience, pantab's functions internally spawn a `HyperProcess <https://help.tableau.com/current/api/hyper_api/en-us/reference/py/tableauhyperapi.html#tableauhyperapi.HyperProcess>`_. In case you prefer to spawn your own ``HyperProcess``, you can supply it to pantab through the ``hyper_process`` keyword argument.
+For convenience, pantab's functions internally spawn a `HyperProcess <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process>`_. In case you prefer to spawn your own ``HyperProcess``, you can supply it to pantab through the ``hyper_process`` keyword argument.
 
 By using your own ``HyperProcess``, you have full control over all its startup paramters.
 In the following example we use that flexibility to:
 
 - enable telemetry, thereby making sure the Hyper team at Tableau knows about our use case and potential issues we might be facing
-- `disable log files <https://help.tableau.com/current/api/hyper_api/en-us/reference/sql/loggingsettings.html#LOG_CONFIG>`_, as we operate in some environment with really tight disk space
-- opt-in to the `new Hyper file format <https://help.tableau.com/current/api/hyper_api/en-us/reference/sql/databasesettings.html#DEFAULT_DATABASE_VERSION>`_
+- `disable log files <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process#log_config>`_, as we operate in some environment with really tight disk space
+- opt-in to the `new Hyper file format <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process#default_database_version>`_
 
 By reusing the same ``HyperProcess`` for multiple operations, we also save a few milliseconds. While not noteworthy in this simple example, this might be a good optimization in case you call ``frame_to_hyper`` repeatedly in a loop.
 
@@ -193,7 +193,7 @@ Providing your own Hyper Connection
 
 .. versionadded:: 2.0
 
-In order to interface with Hyper, pantab functions need a HyperAPI `Connection <https://help.tableau.com/current/api/hyper_api/en-us/reference/py/tableauhyperapi.html#tableauhyperapi.Connection>`_ to interface with Hyper.
+In order to interface with Hyper, pantab functions need a HyperAPI `Connection <https://tableau.github.io/hyper-db/docs/hyper-api/connection>`_ to interface with Hyper.
 For convenience, pantab creates those connections implicitly for you.
 However, establishing a connection is not for free, and by reusing the same ``Connection`` for multiple operations, we can save time.
 Hence, pantab also allows you to pass in a HyperAPI connection instead of the name / location of your Hyper file.
