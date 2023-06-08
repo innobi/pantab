@@ -38,7 +38,7 @@ setup(
     description="Converts pandas DataFrames into Tableau Hyper Extracts and back",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/WillAyd/pantab",
+    url="https://github.com/innobi/pantab",
     author="Will Ayd",
     author_email="william.ayd@icloud.com",
     license="BSD",
