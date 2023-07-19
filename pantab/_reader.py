@@ -53,6 +53,9 @@ def _read_query_result(
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
+        elif v == 'datetime64[ns, UTC]':
+            df[k] = df[k].dt.tz_localize(None)
+            dtypes[k] = "datetime64[ns]"
 
     df = df.astype(dtypes)
     df = df.fillna(value=np.nan)  # Replace any appearances of None
