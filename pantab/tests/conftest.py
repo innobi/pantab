@@ -110,7 +110,7 @@ def df():
             "Int64": "Int64",
             "float32": np.float32,
             "float64": np.float64,
-            "bool": np.bool,
+            "bool": bool,
             "datetime64": "datetime64[ns]",
             "datetime64_utc": "datetime64[ns, UTC]",
             "timedelta64": "timedelta64[ns]",
