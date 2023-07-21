@@ -10,6 +10,7 @@ import tableauhyperapi as tab_api
 import libpantab  # type: ignore
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process, forbid_hyper_process
+from datetime import timezone
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 
@@ -53,11 +54,12 @@ def _read_query_result(
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
-        elif v == 'datetime64[ns, UTC]':
-            df[k] = df[k].dt.tz_localize(None)
-            dtypes[k] = "datetime64[ns]"
-
-    df = df.astype(dtypes)
+    for col in df:
+        if dtypes[col] == "datetime64[ns, UTC]":
+            print(col, df[col])
+            df[col] = df[col].dt.tz_localize(timezone.utc)
+        else:
+            df[col] = df[col].astype(dtypes[col])
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df
