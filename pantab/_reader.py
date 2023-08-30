@@ -50,11 +50,18 @@ def _read_query_result(
     df.columns = dtypes.keys()
 
     # TODO: remove this hackery...
+    utc_cols = []
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
+        elif v == "datetime64[ns, UTC]":
+            utc_cols.append(k)
+            dtypes[k] = "datetime64[ns]"
 
     df = df.astype(dtypes)
+    for utc_col in utc_cols:
+        df[utc_col] = df[utc_col].dt.tz_localize("utc")
+
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df
