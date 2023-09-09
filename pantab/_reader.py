@@ -1,7 +1,6 @@
 import pathlib
 import shutil
 import tempfile
-from datetime import timezone
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -54,11 +53,12 @@ def _read_query_result(
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
-    for col in df:
-        if dtypes[col] == "datetime64[ns, UTC]":
-            df[col] = df[col].dt.tz_localize(timezone.utc)
-        else:
-            df[col] = df[col].astype(dtypes[col])
+    for col in df.select_dtypes("datetime64[ns, UTC]"):
+        df[col] = df[col].dt.tz_convert(None)
+        dtypes[col] = "datetime64[ns]"
+    for col in df.select_dtypes(exclude="datetime64[ns, UTC]"):
+        df[col] = df[col].astype(dtypes[col])
+
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
     return df

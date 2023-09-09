@@ -121,7 +121,7 @@ libpantab.load_hapi_functions(
     _get_hapi_function(
         "hyper_rowset_chunk_field_values",
         (
-            "void(*)(struct hyper_rowset_chunk_t *,"
+            "void(*)(struct hyper_rowset_chunk_t *, "
             "size_t *, size_t *, uint8_t * * *, size_t * *)"
         ),
     ),
