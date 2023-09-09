@@ -1,6 +1,7 @@
 import pathlib
 import shutil
 import tempfile
+from datetime import timezone
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -10,7 +11,6 @@ import tableauhyperapi as tab_api
 import libpantab  # type: ignore
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process, forbid_hyper_process
-from datetime import timezone
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 

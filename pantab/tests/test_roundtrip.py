@@ -5,7 +5,6 @@ import pandas as pd
 import pandas.testing as tm
 import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, TableName, Telemetry
-from datetime import datetime, timezone
 
 import pantab
 
@@ -33,8 +32,6 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
 
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
-    print(expected.datetime64_utc)
-    print(result.datetime64_utc)
     assert_roundtrip_equal(result, expected)
 
 
@@ -164,23 +161,3 @@ def test_external_hyper_connection_and_process_error(df, tmp_hyper):
 
             with pytest.raises(ValueError, match=expected_msg):
                 pantab.frames_from_hyper(connection, hyper_process=hyper)
-
-
-def test_utc_bug(tmp_hyper):
-    """
-    Red-Green for UTC bug
-    """
-    t = datetime.now(timezone.utc)
-    df = pd.DataFrame({"utc_time": [t, pd.Timestamp("today", tz="UTC")]})
-    pantab.frame_to_hyper(df, tmp_hyper, table="exp")
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
-        ) as connection:
-            resp = connection.execute_list_query(f"select utc_time from exp")
-    assert all(
-        [actual[0].year == expected.year for actual, expected in zip(resp, df.utc_time)]
-    ), f"""
-    expected: {df.utc_time}
-    actual: {[c[0] for c in resp]}
-    """
