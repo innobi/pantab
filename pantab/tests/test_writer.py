@@ -1,9 +1,11 @@
 import re
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
+from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
 import pantab
 
@@ -128,3 +130,37 @@ def test_use_parquet_with_timedelta_raises(df, tmp_hyper):
     msg = "Writing timedelta values with use_parquet=True is not yet supported."
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test", use_parquet=True)
+
+
+def test_utc_bug(tmp_hyper):
+    """
+    Red-Green for UTC bug
+    """
+    df = pd.DataFrame(
+        {"utc_time": [datetime.now(timezone.utc), pd.Timestamp("today", tz="UTC")]}
+    )
+    pantab.frame_to_hyper(df, tmp_hyper, table="exp")
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(
+            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            resp = connection.execute_list_query("select utc_time from exp")
+    assert all(
+        [actual[0].year == expected.year for actual, expected in zip(resp, df.utc_time)]
+    ), f"""
+    expected: {df.utc_time}
+    actual: {[c[0] for c in resp]}
+    """
+
+
+def test_maybe_convert_utc(tmp_hyper):
+    """
+    timezone aware is not supported, thus we ensure timezone naive
+    """
+    df = pd.DataFrame(
+        {"utc_time": [datetime.now(timezone.utc), pd.Timestamp("today", tz="UTC")]}
+    )
+    assert not df.select_dtypes("datetime64[ns, UTC]").empty
+    df = pantab._writer._maybe_convert_utctimestamp(df)
+    assert df.select_dtypes("datetime64[ns, UTC]").empty
+    assert not df.select_dtypes("datetime64[ns]").empty

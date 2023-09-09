@@ -56,6 +56,7 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
     We had a defect due to which pantab segfaulted when an error occured in one of
     the first two columns. This test case is a regression test against that.
     """
+
     # Monkeypatch a new constructor that hard codes months
     def __init__(self, months: int, days: int, microseconds: int):
         self.months = 1
