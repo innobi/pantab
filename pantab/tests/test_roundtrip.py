@@ -14,6 +14,7 @@ def assert_roundtrip_equal(result, expected):
 
     expected["object"] = expected["object"].astype("string")
     expected["non-ascii"] = expected["non-ascii"].astype("string")
+    expected["datetime64_utc"] = expected["datetime64_utc"].dt.tz_localize(None)
 
     tm.assert_frame_equal(result, expected)
 

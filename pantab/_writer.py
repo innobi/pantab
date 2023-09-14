@@ -105,6 +105,16 @@ def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str,
     return df, orig_dtypes
 
 
+def _maybe_convert_utctimestamp(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Hyper implements a subset of postgres and doesn't implement timezone-aware datetimes
+    Thus, we localize to timezone-naive
+    """
+    for utc_col in df.select_dtypes("datetime64[ns, UTC]"):
+        df[utc_col] = df[utc_col].dt.tz_convert(None)
+    return df
+
+
 def _insert_frame(
     df: pd.DataFrame,
     *,
@@ -154,6 +164,7 @@ def _insert_frame(
 
         with tab_api.Inserter(connection, table_def) as inserter:
             if compat.PANDAS_130:
+                df = _maybe_convert_utctimestamp(df)
                 libpantab.write_to_hyper(df, null_mask, inserter._buffer, dtypes)
             else:
                 libpantab.write_to_hyper_legacy(

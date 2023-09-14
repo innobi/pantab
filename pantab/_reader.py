@@ -48,19 +48,15 @@ def _read_query_result(
     df = pd.DataFrame(libpantab.read_hyper_query(result._Result__cdata, dtype_strs))
 
     df.columns = dtypes.keys()
-
     # TODO: remove this hackery...
-    utc_cols = []
     for k, v in dtypes.items():
         if v == "date":
             dtypes[k] = "datetime64[ns]"
-        elif v == "datetime64[ns, UTC]":
-            utc_cols.append(k)
-            dtypes[k] = "datetime64[ns]"
-
-    df = df.astype(dtypes)
-    for utc_col in utc_cols:
-        df[utc_col] = df[utc_col].dt.tz_localize("utc")
+    date_types = ["datetime64[ns, UTC]", "datetime64[ns]"]
+    for col in df.select_dtypes(include=date_types):
+        df[col] = df[col].dt.tz_localize(None)
+    for col in df.select_dtypes(exclude=date_types):
+        df[col] = df[col].astype(dtypes[col])
 
     df = df.fillna(value=np.nan)  # Replace any appearances of None
 
