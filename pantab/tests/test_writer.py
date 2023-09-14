@@ -132,6 +132,9 @@ def test_use_parquet_with_timedelta_raises(df, tmp_hyper):
         pantab.frame_to_hyper(df, tmp_hyper, table="test", use_parquet=True)
 
 
+@pytest.mark.skipif(
+    not pantab._compat.PANDAS_130, reason="bug is specifically with >=pandas 1.3"
+)
 def test_utc_bug(tmp_hyper):
     """
     Red-Green for UTC bug
@@ -153,6 +156,9 @@ def test_utc_bug(tmp_hyper):
     """
 
 
+@pytest.mark.skipif(
+    not pantab._compat.PANDAS_130, reason="bug is specifically with >=pandas 1.3"
+)
 def test_maybe_convert_utc(tmp_hyper):
     """
     timezone aware is not supported, thus we ensure timezone naive
