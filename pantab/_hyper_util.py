@@ -1,4 +1,4 @@
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from typing import Optional
 
 import tableauhyperapi as tab_api

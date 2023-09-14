@@ -32,6 +32,7 @@ def test_basic(df, tmp_hyper, table_name, table_mode):
 
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
+
     assert_roundtrip_equal(result, expected)
 
 
