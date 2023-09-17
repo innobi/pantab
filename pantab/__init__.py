@@ -1,8 +1,7 @@
 __version__ = "3.0.0"
 
-from tableauhyperapi import __version__ as hyperapi_version
-
 import libpantab  # type: ignore
+from tableauhyperapi import __version__ as hyperapi_version
 
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
 from ._tester import test

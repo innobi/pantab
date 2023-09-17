@@ -18,6 +18,7 @@ A conda environment file containing development dependencies is available in the
 
 ```sh
 conda env create -f environment.yml
+# add our lints as part of your local git workflow
 pre-commit install
 ```
 
