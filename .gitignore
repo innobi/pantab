@@ -54,6 +54,7 @@ dist
 *.egg-info
 .eggs
 .pypirc
+oryx-build-commands.txt
 
 # tox testing tool
 .tox

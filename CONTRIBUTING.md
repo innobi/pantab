@@ -18,6 +18,8 @@ A conda environment file containing development dependencies is available in the
 
 ```sh
 conda env create -f environment.yml
+# add our lints as part of your local git workflow
+pre-commit install
 ```
 
 The first time you work with the source code. Then activate your virtual environment any time you are working with the code
@@ -66,12 +68,10 @@ pytest pantab
 
 ### Style guidelines for code changes
 
-Note that `pantab` uses `black`, `flake8` and `isort` to manage code style. You can run these as follows:
+Note that `pantab` uses `black`, `flake8` and `isort` to manage code style. Simply run pre-commit. If pre-commit modifies files, simply add them and run pre-commit again. Note, if you've already run `pre-commit install` it will automatically run before every commit regardless.
 
 ```sh
-black pantab
-flake8 pantab
-isort **/*.py
+pre-commit
 ```
 
 ### Annotations
@@ -90,7 +90,7 @@ Ultimately before release all news fragments will be compiled with `towncrier` t
 
 ### Commit your changes
 
-Assuming all of the checks above pass on your code, go ahead and commit those changes. 
+Assuming all of the checks above pass on your code, go ahead and commit those changes.
 
 ```sh
 git add <...>

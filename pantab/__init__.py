@@ -1,8 +1,7 @@
 __version__ = "3.0.0"
 
-from tableauhyperapi import __version__ as hyperapi_version
-
 import libpantab  # type: ignore
+from tableauhyperapi import __version__ as hyperapi_version
 
 from ._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
 from ._tester import test
@@ -96,21 +95,33 @@ libpantab.load_hapi_functions(
     ),
     _get_hapi_function(
         "hyper_inserter_buffer_add_binary",
-        "struct hyper_error_t *(*)(struct hyper_inserter_buffer_t *, uint8_t *, size_t)",
+        (
+            "struct hyper_error_t *(*)"
+            "(struct hyper_inserter_buffer_t *, uint8_t *, size_t)"
+        ),
     ),
     _get_hapi_function(
         "hyper_inserter_buffer_add_raw",
-        "struct hyper_error_t *(*)(struct hyper_inserter_buffer_t *, uint8_t *, size_t)",
+        (
+            "struct hyper_error_t *(*)(struct hyper_inserter_buffer_t *"
+            ", uint8_t *, size_t)"
+        ),
     ),
     _get_hapi_function(
         "hyper_rowset_get_next_chunk",
-        "struct hyper_error_t *(*)(struct hyper_rowset_t *, struct hyper_rowset_chunk_t * *)",
+        (
+            "struct hyper_error_t *(*)(struct hyper_rowset_t *"
+            ", struct hyper_rowset_chunk_t * *)"
+        ),
     ),
     _get_hapi_function(
         "hyper_destroy_rowset_chunk", "void(*)(struct hyper_rowset_chunk_t *)"
     ),
     _get_hapi_function(
         "hyper_rowset_chunk_field_values",
-        "void(*)(struct hyper_rowset_chunk_t *, size_t *, size_t *, uint8_t * * *, size_t * *)",
+        (
+            "void(*)(struct hyper_rowset_chunk_t *"
+            ", size_t *, size_t *, uint8_t * * *, size_t * *)"
+        ),
     ),
 )

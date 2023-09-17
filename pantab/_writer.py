@@ -6,11 +6,11 @@ import tempfile
 import uuid
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+import libpantab  # type: ignore
 import numpy as np
 import pandas as pd
 import tableauhyperapi as tab_api
 
-import libpantab  # type: ignore
 import pantab._compat as compat
 import pantab._types as pantab_types
 from pantab._hyper_util import ensure_hyper_process
