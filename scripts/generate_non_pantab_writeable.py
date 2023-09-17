@@ -5,7 +5,6 @@
 import tableauhyperapi as tab_api
 
 if __name__ == "__main__":
-
     table = tab_api.TableDefinition(
         table_name=tab_api.TableName("public", "table"),
         columns=[

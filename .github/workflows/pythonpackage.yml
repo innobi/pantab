@@ -10,20 +10,17 @@ on:
 jobs:
   code-checks:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
-    - name: Run lint checks
-      run: docker compose run --rm lint ci/scripts/lint_check.sh
+    - uses: pre-commit/action@v3.0.0
 
   build-linux:
-
+    needs: code-checks
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -43,7 +40,7 @@ jobs:
         python -m pytest
 
   build-macos:
-
+    needs: code-checks
     runs-on: macos-latest
     strategy:
       max-parallel: 4
@@ -69,13 +66,12 @@ jobs:
         python -m pytest
 
   build-windows:
-
+    needs: code-checks
     runs-on: windows-latest
     strategy:
       max-parallel: 4
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -95,7 +91,7 @@ jobs:
         python -m pytest
 
   build-linux-pandas12:
-
+    needs: code-checks
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -116,9 +112,8 @@ jobs:
         python -m pytest
 
   build-macos-pandas12:
-
+    needs: code-checks
     runs-on: macos-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -138,7 +133,7 @@ jobs:
         python -m pytest
 
   build-windows-pandas12:
-
+    needs: code-checks
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -159,7 +154,7 @@ jobs:
         python -m pytest
 
   build-linux-hyper-0_0_14567-compat:
-
+    needs: code-checks
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -180,7 +175,7 @@ jobs:
         python -m pytest
 
   build-macos-hyper-0_0_14567-compat:
-
+    needs: code-checks
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
@@ -201,9 +196,8 @@ jobs:
         python -m pytest
 
   build-windows-hyper-0_0_14567-compat:
-
+    needs: code-checks
     runs-on: windows-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python

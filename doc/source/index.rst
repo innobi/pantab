@@ -105,4 +105,3 @@ Running this script may yield the below
    Total seconds for function write_via_hyperapi with 100000000 rows: 59.03396558761597
    Total seconds for function write_via_pantab with 1000000000 rows: 54.43922758102417
    Total seconds for function write_via_hyperapi with 1000000000 rows: 591.2542216777802
-

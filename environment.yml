@@ -12,6 +12,7 @@ dependencies:
   - python
   - pytest
   - sphinx
+  - pre-commit
   - sphinx_rtd_theme
   - pip:
     - asv
