@@ -46,7 +46,8 @@ def _read_query_result(
     # Call native library to read tuples from result set
     dtype_strs = tuple(dtypes.values())
     df = pd.DataFrame(libpantab.read_hyper_query(result._Result__cdata, dtype_strs))
-
+    if df.empty:
+        return df
     df.columns = dtypes.keys()
     # TODO: remove this hackery...
     for k, v in dtypes.items():

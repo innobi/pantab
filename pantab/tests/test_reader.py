@@ -112,3 +112,13 @@ def test_read_query(df, tmp_hyper):
     expected = expected.astype({"i": "Int16", "_i2": "string"})
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_read_query(df, tmp_hyper):
+    """
+    red-green for empty query results
+    """
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    query = "SELECT * FROM test limit 0"
+    result = pantab.frame_from_hyper_query(tmp_hyper, query)
+    assert result.empty
