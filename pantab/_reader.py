@@ -47,7 +47,7 @@ def _read_query_result(
     dtype_strs = tuple(dtypes.values())
     df = pd.DataFrame(libpantab.read_hyper_query(result._Result__cdata, dtype_strs))
     if df.empty:
-        return df
+        return pd.DataFrame({col: pd.Series(dtype="object") for col in dtypes})
     df.columns = dtypes.keys()
     # TODO: remove this hackery...
     for k, v in dtypes.items():

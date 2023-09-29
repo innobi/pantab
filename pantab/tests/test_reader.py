@@ -1,3 +1,5 @@
+from sqlite3 import connect
+
 import pandas as pd
 import pandas.testing as tm
 import pytest
@@ -114,11 +116,17 @@ def test_read_query(df, tmp_hyper):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_read_query(df, tmp_hyper):
+def test_empty_read_query(df: pd.DataFrame, tmp_hyper):
     """
     red-green for empty query results
     """
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
-    query = "SELECT * FROM test limit 0"
+    # sql cols need to base case insensitive & unique
+    df = df[pd.Series(df.columns).apply(lambda s: s.lower()).drop_duplicates()]
+    conn = connect(":memory:")
+    table_name = "test"
+    df.to_sql(name=table_name, con=conn, index=False)
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+    query = f"SELECT * FROM {table_name} limit 0"
+    expected = pd.read_sql_query(query, conn)
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
-    assert result.empty
+    tm.assert_frame_equal(result, expected)
