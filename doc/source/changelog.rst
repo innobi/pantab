@@ -3,7 +3,7 @@ Changelog
 
 Pantab 3.0.1 (2023-10-09)
 =========================
-Special thanks to `Caleb Overman <https://github.com/abhinavDhulipala>`_ for contributing to  this release.
+Special thanks to `Abhinav Dhulipala <https://github.com/abhinavDhulipala>`_ for contributing to  this release.
 
 - Fixed issue where timezone-aware datetimes with pandas >= 1.4 would write incorrect values to Hyper (#186)
 - Fixed issue where a query returning an empty result set from Hyper would raise ``ValueError`` (#163)
