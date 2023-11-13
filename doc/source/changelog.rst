@@ -1,6 +1,11 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 3.0.2 (2023-11-13)
+=========================
+
+- Fixed issue with NumPy throwing ``RuntimeError: module compiled against API version 0x10 but this version of numpy is 0xe``
+
 Pantab 3.0.1 (2023-10-09)
 =========================
 Special thanks to `Abhinav Dhulipala <https://github.com/abhinavDhulipala>`_ for contributing to  this release.

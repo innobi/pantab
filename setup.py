@@ -34,7 +34,7 @@ pantab_module = Extension(
 
 setup(
     name="pantab",
-    version="3.0.1",
+    version="3.0.2",
     description="Converts pandas DataFrames into Tableau Hyper Extracts and back",
     long_description=long_description,
     long_description_content_type="text/markdown",
