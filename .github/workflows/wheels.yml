@@ -24,6 +24,7 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: "cp38-*64 cp39-*64 cp310-*64 cp311-*64 cp312-*64"
+          CIBW_SKIP: "*musllinux*"
         # to supply options, put them in 'env', like:
         # env:
         #   CIBW_SOME_OPTION: value
