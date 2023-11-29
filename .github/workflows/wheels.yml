@@ -26,7 +26,6 @@ jobs:
           CIBW_BUILD: "cp38-*64 cp39-*64 cp310-*64 cp311-*64 cp312-*64"
           CIBW_SKIP: "*musllinux*"
           CIBW_TEST_REQUIRES: "pytest"
-          CIBW_BEFORE_TEST: "pip install pantab"
           CIBW_TEST_COMMAND: "python -c 'import pantab; pantab.test()'"
         # to supply options, put them in 'env', like:
         # env:
