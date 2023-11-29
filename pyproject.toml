@@ -4,3 +4,6 @@ requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 [tool.towncrier]
     package = "pantab"
     filename = "NEWS.rst"
+
+[tool.cibuildwheel]
+build = ["cp38-*", "cp39-*", "cp310-*", "cp311-*", "cp312-*"]
