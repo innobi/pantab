@@ -1,8 +1,8 @@
-from distutils.version import LooseVersion
+from packaging.version import parse
 
 import pandas as pd
 
-PANDAS_120 = LooseVersion(pd.__version__) >= LooseVersion("1.2.0")
-PANDAS_130 = LooseVersion(pd.__version__) >= LooseVersion("1.3.0")
+PANDAS_120 = parse(pd.__version__) >= parse("1.2.0")
+PANDAS_130 = parse(pd.__version__) >= parse("1.3.0")
 
 __all__ = ["PANDAS_120", "PANDAS_130"]
