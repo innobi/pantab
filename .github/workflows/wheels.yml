@@ -23,7 +23,7 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: "cp38-*64 cp39-*64 cp310-*64 cp311-*64 cp312-*64"
+          CIBW_BUILD: "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
           CIBW_SKIP: "*musllinux*"
           CIBW_TEST_REQUIRES: "pytest"
           CIBW_TEST_COMMAND: "pytest {project}/pantab/tests"
