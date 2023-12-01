@@ -1,4 +1,4 @@
-from packaging.version import parse
+from pandas.util.version import parse
 
 import pandas as pd
 
