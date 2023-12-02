@@ -4,12 +4,13 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheels for ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-11]
+        python: [39, 310, 311, 312]
 
     steps:
       - uses: actions/checkout@v4
