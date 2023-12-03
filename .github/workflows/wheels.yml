@@ -4,28 +4,23 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels for python ${{ matrix.python }} on ${{ matrix.os }}
+    name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-11]
-        python: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
       - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.python }}
 
-      - name: Install cibuildwheel
-        run: python -m pip install cibuildwheel==2.16.2
-
-      - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+      - name: Build wheels for ${{ matrix.os }}
+        uses: pypa/cibuildwheel@v2.16.2
         env:
+          CIBW_BUILD: "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
           CIBW_SKIP: "*musllinux*"
           CIBW_TEST_REQUIRES: "pytest"
           CIBW_TEST_COMMAND: "pytest {project}/pantab/tests"
