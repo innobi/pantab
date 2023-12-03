@@ -4,3 +4,8 @@ requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 [tool.towncrier]
     package = "pantab"
     filename = "NEWS.rst"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "pantab/tests",
+]
