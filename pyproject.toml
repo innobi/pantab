@@ -53,9 +53,6 @@ ignore_missing_imports = true
 module = ["numpy", "pandas.*", "pytest", "setuptools", "tableauhyperapi.*", "pyarrow.*"]
 ignore_missing_imports = true
 
-[tool.flake8]
-max-line-length = 88
-
 [tool.isort]
 include_trailing_comma = true
 line_length = 88
