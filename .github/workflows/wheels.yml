@@ -19,14 +19,6 @@ jobs:
 
       - name: Build wheels for ${{ matrix.os }}
         uses: pypa/cibuildwheel@v2.16.2
-        env:
-          CIBW_BUILD: "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
-          CIBW_SKIP: "*musllinux*"
-          CIBW_TEST_REQUIRES: "pytest"
-          CIBW_TEST_COMMAND: "pytest {project}/pantab/tests"
-        # to supply options, put them in 'env', like:
-        # env:
-        #   CIBW_SOME_OPTION: value
 
       - uses: actions/upload-artifact@v3
         with:
