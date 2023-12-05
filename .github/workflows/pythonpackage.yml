@@ -20,7 +20,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -33,7 +33,7 @@ jobs:
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest
@@ -45,7 +45,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v2
@@ -59,7 +59,7 @@ jobs:
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest
@@ -71,7 +71,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -84,7 +84,7 @@ jobs:
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest
@@ -98,14 +98,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: "3.8"
+        python-version: "3.9"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest
@@ -119,14 +119,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: "3.8"
+        python-version: "3.9"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest
@@ -140,14 +140,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
-        python-version: "3.8"
+        python-version: "3.9"
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pandas tableauhyperapi pyarrow
     - name: Build extensions
       run: |
-        python setup.py build_ext --inplace
+        python -m pip install .
     - name: Test with pytest
       run: |
         python -m pip install pytest

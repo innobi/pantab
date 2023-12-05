@@ -5,6 +5,7 @@ dependencies:
   - black
   - flake8
   - isort
+  - meson-python
   - mypy
   - pandas
   - pip
