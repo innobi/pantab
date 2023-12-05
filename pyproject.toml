@@ -61,3 +61,10 @@ line_length = 88
 multi_line_output = 3
 known_first_party = "pantab"
 known_third_party = "libpantab"
+
+[tool.cibuildwheel]
+build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
+skip = "*musllinux*"
+
+test-command = "pytest {project}/pantab/tests"
+test-requires = ["pytest"]
