@@ -29,5 +29,5 @@ py.extension_module(
      'pantab/src/reader.c', 'pantab/src/type.c',
      'pantab/src/writer.c'],
     include_directories: [inc_np],
-    install: true    
+    install: true
 )

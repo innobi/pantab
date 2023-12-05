@@ -59,7 +59,7 @@ python -m pip install .
 From the project root. Because pandas uses meson as a build backend, you can pass options (like building a debug version) via meson command line arguments:
 
 ```
-python -m pip install . --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug" 
+python -m pip install . --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
 ```
 
 At the moment editable installs are not supported.
