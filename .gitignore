@@ -55,6 +55,9 @@ dist
 .eggs
 .pypirc
 oryx-build-commands.txt
+# Virtual environments
+.venv/
+venv/
 
 # tox testing tool
 .tox

@@ -7,9 +7,6 @@ from setuptools import Extension, find_packages, setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
-    long_description = f.read()
-
 
 # MSVC compiler has different flags; assume that's what we are using on Windows
 if os.name == "nt":
@@ -33,31 +30,8 @@ pantab_module = Extension(
 
 
 setup(
-    name="pantab",
-    version="3.0.2",
-    description="Converts pandas DataFrames into Tableau Hyper Extracts and back",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/innobi/pantab",
-    author="Will Ayd",
-    author_email="william.ayd@icloud.com",
-    license="BSD",
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "Topic :: Office/Business",
-        "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-    ],
-    keywords="tableau visualization pandas dataframe",
     packages=find_packages(),
+    ext_modules=[pantab_module],
     package_data={"": ["*.h"], "pantab.tests": ["data/*"]},
     data_files=[("", ["LICENSE.txt", "README.md"])],
-    python_requires=">=3.8",
-    install_requires=["pandas>=1.0.0", "tableauhyperapi>=0.0.14567", "numpy"],
-    extras_require={"dev": ["pytest"]},
-    ext_modules=[pantab_module],
 )

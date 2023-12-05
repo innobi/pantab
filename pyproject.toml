@@ -1,6 +1,41 @@
 [build-system]
 requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 
+[project]
+name = "pantab"
+version = "3.0.2"
+description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
+license = {file = "LICENSE.txt"}
+readme = "README.md"
+authors = [
+    { name = "Will Ayd", email = "william.ayd@icloud.com" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Office/Business",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+keywords = ["tableau", "visualization", "pandas", "dataframe"]
+
+dependencies = [
+    "pandas>=1.0.0",
+    "tableauhyperapi>=0.0.14567",
+    "numpy",
+]
+
+[project.urls]
+Source = "https://github.com/innobi/pantab"
+
+[project.scripts]
+# Add your scripts here
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [tool.towncrier]
     package = "pantab"
     filename = "NEWS.rst"
@@ -9,3 +44,20 @@ requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 testpaths = [
     "pantab/tests",
 ]
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.mypy.overrides]
+module = ["numpy", "pandas.*", "pytest", "setuptools", "tableauhyperapi.*", "pyarrow.*"]
+ignore_missing_imports = true
+
+[tool.flake8]
+max-line-length = 88
+
+[tool.isort]
+include_trailing_comma = true
+line_length = 88
+multi_line_output = 3
+known_first_party = "pantab"
+known_third_party = "libpantab"
