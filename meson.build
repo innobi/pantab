@@ -24,7 +24,7 @@ print(incdir)
 inc_np = include_directories(incdir_numpy)
 
 py.extension_module(
-    'pantab',
+    'libpantab',
     ['pantab/src/pantab.c', 'pantab/src/numpy_datetime.c',
      'pantab/src/reader.c', 'pantab/src/type.c',
      'pantab/src/writer.c'],
