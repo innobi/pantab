@@ -67,3 +67,6 @@ skip = "*musllinux*"
 
 test-command = "pytest {project}/pantab/tests"
 test-requires = ["pytest"]
+
+[tool.ruff]
+line-length = 88
