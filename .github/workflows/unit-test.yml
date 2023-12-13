@@ -1,15 +1,26 @@
-name: Build
+name: pantab tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 
 jobs:
+  code-checks:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: pre-commit/action@v3.0.0
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macOS-11]
+        os: [ubuntu-22.04, windows-2022, macOS-11]
 
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +30,3 @@ jobs:
 
       - name: Build wheels for ${{ matrix.os }}
         uses: pypa/cibuildwheel@v2.16.2
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
