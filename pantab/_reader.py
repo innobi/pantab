@@ -26,7 +26,9 @@ def _read_query_result(
             nullability = tab_api.Nullability.NULLABLE
             column_type = pantab_types._ColumnType(column.type, nullability)
             try:
-                dtypes[column.name.unescaped] = pantab_types._get_pandas_type(column_type)
+                dtypes[column.name.unescaped] = pantab_types._get_pandas_type(
+                    column_type
+                )
             except KeyError as e:
                 raise TypeError(
                     f"Column {column.name} has unsupported datatype {column.type} "
