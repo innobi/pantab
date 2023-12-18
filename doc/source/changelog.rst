@@ -1,6 +1,11 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 3.0.3 (2023-12-18)
+=========================
+
+- Fixed issue with reading VARCHAR columns from Hyper files (#210)
+
 Pantab 3.0.2 (2023-11-13)
 =========================
 
