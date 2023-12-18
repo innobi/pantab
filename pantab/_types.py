@@ -68,8 +68,7 @@ def _get_pandas_type(column_type: _ColumnType) -> str:
     if column_type in _pandas_types:
         return _pandas_types[column_type]
 
-    varchar = tab_api.SqlType.varchar(65535)
-    if column_type.type_.tag == varchar.tag:
+    if column_type.type_.tag == tab_api.TypeTag.VARCHAR:
         return "string"
 
     raise KeyError(
