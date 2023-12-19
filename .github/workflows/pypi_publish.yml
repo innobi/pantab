@@ -29,7 +29,7 @@ jobs:
   upload_pypi:
     needs: [build_wheels]
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: release
     permissions:
       id-token: write
         #    if: github.event_name == 'release' && github.event.action == 'published'
