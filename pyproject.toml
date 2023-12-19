@@ -4,7 +4,7 @@ requires=["meson-python", "tableauhyperapi", "oldest-supported-numpy"]
 
 [project]
 name = "pantab"
-version = "3.0.2"
+version = "3.0.3"
 description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
 license = {file = "LICENSE.txt"}
 readme = "README.md"

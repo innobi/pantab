@@ -1,4 +1,4 @@
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 
 import libpantab  # type: ignore
 from tableauhyperapi import __version__ as hyperapi_version

@@ -62,3 +62,16 @@ _pandas_types[
 _pandas_types[
     _ColumnType(tab_api.SqlType.text(), tab_api.Nullability.NOT_NULLABLE)
 ] = "string"
+
+
+def _get_pandas_type(column_type: _ColumnType) -> str:
+    if column_type in _pandas_types:
+        return _pandas_types[column_type]
+
+    if column_type.type_.tag == tab_api.TypeTag.VARCHAR:
+        return "string"
+
+    raise KeyError(
+        f"Column has unsupported datatype {column_type.type_} "
+        f"with nullability {column_type.nullability}"
+    )
