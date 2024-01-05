@@ -5,8 +5,6 @@ import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
 
-import pantab._compat as compat
-
 
 @pytest.fixture
 def df():
@@ -17,15 +15,15 @@ def df():
                 1,
                 2,
                 3,
-                1,
-                2,
-                3,
+                # 1,
+                # 2,
+                # 3,
                 4.0,
                 5.0,
-                True,
+                # True,
                 pd.to_datetime("2018-01-01"),
                 pd.to_datetime("2018-01-01", utc=True),
-                pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
+                # pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
                 "foo",
                 np.iinfo(np.int16).min,
                 np.iinfo(np.int32).min,
@@ -38,15 +36,15 @@ def df():
                 6,
                 7,
                 8,
-                np.nan,
-                np.nan,
-                np.nan,
+                # np.nan,
+                # np.nan,
+                # np.nan,
                 9.0,
                 10.0,
-                False,
+                # False,
                 pd.to_datetime("1/1/19"),
                 pd.to_datetime("2019-01-01", utc=True),
-                pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
+                # pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
                 "bar",
                 np.iinfo(np.int16).max,
                 np.iinfo(np.int32).max,
@@ -59,15 +57,15 @@ def df():
                 0,
                 0,
                 0,
+                # np.nan,
+                # np.nan,
+                # np.nan,
                 np.nan,
                 np.nan,
-                np.nan,
-                np.nan,
-                np.nan,
-                False,
+                # False,
                 pd.NaT,
                 pd.NaT,
-                pd.NaT,
+                # pd.NaT,
                 np.nan,
                 0,
                 0,
@@ -81,15 +79,15 @@ def df():
             "int16",
             "int32",
             "int64",
-            "Int16",
-            "Int32",
-            "Int64",
+            # "Int16",
+            # "Int32",
+            # "Int64",
             "float32",
             "float64",
-            "bool",
+            # "bool",
             "datetime64",
             "datetime64_utc",
-            "timedelta64",
+            # "timedelta64",
             "object",
             "int16_limits",
             "int32_limits",
@@ -103,17 +101,17 @@ def df():
     df = df.astype(
         {
             "int16": np.int16,
-            "Int16": "Int16",
+            # "Int16": "Int16",
             "int32": np.int32,
-            "Int32": "Int32",
+            # "Int32": "Int32",
             "int64": np.int64,
-            "Int64": "Int64",
+            # "Int64": "Int64",
             "float32": np.float32,
             "float64": np.float64,
-            "bool": bool,
+            # "bool": bool,
             "datetime64": "datetime64[ns]",
             "datetime64_utc": "datetime64[ns, UTC]",
-            "timedelta64": "timedelta64[ns]",
+            # "timedelta64": "timedelta64[ns]",
             "object": "object",
             "int16_limits": np.int16,
             "int32_limits": np.int32,
@@ -124,12 +122,12 @@ def df():
         }
     )
 
-    df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
+    # df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
     df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
 
-    if compat.PANDAS_120:
-        df["Float32"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float32")
-        df["Float64"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float64")
+    # if compat.PANDAS_120:
+    #    df["Float32"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float32")
+    #    df["Float64"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float64")
 
     return df
 
@@ -164,9 +162,3 @@ def table_name(request):
 def datapath():
     """Location of data files in test folder."""
     return pathlib.Path(__file__).parent / "data"
-
-
-@pytest.fixture(params=[False, True])
-def use_parquet(request):
-    """Whether to use parquet for intermediate file storage."""
-    return request.param

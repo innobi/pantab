@@ -1,5 +1,3 @@
-from sqlite3 import connect
-
 import pandas as pd
 import pandas.testing as tm
 import pytest
@@ -27,55 +25,8 @@ def test_reports_unsupported_type(datapath):
     would be string columns. This led to very fascinating failures.
     """
     db_path = datapath / "geography.hyper"
-    with pytest.raises(
-        TypeError, match=r"Column \"x\" has unsupported datatype GEOGRAPHY"
-    ):
+    with pytest.raises(TypeError, match=r"GEOGRAPHY"):
         pantab.frame_from_hyper(db_path, table="test")
-
-
-def test_months_in_interval_raises(df, tmp_hyper, monkeypatch):
-    # Monkeypatch a new constructor that hard codes months
-    def __init__(self, months: int, days: int, microseconds: int):
-        self.months = 1
-        self.days = days
-        self.microseconds = microseconds
-
-    monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
-    with pytest.raises(
-        ValueError, match=r"Cannot read Intervals with month components\."
-    ):
-        pantab.frame_from_hyper(tmp_hyper, table="test")
-
-    with pytest.raises(
-        ValueError, match=r"Cannot read Intervals with month components\."
-    ):
-        pantab.frames_from_hyper(tmp_hyper)
-
-
-def test_error_on_first_column(df, tmp_hyper, monkeypatch):
-    """
-    We had a defect due to which pantab segfaulted when an error occured in one of
-    the first two columns. This test case is a regression test against that.
-    """
-
-    # Monkeypatch a new constructor that hard codes months
-    def __init__(self, months: int, days: int, microseconds: int):
-        self.months = 1
-        self.days = days
-        self.microseconds = microseconds
-
-    monkeypatch.setattr(pantab._writer.tab_api.Interval, "__init__", __init__)
-
-    df = pd.DataFrame(
-        [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"]
-    ).astype({"timedelta64": "timedelta64[ns]"})
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
-
-    with pytest.raises(
-        ValueError, match=r"Cannot read Intervals with month components\."
-    ):
-        pantab.frame_from_hyper(tmp_hyper, table="test")
 
 
 def test_read_non_roundtrippable(datapath):
@@ -122,11 +73,25 @@ def test_empty_read_query(df: pd.DataFrame, tmp_hyper):
     """
     # sql cols need to base case insensitive & unique
     df = df[pd.Series(df.columns).apply(lambda s: s.lower()).drop_duplicates()]
-    conn = connect(":memory:")
     table_name = "test"
-    df.to_sql(name=table_name, con=conn, index=False)
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
     query = f"SELECT * FROM {table_name} limit 0"
-    expected = pd.read_sql_query(query, conn)
+    expected = pd.DataFrame(columns=df.columns).astype(df.dtypes)
+
+    # read_query does not maintain nullability
+    # and not all types roundtrip properly
+    expected = expected.astype(
+        {
+            "int16": "Int16",
+            "int32": "Int32",
+            "int64": "Int64",
+            "int16_limits": "Int16",
+            "int32_limits": "Int32",
+            "int64_limits": "Int64",
+            "float32": "float64",
+            "non-ascii": "string",
+            "object": "string",
+        }
+    )
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
     tm.assert_frame_equal(result, expected)

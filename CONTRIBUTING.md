@@ -50,21 +50,7 @@ git checkout -b a-new-branch
 
 ### Building the Project
 
-To install pantab, simply run:
-
-```sh
-python -m pip install .
-```
-
-From the project root. Because pandas uses meson as a build backend, you can pass options (like building a debug version) via meson command line arguments:
-
-```
-python -m pip install . --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
-```
-
-At the moment editable installs are not supported.
-
-Please also note that the above will fail without a C compiler - if you don't have one installed check out the appropriate documentation from the [Python Developer Guide](https://devguide.python.org/setup/#compile-and-build) for your platform.
+For an editable install of pantab you can simply run `pip install -ve .` from the project root.
 
 ### Creating tests and running the test suite
 

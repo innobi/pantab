@@ -2,6 +2,8 @@
 .mypy_cache
 *.hyper
 hyper_db*
+compile_commands.json
+_deps
 
 #########################################
 # Editor temporary/working/backup files #
