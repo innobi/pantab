@@ -1,5 +1,4 @@
 ![pantab logo](./misc/pantab_logo.svg)
-<img src="./misc/pantab_logo.svg">
 
 # Getting Help
 
