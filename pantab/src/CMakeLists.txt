@@ -1,6 +1,6 @@
 nanobind_add_module(pantab NOMINSIZE pantab.cpp numpy_datetime.cpp)
 target_include_directories(pantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
-target_link_libraries(pantab PRIVATE Tableau::tableauhyperapi-cxx)
+target_link_libraries(pantab PRIVATE Tableau::tableauhyperapi-cxx nanoarrow)
 
 # TODO: would be nice to not hard code /src but CMAKE_CURRENT_LIST_DIR did not work
 install(TARGETS pantab

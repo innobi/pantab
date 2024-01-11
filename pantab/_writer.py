@@ -5,6 +5,7 @@ import uuid
 from typing import Dict, Optional, Union
 
 import pandas as pd
+import pyarrow as pa
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
@@ -53,7 +54,10 @@ def frames_to_hyper(
 
         return (table.schema_name.name.unescaped, table.name.unescaped)
 
-    data = {convert_to_table_name(key): val for key, val in dict_of_frames.items()}
+    data = {
+        convert_to_table_name(key): pa.Table.from_pandas(val)
+        for key, val in dict_of_frames.items()
+    }
     libpantab.write_to_hyper(data, path=str(tmp_db), table_mode=table_mode)
 
     # In Python 3.9+ we can just pass the path object, but due to bpo 32689

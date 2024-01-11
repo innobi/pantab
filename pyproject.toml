@@ -28,9 +28,12 @@ classifiers = [
 keywords = ["tableau", "visualization", "pandas", "dataframe"]
 
 dependencies = [
-    "pandas>=1.5.0",
+    "pandas>=2.0.0",
     "tableauhyperapi>=0.0.14567",
     "numpy",
+    # in the future we need not require pyarrow as pandas implements the
+    # PyCapsule interface. See pandas PR #56587
+    "pyarrow>=14.0.0",
 ]
 
 [project.urls]
