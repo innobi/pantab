@@ -1,6 +1,5 @@
 #include <chrono>
 #include <cstddef>
-#include <hyperapi/SqlType.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -19,8 +18,6 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
-#include "nanoarrow/nanoarrow.h"
-#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
