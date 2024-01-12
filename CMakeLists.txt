@@ -4,6 +4,7 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(BUILD_SHARED_LIBS ON)
 
 if (MSVC)
 else()
@@ -48,5 +49,4 @@ if (PANTAB_USE_SANITIZERS)
     add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
 
-set(BUILD_SHARED_LIBS ON)
 add_subdirectory(pantab/src)

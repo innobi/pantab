@@ -106,7 +106,9 @@ public:
 
   void insertValueAtIndex(size_t idx) override {
     if (ArrowArrayViewIsNull(&array_view_, idx)) {
-      inserter_->add(std::optional<T>{std::nullopt});
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<T>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
     constexpr size_t elem_size = sizeof(T);
