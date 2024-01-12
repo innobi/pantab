@@ -48,4 +48,5 @@ if (PANTAB_USE_SANITIZERS)
     add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
 
+set(BUILD_SHARED_LIBS ON)
 add_subdirectory(pantab/src)
