@@ -6,6 +6,34 @@ from tableauhyperapi import TableName
 import pantab
 
 
+# TODO: de-duplicate this function
+def convert_df_to_pyarrow(df):
+    return df.astype(
+        {
+            "int16": "int16[pyarrow]",
+            "int32": "int32[pyarrow]",
+            "int64": "int64[pyarrow]",
+            # "Int16": "int16[pyarrow]",
+            # "Int32": "int32[pyarrow]",
+            # "Int64": "int64[pyarrow]",
+            "float32": "double[pyarrow]",
+            "float64": "double[pyarrow]",
+            # "bool":  "boolean[pyarrow]",
+            "datetime64": "timestamp[us][pyarrow]",
+            "datetime64_utc": "timestamp[us, UTC][pyarrow]",
+            # "timedelta64": "timedelta64[ns]",
+            "object": "string[pyarrow]",
+            "int16_limits": "int16[pyarrow]",
+            "int32_limits": "int32[pyarrow]",
+            "int64_limits": "int64[pyarrow]",
+            "float32_limits": "double[pyarrow]",
+            "float64_limits": "double[pyarrow]",
+            "non-ascii": "string[pyarrow]",
+            "string": "string[pyarrow]",
+        }
+    )
+
+
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
     last_modified = tmp_hyper.stat().st_mtime
@@ -36,7 +64,7 @@ def test_read_non_roundtrippable(datapath):
     expected = pd.DataFrame(
         [["1900-01-01", "2000-01-01"], [pd.NaT, "2050-01-01"]],
         columns=["Date1", "Date2"],
-        dtype="datetime64[ns]",
+        dtype="date32[day][pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -50,7 +78,12 @@ def test_reads_non_writeable(datapath):
         [["row1", 1.0], ["row2", 2.0]],
         columns=["Non-Nullable String", "Non-Nullable Float"],
     )
-    expected["Non-Nullable String"] = expected["Non-Nullable String"].astype("string")
+    expected["Non-Nullable Float"] = expected["Non-Nullable Float"].astype(
+        "double[pyarrow]"
+    )
+    expected["Non-Nullable String"] = expected["Non-Nullable String"].astype(
+        "string[pyarrow]"
+    )
 
     tm.assert_frame_equal(result, expected)
 
@@ -62,7 +95,7 @@ def test_read_query(df, tmp_hyper):
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
 
     expected = pd.DataFrame([[1, "_2"], [6, "_7"], [0, "_0"]], columns=["i", "_i2"])
-    expected = expected.astype({"i": "Int16", "_i2": "string"})
+    expected = expected.astype({"i": "int16[pyarrow]", "_i2": "string[pyarrow]"})
 
     tm.assert_frame_equal(result, expected)
 
@@ -76,22 +109,8 @@ def test_empty_read_query(df: pd.DataFrame, tmp_hyper):
     table_name = "test"
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
     query = f"SELECT * FROM {table_name} limit 0"
-    expected = pd.DataFrame(columns=df.columns).astype(df.dtypes)
+    expected = pd.DataFrame(columns=df.columns)
+    expected = convert_df_to_pyarrow(expected)
 
-    # read_query does not maintain nullability
-    # and not all types roundtrip properly
-    expected = expected.astype(
-        {
-            "int16": "Int16",
-            "int32": "Int32",
-            "int64": "Int64",
-            "int16_limits": "Int16",
-            "int32_limits": "Int32",
-            "int64_limits": "Int64",
-            "float32": "float64",
-            "non-ascii": "string",
-            "object": "string",
-        }
-    )
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
     tm.assert_frame_equal(result, expected)

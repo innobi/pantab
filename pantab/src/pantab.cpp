@@ -67,16 +67,37 @@ static hyperapi::SqlType hyperTypeFromArrowSchema(struct ArrowSchema *schema,
 class InsertHelper {
 public:
   InsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
-               struct ArrowArrayView *array_view)
-      : inserter_(inserter), array_view_(array_view) {}
+               const struct ArrowArray *chunk, const struct ArrowSchema *schema,
+               struct ArrowError *error, int64_t column_position)
+      : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
+        column_position_(column_position) {}
 
   virtual ~InsertHelper() {}
+
+  void Init() {
+    struct ArrowSchema *child_schema = schema_->children[column_position_];
+
+    if (ArrowArrayViewInitFromSchema(&array_view_, child_schema, error_) != 0) {
+      throw std::runtime_error("Could not construct insert helper: " +
+                               std::string{error_->message});
+    }
+
+    if (ArrowArrayViewSetArray(&array_view_, chunk_->children[column_position_],
+                               error_) != 0) {
+      throw std::runtime_error("Could not set array view: " +
+                               std::string{error_->message});
+    }
+  }
 
   virtual void insertValueAtIndex(size_t) {}
 
 protected:
   std::shared_ptr<hyperapi::Inserter> inserter_;
-  struct ArrowArrayView *array_view_;
+  const struct ArrowArray *chunk_;
+  const struct ArrowSchema *schema_;
+  struct ArrowError *error_;
+  const int64_t column_position_;
+  struct ArrowArrayView array_view_;
 };
 
 template <typename T> class PrimitiveInsertHelper : public InsertHelper {
@@ -84,13 +105,14 @@ public:
   using InsertHelper::InsertHelper;
 
   void insertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_, idx)) {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
       inserter_->add(std::optional<T>{std::nullopt});
+      return;
     }
     constexpr size_t elem_size = sizeof(T);
     T result;
     memcpy(&result,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
+           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
     inserter_->add(result);
   }
@@ -101,26 +123,17 @@ public:
   using InsertHelper::InsertHelper;
 
   void insertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_, idx)) {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<std:::string_view>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
     }
 
-    const auto offsets_buffer = array_view_->buffer_views[1].data.as_uint8;
-    OffsetT current_offset, next_offset;
-    constexpr size_t offset_size = sizeof(OffsetT);
-    memcpy(&current_offset, offsets_buffer + (idx * offset_size), offset_size);
-    memcpy(&next_offset, offsets_buffer + ((idx + 1) * offset_size),
-           offset_size);
-    const OffsetT size_bytes = next_offset - current_offset;
-    if (size_bytes < 0) {
-      throw std::invalid_argument("invalid offset sizes");
-    }
-    const auto usize_bytes = static_cast<const size_t>(size_bytes);
-    hyperapi::string_view result{array_view_->buffer_views[2].data.as_char +
-                                     current_offset,
-                                 usize_bytes};
+    struct ArrowBufferView buffer_view =
+        ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
+    auto result = std::string{buffer_view.data.as_char,
+                              static_cast<size_t>(buffer_view.size_bytes)};
     inserter_->add(result);
   }
 };
@@ -132,15 +145,16 @@ public:
 
   void insertValueAtIndex(size_t idx) override {
     constexpr size_t elem_size = sizeof(int64_t);
-    if (ArrowArrayViewIsNull(array_view_, idx)) {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
     }
     int64_t value;
 
     memcpy(&value,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
+           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
     // using timestamp_t =
@@ -183,9 +197,10 @@ public:
   }
 };
 
-static std::unique_ptr<InsertHelper> makeInsertHelper(
-    std::shared_ptr<hyperapi::Inserter> inserter, struct ArrowSchema *schema,
-    nanoarrow::UniqueArrayView &&array_view, struct ArrowError *error) {
+static std::unique_ptr<InsertHelper>
+makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
+                 struct ArrowArray *chunk, struct ArrowSchema *schema,
+                 struct ArrowError *error, int64_t column_position) {
   // TODO: we should provide the full dtype here not just format string, so
   // boolean fields can determine whether they are bit or byte masks
 
@@ -193,81 +208,82 @@ static std::unique_ptr<InsertHelper> makeInsertHelper(
   // PrimitiveInsertHelper as that is all pandas generates; other libraries may
   // need the true variant
   struct ArrowSchemaView schema_view;
-  if (ArrowSchemaViewInit(&schema_view, schema, error) != 0) {
+  if (ArrowSchemaViewInit(&schema_view, schema->children[column_position],
+                          error) != 0) {
     throw std::runtime_error("Issue generating insert helper: " +
                              std::string(error->message));
   }
 
   switch (schema_view.type) {
   case NANOARROW_TYPE_INT16:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<int16_t>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int16_t>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_INT32:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<int32_t>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int32_t>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_INT64:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<int64_t>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int64_t>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_FLOAT:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<float>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<float>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_DOUBLE:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<double>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<double>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_BOOL:
-    return std::unique_ptr<InsertHelper>(
-        new PrimitiveInsertHelper<bool>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<bool>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
-    return std::unique_ptr<InsertHelper>(
-        new Utf8InsertHelper<int64_t>(inserter, array_view.get()));
+    return std::unique_ptr<InsertHelper>(new Utf8InsertHelper<int64_t>(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_TIMESTAMP:
     switch (schema_view.time_unit) {
     case NANOARROW_TIME_UNIT_SECOND:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
             new TimestampInsertHelper<TimeUnit::SECOND, true>(
-                inserter, array_view.get()));
+                inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
             new TimestampInsertHelper<TimeUnit::SECOND, false>(
-                inserter, array_view.get()));
+                inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_MILLI:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MILLI, true>(inserter,
-                                                             array_view.get()));
+            new TimestampInsertHelper<TimeUnit::MILLI, true>(
+                inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
             new TimestampInsertHelper<TimeUnit::MILLI, false>(
-                inserter, array_view.get()));
+                inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_MICRO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MICRO, true>(inserter,
-                                                             array_view.get()));
+            new TimestampInsertHelper<TimeUnit::MICRO, true>(
+                inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
             new TimestampInsertHelper<TimeUnit::MICRO, false>(
-                inserter, array_view.get()));
+                inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_NANO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::NANO, true>(inserter,
-                                                            array_view.get()));
+            new TimestampInsertHelper<TimeUnit::NANO, true>(
+                inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::NANO, false>(inserter,
-                                                             array_view.get()));
+            new TimestampInsertHelper<TimeUnit::NANO, false>(
+                inserter, chunk, schema, error, column_position));
       }
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   default:
-    throw std::invalid_argument("Unsupported Arrow type: " +
+    throw std::invalid_argument("makeInsertHelper: Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));
   }
 }
@@ -298,11 +314,13 @@ void write_to_hyper(
     if (!PyCapsule_CheckExact(obj)) {
       throw std::invalid_argument("Object does not provide capsule");
     }
-    auto stream = static_cast<struct ArrowArrayStream *>(
+    auto c_stream = static_cast<struct ArrowArrayStream *>(
         PyCapsule_GetPointer(obj, "arrow_array_stream"));
+    auto stream = nanoarrow::UniqueArrayStream{c_stream};
+
     struct ArrowSchema schema;
-    if (stream->get_schema(stream, &schema) != 0) {
-      std::string error_msg{stream->get_last_error(stream)};
+    if (stream->get_schema(stream.get(), &schema) != 0) {
+      std::string error_msg{stream->get_last_error(stream.get())};
       throw std::runtime_error("Could not read from arrow schema:" + error_msg);
     }
 
@@ -333,7 +351,7 @@ void write_to_hyper(
 
     struct ArrowArray chunk;
     int errcode;
-    while ((errcode = stream->get_next(stream, &chunk) == 0) &&
+    while ((errcode = stream->get_next(stream.get(), &chunk) == 0) &&
            chunk.release != NULL) {
       const int nrows = chunk.length;
       if (nrows < 0) {
@@ -342,24 +360,12 @@ void write_to_hyper(
 
       std::vector<std::unique_ptr<InsertHelper>> insert_helpers;
       for (int64_t i = 0; i < schema.n_children; i++) {
-        struct ArrowArrayView c_array_view;
-        struct ArrowSchema *child_schema = schema.children[i];
-        if (ArrowArrayViewInitFromSchema(&c_array_view, child_schema, &error) !=
-            0) {
-          throw std::runtime_error("Could not construct array view: " +
-                                   std::string{error.message});
-        }
+        // the lifetime of the inserthelper cannot exceed that of chunk or
+        // schema this is implicit; we should make this explicit
+        auto insert_helper =
+            makeInsertHelper(inserter, &chunk, &schema, &error, i);
 
-        if (ArrowArrayViewSetArray(&c_array_view, chunk.children[i], &error) !=
-            0) {
-          throw std::runtime_error("Could not set array view: " +
-                                   std::string{error.message});
-        }
-
-        nanoarrow::UniqueArrayView array_view{&c_array_view};
-        auto insert_helper = makeInsertHelper(inserter, child_schema,
-                                              std::move(array_view), &error);
-
+        insert_helper->Init();
         insert_helpers.push_back(std::move(insert_helper));
       }
 
@@ -490,26 +496,25 @@ static std::unique_ptr<ReadHelper> makeReadHelper(hyperapi::SqlType sqltype) {
   throw nb::type_error(("cannot read sql type: " + sqltype.toString()).c_str());
 }
 
-static std::string pandasDtypeFromHyper(const hyperapi::SqlType &sqltype,
-                                        bool nullable) {
+static std::string pandasDtypeFromHyper(const hyperapi::SqlType &sqltype) {
   if (sqltype == hyperapi::SqlType::smallInt()) {
-    return nullable ? "Int16" : "int16";
+    return "int16[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::integer()) {
-    return nullable ? "Int32" : "int32";
+    return "int32[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::bigInt()) {
-    return nullable ? "Int64" : "int64";
+    return "int64[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::doublePrecision()) {
-    return "float64";
+    return "double[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::text()) {
-    return "string";
+    return "string[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::boolean()) {
-    return nullable ? "boolean" : "bool";
+    return "boolean[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::timestamp()) {
-    return "datetime64[ns]";
+    return "timestamp[us][pyarrow]";
   } else if (sqltype == hyperapi::SqlType::timestampTZ()) {
-    return "datetime64[ns, UTC]";
+    return "timestamp[us, UTC][pyarrow]";
   } else if (sqltype == hyperapi::SqlType::date()) {
-    return "datetime64[ns]";
+    return "date32[pyarrow]";
   }
 
   throw nb::type_error(
@@ -547,8 +552,7 @@ read_from_hyper_query(const std::string &path, const std::string &query) {
 
     // the query result set does not tell us if columns are nullable or not
     auto const sqltype = column.getType();
-    pandasDtypes.push_back(
-        pandasDtypeFromHyper(sqltype, hyperapi::Nullability::Nullable));
+    pandasDtypes.push_back(pandasDtypeFromHyper(sqltype));
   }
   for (const hyperapi::Row &row : hyperResult) {
     std::vector<nb::object> rowdata;
@@ -586,8 +590,7 @@ read_from_hyper_table(const std::string &path, const std::string &schema,
     columnNames.push_back(name);
 
     auto const sqltype = column.getType();
-    auto const nullability = column.getNullability();
-    pandasDtypes.push_back(pandasDtypeFromHyper(sqltype, nullability));
+    pandasDtypes.push_back(pandasDtypeFromHyper(sqltype));
   }
 
   hyperapi::Result hyperResult =
