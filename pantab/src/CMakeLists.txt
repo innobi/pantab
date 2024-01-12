@@ -17,9 +17,10 @@ else()
   set(HYPERAPI_BIN_LOC "lib/hyper")
 endif()
 
-# Auditwheel doesn't know how to handle the tableau libraries
+# Auditwheel doesn't know how to handle the cmake dependencies
 # so we manually install here and exclude from auditwheel
 install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/${HYPERAPI_LIB_NAME}
    DESTINATION ${SKBUILD_PROJECT_NAME}/src)
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
   DESTINATION ${SKBUILD_PROJECT_NAME}/src/hyper)
+install(TARGETS nanoarrow DESTINATION ${SKBUILD_PROJECT_NAME}/src)

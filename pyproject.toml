@@ -77,7 +77,7 @@ line-length = 88
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = """
-auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
+auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so --exclude libnanoarrow.so
 """
 
 [tool.cibuildwheel.macos]
