@@ -49,6 +49,8 @@ static hyperapi::SqlType hyperTypeFromArrowSchema(struct ArrowSchema *schema,
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
     return hyperapi::SqlType::text();
+  case NANOARROW_TYPE_DATE32:
+    return hyperapi::SqlType::date();
   case NANOARROW_TYPE_TIMESTAMP:
     if (std::strcmp("", schema_view.timezone)) {
       return hyperapi::SqlType::timestampTZ();
@@ -134,6 +136,40 @@ public:
     auto result = std::string{buffer_view.data.as_char,
                               static_cast<size_t>(buffer_view.size_bytes)};
     inserter_->add(result);
+  }
+};
+
+class Date32InsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    constexpr size_t elem_size = sizeof(int32_t);
+    int32_t value;
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    memcpy(&value,
+           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
+           elem_size);
+
+    const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
+    const std::chrono::time_point<
+        std::chrono::system_clock,
+        std::chrono::duration<int32_t, std::ratio<86400>>>
+        tp{dur};
+    const auto tt = std::chrono::system_clock::to_time_t(tp);
+
+    const struct tm utc_tm = *std::gmtime(&tt);
+    hyperapi::Date dt{1900 + utc_tm.tm_year,
+                      static_cast<int16_t>(1 + utc_tm.tm_mon),
+                      static_cast<int16_t>(1 + utc_tm.tm_yday)};
+
+    inserter_->add(dt);
   }
 };
 
@@ -235,6 +271,9 @@ makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
     return std::unique_ptr<InsertHelper>(new Utf8InsertHelper<int64_t>(
+        inserter, chunk, schema, error, column_position));
+  case NANOARROW_TYPE_DATE32:
+    return std::unique_ptr<InsertHelper>(new Date32InsertHelper(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_TIMESTAMP:
     switch (schema_view.time_unit) {
