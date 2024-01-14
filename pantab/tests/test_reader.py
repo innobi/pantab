@@ -6,34 +6,6 @@ from tableauhyperapi import TableName
 import pantab
 
 
-# TODO: de-duplicate this function
-def convert_df_to_pyarrow(df):
-    return df.astype(
-        {
-            "int16": "int16[pyarrow]",
-            "int32": "int32[pyarrow]",
-            "int64": "int64[pyarrow]",
-            # "Int16": "int16[pyarrow]",
-            # "Int32": "int32[pyarrow]",
-            # "Int64": "int64[pyarrow]",
-            "float32": "double[pyarrow]",
-            "float64": "double[pyarrow]",
-            # "bool":  "boolean[pyarrow]",
-            "datetime64": "timestamp[us][pyarrow]",
-            "datetime64_utc": "timestamp[us, UTC][pyarrow]",
-            # "timedelta64": "timedelta64[ns]",
-            "object": "string[pyarrow]",
-            "int16_limits": "int16[pyarrow]",
-            "int32_limits": "int32[pyarrow]",
-            "int64_limits": "int64[pyarrow]",
-            "float32_limits": "double[pyarrow]",
-            "float64_limits": "double[pyarrow]",
-            "non-ascii": "string[pyarrow]",
-            "string": "string[pyarrow]",
-        }
-    )
-
-
 def test_read_doesnt_modify_existing_file(df, tmp_hyper):
     pantab.frame_to_hyper(df, tmp_hyper, table="test")
     last_modified = tmp_hyper.stat().st_mtime
@@ -100,17 +72,16 @@ def test_read_query(df, tmp_hyper):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_read_query(df: pd.DataFrame, tmp_hyper):
+def test_empty_read_query(df: pd.DataFrame, roundtripped, tmp_hyper):
     """
     red-green for empty query results
     """
     # sql cols need to base case insensitive & unique
-    df = df[pd.Series(df.columns).apply(lambda s: s.lower()).drop_duplicates()]
     table_name = "test"
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
     query = f"SELECT * FROM {table_name} limit 0"
     expected = pd.DataFrame(columns=df.columns)
-    expected = convert_df_to_pyarrow(expected)
+    expected = expected.astype(roundtripped.dtypes)
 
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
     tm.assert_frame_equal(result, expected)
