@@ -4,6 +4,9 @@ target_link_libraries(pantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
+set_target_properties(nanoarrow
+                      PROPERTIES POSITION_INDEPENDENT_CODE
+                      ON)
 
 install(TARGETS pantab
   LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/src)
@@ -25,4 +28,3 @@ install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/${HYPERAPI_LIB_NAME}
    DESTINATION ${SKBUILD_PROJECT_NAME}/src)
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
   DESTINATION ${SKBUILD_PROJECT_NAME}/src/hyper)
-install(TARGETS nanoarrow DESTINATION ${SKBUILD_PROJECT_NAME}/src)

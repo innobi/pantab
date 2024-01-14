@@ -4,7 +4,6 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(BUILD_SHARED_LIBS ON)
 
 if (MSVC)
 else()
@@ -43,16 +42,7 @@ FetchContent_Declare(nanoarrow-project
   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
   GIT_TAG apache-arrow-nanoarrow-0.3.0
 )
-#FetchContent_MakeAvailable(nanoarrow-project)
-# FetchContent_MakeAvailable would install nanoarrow, which normally might be good
-# but is really hard to control the required library locations in a Python wheel
-# instead we use the method described below and manually install the nanoarrow lib
-# https://mcopik.github.io/blog/2023/cmake/
-FetchContent_GetProperties(nanoarrow-project)
-if(NOT nanoarrow-project_POPULATED)
-  FetchContent_Populate(nanoarrow-project)
-  add_subdirectory(${nanoarrow-project_SOURCE_DIR} ${nanoarrow-project_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+FetchContent_MakeAvailable(nanoarrow-project)
 
 if (PANTAB_USE_SANITIZERS)
     add_compile_options(-fsanitize=address -fsanitize=undefined)
