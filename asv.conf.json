@@ -74,6 +74,7 @@
   "matrix": {
     "pandas": [],
     "pip+tableauhyperapi": [],
+    "pyarrow": [],
   },
 
   // Combinations of libraries/python versions can be excluded/included
