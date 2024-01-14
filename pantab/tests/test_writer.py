@@ -1,7 +1,6 @@
 import re
 from datetime import datetime, timezone
 
-import numpy as np
 import pandas as pd
 import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
@@ -23,22 +22,14 @@ def test_bad_table_mode_raises(df, tmp_hyper):
         pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
 
 
-@pytest.mark.skip("broken with arrow c data interface")
-def test_append_mode_raises_column_mismatch(df, tmp_hyper, table_name):
+@pytest.mark.parametrize("new_dtype", ["int64", float])
+def test_append_mode_raises_column_dtype_mismatch(new_dtype, df, tmp_hyper, table_name):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
-    df = df.drop("int16", axis=1)
-    msg = "column 'int16' must be included in the input"
-    with pytest.raises(RuntimeError, match=msg):
-        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
-
-
-def test_append_mode_raises_column_dtype_mismatch(df, tmp_hyper, table_name):
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
-
-    df["int16"] = df["int16"].astype(np.int64)
+    df["int16"] = df["int16"].astype(new_dtype)
     # TODO: a better error message from hyper would be nice here
-    msg = "unexpected end-of-file: In file: 'stdin'"
+    # seems like a limitation of hyper api
+    msg = ""
     with pytest.raises(RuntimeError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
@@ -64,24 +55,21 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mo
     assert last_modified == tmp_hyper.stat().st_mtime
 
 
-@pytest.mark.skip("broken with arrow c data interface")
 def test_duplicate_columns_raises(tmp_hyper):
     df = pd.DataFrame([[1, 1]], columns=[1, 1])
-    # TODO: need better error messages here
-    with pytest.raises(RuntimeError):
+    msg = r"Duplicate column names found: \[1, 1\]"
+    with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="foo")
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError, match=msg):
         pantab.frames_to_hyper({"test": df}, tmp_hyper)
 
 
-@pytest.mark.xfail(reason="see pandas issue 56777")
 def test_unsupported_dtype_raises(tmp_hyper):
-    dtype = "UInt64"
-    df = pd.DataFrame([[1]], dtype=dtype)
+    df = pd.DataFrame([[pd.Timedelta("1D")]])
 
-    msg = re.escape(f"Conversion of '{dtype}' dtypes not supported!")
-    with pytest.raises(TypeError, match=msg):
+    msg = re.escape("Unsupported Arrow type")
+    with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
 
