@@ -5,12 +5,8 @@ import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
 
-import pantab._compat as compat
 
-
-@pytest.fixture
-def df():
-    """Fixture to use which should contain all data types."""
+def get_basic_dataframe():
     df = pd.DataFrame(
         [
             [
@@ -22,10 +18,13 @@ def df():
                 3,
                 4.0,
                 5.0,
+                1.0,
+                2.0,
+                True,
                 True,
                 pd.to_datetime("2018-01-01"),
                 pd.to_datetime("2018-01-01", utc=True),
-                pd.Timedelta("1 days 2 hours 3 minutes 4 seconds"),
+                "foo",
                 "foo",
                 np.iinfo(np.int16).min,
                 np.iinfo(np.int32).min,
@@ -43,10 +42,13 @@ def df():
                 np.nan,
                 9.0,
                 10.0,
+                1.0,
+                2.0,
+                False,
                 False,
                 pd.to_datetime("1/1/19"),
                 pd.to_datetime("2019-01-01", utc=True),
-                pd.Timedelta("-1 days 2 hours 3 minutes 4 seconds"),
+                "bar",
                 "bar",
                 np.iinfo(np.int16).max,
                 np.iinfo(np.int32).max,
@@ -64,11 +66,14 @@ def df():
                 np.nan,
                 np.nan,
                 np.nan,
+                pd.NA,
+                pd.NA,
                 False,
-                pd.NaT,
+                pd.NA,
                 pd.NaT,
                 pd.NaT,
                 np.nan,
+                pd.NA,
                 0,
                 0,
                 0,
@@ -86,11 +91,14 @@ def df():
             "Int64",
             "float32",
             "float64",
+            "Float32",
+            "Float64",
             "bool",
+            "boolean",
             "datetime64",
             "datetime64_utc",
-            "timedelta64",
             "object",
+            "string",
             "int16_limits",
             "int32_limits",
             "int64_limits",
@@ -110,11 +118,14 @@ def df():
             "Int64": "Int64",
             "float32": np.float32,
             "float64": np.float64,
+            "Float32": "Float32",
+            "Float64": "Float64",
             "bool": bool,
+            "boolean": "boolean",
             "datetime64": "datetime64[ns]",
             "datetime64_utc": "datetime64[ns, UTC]",
-            "timedelta64": "timedelta64[ns]",
             "object": "object",
+            "string": "string",
             "int16_limits": np.int16,
             "int32_limits": np.int32,
             "int64_limits": np.int64,
@@ -124,13 +135,46 @@ def df():
         }
     )
 
-    df["boolean"] = pd.Series([True, False, pd.NA], dtype="boolean")
-    df["string"] = pd.Series(["foo", "bar", pd.NA], dtype="string")
+    return df
 
-    if compat.PANDAS_120:
-        df["Float32"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float32")
-        df["Float64"] = pd.Series([1.0, 2.0, pd.NA], dtype="Float64")
 
+@pytest.fixture
+def df():
+    """Fixture to use which should contain all data types."""
+    return get_basic_dataframe()
+
+
+@pytest.fixture
+def roundtripped():
+    """Roundtripped DataFrames should use arrow dtypes by default"""
+    df = get_basic_dataframe()
+    df = df.astype(
+        {
+            "int16": "int16[pyarrow]",
+            "int32": "int32[pyarrow]",
+            "int64": "int64[pyarrow]",
+            "Int16": "int16[pyarrow]",
+            "Int32": "int32[pyarrow]",
+            "Int64": "int64[pyarrow]",
+            "float32": "double[pyarrow]",
+            "float64": "double[pyarrow]",
+            "Float32": "double[pyarrow]",
+            "Float64": "double[pyarrow]",
+            "bool": "boolean[pyarrow]",
+            "boolean": "boolean[pyarrow]",
+            "datetime64": "timestamp[us][pyarrow]",
+            "datetime64_utc": "timestamp[us, UTC][pyarrow]",
+            # "timedelta64": "timedelta64[ns]",
+            "object": "string[pyarrow]",
+            "int16_limits": "int16[pyarrow]",
+            "int32_limits": "int32[pyarrow]",
+            "int64_limits": "int64[pyarrow]",
+            "float32_limits": "double[pyarrow]",
+            "float64_limits": "double[pyarrow]",
+            "non-ascii": "string[pyarrow]",
+            "string": "string[pyarrow]",
+        }
+    )
     return df
 
 
@@ -164,9 +208,3 @@ def table_name(request):
 def datapath():
     """Location of data files in test folder."""
     return pathlib.Path(__file__).parent / "data"
-
-
-@pytest.fixture(params=[False, True])
-def use_parquet(request):
-    """Whether to use parquet for intermediate file storage."""
-    return request.param

@@ -5,13 +5,15 @@ dependencies:
   - black
   - flake8
   - isort
-  - meson-python
   - mypy
+  - nanobind
   - pandas
+  - pandas-stubs
   - pip
   - pyarrow
   - python
   - pytest
+  - scikit-build-core
   - sphinx
   - pre-commit
   - sphinx_rtd_theme
