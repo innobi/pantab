@@ -68,8 +68,8 @@ public:
   InsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
                const struct ArrowArray *chunk, const struct ArrowSchema *schema,
                struct ArrowError *error, int64_t column_position)
-      : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
-        column_position_(column_position) {}
+      : inserter_(std::move(inserter)), chunk_(chunk), schema_(schema),
+        error_(error), column_position_(column_position) {}
 
   virtual ~InsertHelper() {}
 
@@ -99,7 +99,7 @@ protected:
   struct ArrowArrayView array_view_;
 };
 
-template <typename T> class PrimitiveInsertHelper : public InsertHelper {
+template <typename T> class IntegralInsertHelper : public InsertHelper {
 public:
   using InsertHelper::InsertHelper;
 
@@ -110,12 +110,26 @@ public:
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
-    constexpr size_t elem_size = sizeof(T);
-    T result;
-    memcpy(&result,
-           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
-           elem_size);
-    inserter_->add(result);
+
+    const int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
+    inserter_->add(static_cast<T>(value));
+  }
+};
+
+template <typename T> class FloatingInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<T>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    const double value = ArrowArrayViewGetDoubleUnsafe(&array_view_, idx);
+    inserter_->add(static_cast<T>(value));
   }
 };
 
@@ -251,22 +265,22 @@ makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
 
   switch (schema_view.type) {
   case NANOARROW_TYPE_INT16:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int16_t>(
+    return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int16_t>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_INT32:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int32_t>(
+    return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int32_t>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_INT64:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<int64_t>(
+    return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int64_t>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_FLOAT:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<float>(
+    return std::unique_ptr<InsertHelper>(new FloatingInsertHelper<float>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_DOUBLE:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<double>(
+    return std::unique_ptr<InsertHelper>(new FloatingInsertHelper<double>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_BOOL:
-    return std::unique_ptr<InsertHelper>(new PrimitiveInsertHelper<bool>(
+    return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<bool>(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
