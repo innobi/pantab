@@ -26,8 +26,8 @@ using Dtype = std::tuple<int, int, std::string, std::string>;
 
 enum TimeUnit { SECOND, MILLI, MICRO, NANO };
 
-static hyperapi::SqlType hyperTypeFromArrowSchema(struct ArrowSchema *schema,
-                                                  ArrowError *error) {
+static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
+                                     ArrowError *error) -> hyperapi::SqlType {
   struct ArrowSchemaView schema_view;
   if (ArrowSchemaViewInit(&schema_view, schema, error) != 0) {
     throw std::runtime_error("Issue converting to hyper type: " +
@@ -71,7 +71,7 @@ public:
       : inserter_(std::move(inserter)), chunk_(chunk), schema_(schema),
         error_(error), column_position_(column_position) {}
 
-  virtual ~InsertHelper() {}
+  virtual ~InsertHelper() = default;
 
   void Init() {
     struct ArrowSchema *child_schema = schema_->children[column_position_];
@@ -246,10 +246,11 @@ public:
   }
 };
 
-static std::unique_ptr<InsertHelper>
-makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
-                 struct ArrowArray *chunk, struct ArrowSchema *schema,
-                 struct ArrowError *error, int64_t column_position) {
+static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
+                             struct ArrowArray *chunk,
+                             struct ArrowSchema *schema,
+                             struct ArrowError *error, int64_t column_position)
+    -> std::unique_ptr<InsertHelper> {
   // TODO: we should provide the full dtype here not just format string, so
   // boolean fields can determine whether they are bit or byte masks
 
@@ -387,7 +388,7 @@ void write_to_hyper(
       names_vec.push_back(name);
 
       // Almost all arrow types are nullable
-      hyper_columns.push_back(hyperapi::TableDefinition::Column{
+      hyper_columns.emplace_back(hyperapi::TableDefinition::Column{
           name, hypertype, hyperapi::Nullability::Nullable});
     }
 
@@ -404,7 +405,7 @@ void write_to_hyper(
     struct ArrowArray chunk;
     int errcode;
     while ((errcode = stream->get_next(stream.get(), &chunk) == 0) &&
-           chunk.release != NULL) {
+           chunk.release != nullptr) {
       const int nrows = chunk.length;
       if (nrows < 0) {
         throw std::runtime_error("Unexpected array length < 0");
@@ -435,13 +436,13 @@ void write_to_hyper(
 
 class ReadHelper {
 public:
-  ReadHelper() {}
-  virtual ~ReadHelper() {}
-  virtual nb::object Read(const hyperapi::Value &) { return nb::none(); }
+  ReadHelper() = default;
+  virtual ~ReadHelper() = default;
+  virtual auto Read(const hyperapi::Value &) -> nb::object = 0;
 };
 
 class IntegralReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     if (value.isNull()) {
       return nb::none();
     }
@@ -450,7 +451,7 @@ class IntegralReadHelper : public ReadHelper {
 };
 
 class FloatReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     if (value.isNull()) {
       return nb::none();
     }
@@ -459,7 +460,7 @@ class FloatReadHelper : public ReadHelper {
 };
 
 class BooleanReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     // TODO: bool support added in nanobind >= 1..9.0
     // return nb::bool_(value.get<bool>());
     if (value.isNull()) {
@@ -470,7 +471,7 @@ class BooleanReadHelper : public ReadHelper {
 };
 
 class StringReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     if (value.isNull()) {
       return nb::none();
     }
@@ -479,7 +480,7 @@ class StringReadHelper : public ReadHelper {
 };
 
 class DateReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     if (value.isNull()) {
       return nb::none();
     }
@@ -498,7 +499,7 @@ class DateReadHelper : public ReadHelper {
 };
 
 template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
-  nb::object Read(const hyperapi::Value &value) {
+  auto Read(const hyperapi::Value &value) -> nb::object override {
     if (value.isNull()) {
       return nb::none();
     }
@@ -526,7 +527,8 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
   }
 };
 
-static std::unique_ptr<ReadHelper> makeReadHelper(hyperapi::SqlType sqltype) {
+static auto makeReadHelper(hyperapi::SqlType sqltype)
+    -> std::unique_ptr<ReadHelper> {
   if ((sqltype == hyperapi::SqlType::smallInt()) ||
       (sqltype == hyperapi::SqlType::integer()) ||
       (sqltype == hyperapi::SqlType::bigInt())) {
@@ -548,7 +550,8 @@ static std::unique_ptr<ReadHelper> makeReadHelper(hyperapi::SqlType sqltype) {
   throw nb::type_error(("cannot read sql type: " + sqltype.toString()).c_str());
 }
 
-static std::string pandasDtypeFromHyper(const hyperapi::SqlType &sqltype) {
+static auto pandasDtypeFromHyper(const hyperapi::SqlType &sqltype)
+    -> std::string {
   if (sqltype == hyperapi::SqlType::smallInt()) {
     return "int16[pyarrow]";
   } else if (sqltype == hyperapi::SqlType::integer()) {
@@ -584,8 +587,8 @@ using PandasDtypes = std::vector<std::string>;
 /// because the former detects a schema from the hyper Result object
 /// which does not hold nullability information
 ///
-std::tuple<ResultBody, ColumnNames, PandasDtypes>
-read_from_hyper_query(const std::string &path, const std::string &query) {
+auto read_from_hyper_query(const std::string &path, const std::string &query)
+    -> std::tuple<ResultBody, ColumnNames, PandasDtypes> {
   std::vector<std::vector<nb::object>> result;
   hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
@@ -620,9 +623,9 @@ read_from_hyper_query(const std::string &path, const std::string &query) {
   return std::make_tuple(result, columnNames, pandasDtypes);
 }
 
-std::tuple<ResultBody, ColumnNames, PandasDtypes>
-read_from_hyper_table(const std::string &path, const std::string &schema,
-                      const std::string &table) {
+auto read_from_hyper_table(const std::string &path, const std::string &schema,
+                           const std::string &table)
+    -> std::tuple<ResultBody, ColumnNames, PandasDtypes> {
   std::vector<std::vector<nb::object>> result;
   hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
@@ -661,7 +664,7 @@ read_from_hyper_table(const std::string &path, const std::string &schema,
   return std::make_tuple(result, columnNames, pandasDtypes);
 }
 
-NB_MODULE(pantab, m) {
+NB_MODULE(pantab, m) { // NOLINT
   m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_exportable"),
         nb::arg("path"), nb::arg("table_mode"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
