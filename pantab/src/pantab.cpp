@@ -112,7 +112,8 @@ public:
     }
 
     const int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
-    inserter_->add(static_cast<T>(value));
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+        static_cast<T>(value));
   }
 };
 
@@ -129,7 +130,8 @@ public:
     }
 
     const double value = ArrowArrayViewGetDoubleUnsafe(&array_view_, idx);
-    inserter_->add(static_cast<T>(value));
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+        static_cast<T>(value));
   }
 };
 
@@ -149,7 +151,7 @@ public:
         ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
     auto result = std::string{buffer_view.data.as_char,
                               static_cast<size_t>(buffer_view.size_bytes)};
-    inserter_->add(result);
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
   }
 };
 
@@ -183,7 +185,7 @@ public:
                       static_cast<int16_t>(1 + utc_tm.tm_mon),
                       static_cast<int16_t>(1 + utc_tm.tm_yday)};
 
-    inserter_->add(dt);
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(dt);
   }
 };
 
@@ -237,11 +239,13 @@ public:
 
     if constexpr (TZAware) {
       hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
-      inserter_->add<hyperapi::OffsetTimestamp>(ts);
+      hyperapi::internal::ValueInserter{*inserter_}.addValue(
+          static_cast<hyperapi::OffsetTimestamp>(ts));
 
     } else {
       hyperapi::Timestamp ts{dt, time};
-      inserter_->add<hyperapi::Timestamp>(ts);
+      hyperapi::internal::ValueInserter{*inserter_}.addValue(
+          static_cast<hyperapi::Timestamp>(ts));
     }
   }
 };
