@@ -49,4 +49,11 @@ if (PANTAB_USE_SANITIZERS)
     add_link_options(-fsanitize=address -fsanitize=undefined)
 endif()
 
+find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+if (CLANG_TIDY_EXE_FOUND)
+  set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-checks=-*,modernize-*")
+else()
+  message("Could not find clang-tidy installation - checks disabled")
+endif()
+
 add_subdirectory(pantab/src)

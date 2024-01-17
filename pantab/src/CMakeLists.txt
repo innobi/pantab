@@ -4,6 +4,7 @@ target_link_libraries(pantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
+set_target_properties(pantab PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 set_target_properties(nanoarrow
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
