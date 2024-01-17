@@ -50,7 +50,10 @@ if (PANTAB_USE_SANITIZERS)
 endif()
 
 find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
-set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-checks=-*,modernize-*")
-
+if (CLANG_TIDY_EXE_FOUND)
+  set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-checks=-*,modernize-*")
+else()
+  message("Could not find clang-tidy installation - checks disabled")
+endif()
 
 add_subdirectory(pantab/src)
