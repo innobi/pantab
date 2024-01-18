@@ -1,7 +1,7 @@
 import pandas as pd
 import pandas.testing as tm
 import pytest
-from tableauhyperapi import TableName
+import tableauhyperapi as tab_api
 
 import pantab
 
@@ -31,7 +31,7 @@ def test_reports_unsupported_type(datapath):
 
 def test_read_non_roundtrippable(datapath):
     result = pantab.frame_from_hyper(
-        datapath / "dates.hyper", table=TableName("Extract", "Extract")
+        datapath / "dates.hyper", table=tab_api.TableName("Extract", "Extract")
     )
     expected = pd.DataFrame(
         [["1900-01-01", "2000-01-01"], [pd.NaT, "2050-01-01"]],
@@ -43,7 +43,8 @@ def test_read_non_roundtrippable(datapath):
 
 def test_reads_non_writeable(datapath):
     result = pantab.frame_from_hyper(
-        datapath / "non_pantab_writeable.hyper", table=TableName("public", "table")
+        datapath / "non_pantab_writeable.hyper",
+        table=tab_api.TableName("public", "table"),
     )
 
     expected = pd.DataFrame(
@@ -84,4 +85,40 @@ def test_empty_read_query(df: pd.DataFrame, roundtripped, tmp_hyper):
     expected = expected.astype(roundtripped.dtypes)
 
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_varchar(tmp_hyper):
+    column_name = "VARCHAR Column"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.varchar(42),
+                nullability=tab_api.NOT_NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([["foo"], ["bar"]])
+                inserter.execute()
+
+    expected = pd.DataFrame(
+        [["foo"], ["bar"]], columns=[column_name], dtype="large_string[pyarrow]"
+    )
+
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     tm.assert_frame_equal(result, expected)
