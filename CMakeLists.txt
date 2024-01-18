@@ -40,7 +40,7 @@ find_package(tableauhyperapi-cxx CONFIG REQUIRED)
 
 FetchContent_Declare(nanoarrow-project
   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
-  GIT_TAG apache-arrow-nanoarrow-0.3.0
+  GIT_TAG b3c952a3e21c2b47df85dbede3444f852614a3e2
 )
 FetchContent_MakeAvailable(nanoarrow-project)
 

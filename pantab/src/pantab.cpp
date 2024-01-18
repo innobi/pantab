@@ -18,6 +18,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
+#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
@@ -668,12 +669,64 @@ auto read_from_hyper_table(const std::string &path, const std::string &schema,
   return std::make_tuple(result, columnNames, pandasDtypes);
 }
 
+static auto releaseArrowStream(void *ptr) noexcept -> void {
+  auto stream = static_cast<ArrowArrayStream *>(ptr);
+  ArrowArrayStreamRelease(stream);
+}
+
+auto get_sample_capsule() -> nb::capsule {
+  auto schema = std::unique_ptr<struct ArrowSchema>{new (struct ArrowSchema)};
+
+  ArrowSchemaInit(schema.get());
+  if (ArrowSchemaSetTypeStruct(schema.get(), 1)) {
+    throw std::runtime_error("ArrowSchemaSetTypeStruct failed");
+  }
+  if (ArrowSchemaSetType(schema->children[0], NANOARROW_TYPE_INT32)) {
+    throw std::runtime_error("ArrowSchemaSetType failed");
+  }
+
+  if (ArrowSchemaSetName(schema->children[0], "int_column")) {
+    throw std::runtime_error("ArrowSchemaSetName failed");
+  }
+
+  auto array = std::unique_ptr<struct ArrowArray>{new (struct ArrowArray)};
+  if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
+    throw std::runtime_error("ArrowSchemaInitFromSchema failed");
+  }
+  if (ArrowArrayStartAppending(array.get())) {
+    throw std::runtime_error("ArrowArrayStartAppending failed");
+  }
+  for (auto i : {1, 2, 4, 8}) {
+    if (ArrowArrayAppendInt(array->children[0], i)) {
+      throw std::runtime_error("ArrowArrayAppendInt failed");
+    }
+    if (ArrowArrayFinishElement(array.get())) {
+      throw std::runtime_error("ArrowArrayFinishElement failed");
+    }
+  }
+  if (ArrowArrayFinishBuildingDefault(array.get(), nullptr)) {
+    throw std::runtime_error("ArrowArrayFinishBuildingDefault failed");
+  }
+
+  auto stream =
+      (struct ArrowArrayStream *)malloc(sizeof(struct ArrowArrayStream));
+  if (ArrowBasicArrayStreamInit(stream, schema.get(), 1)) {
+    free(stream);
+    throw std::runtime_error("ArrowBasicArrayStreamInit failed");
+  }
+  ArrowBasicArrayStreamSetArray(stream, 0, array.get());
+
+  nb::capsule result{stream, "arrow_array_stream", &releaseArrowStream};
+  return result;
+}
+
 NB_MODULE(pantab, m) { // NOLINT
   m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_exportable"),
         nb::arg("path"), nb::arg("table_mode"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
            nb::arg("query"))
       .def("read_from_hyper_table", &read_from_hyper_table, nb::arg("path"),
-           nb::arg("schema"), nb::arg("table"));
+           nb::arg("schema"), nb::arg("table"))
+      .def("get_sample_capsule", &get_sample_capsule);
   PyDateTime_IMPORT;
 }
