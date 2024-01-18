@@ -539,9 +539,10 @@ class DateReadHelper : public ReadHelper {
     const auto arrow_value = raw_value - tableau_to_unix_days;
 
     struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
-    if (!ArrowBufferAppendInt32(data_buffer, arrow_value)) {
+    if (ArrowBufferAppendInt32(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append date32 value");
     }
+    array_->length++;
   }
 };
 
@@ -569,9 +570,10 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
     const auto arrow_value = raw_usec - tableau_to_unix_usec;
 
     struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
-    if (!ArrowBufferAppendInt64(data_buffer, arrow_value)) {
+    if (ArrowBufferAppendInt64(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append timestamp64 value");
     }
+    array_->length++;
   }
 };
 
@@ -700,7 +702,8 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
       throw std::runtime_error("ArrowSchemaViewInit failed");
     }
 
-    read_helpers.push_back(makeReadHelper(&schema_view, array->children[i]));
+    auto read_helper = makeReadHelper(&schema_view, array->children[i]);
+    read_helpers[i] = std::move(read_helper);
   }
 
   if (ArrowArrayStartAppending(array.get())) {

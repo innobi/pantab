@@ -58,7 +58,6 @@ def frame_from_hyper_query(
 ) -> pd.DataFrame:
     """See api.rst for documentation."""
     # Call native library to read tuples from result set
-    df = pd.DataFrame(libpantab.read_from_hyper_query(str(source), query))
     capsule = libpantab.read_from_hyper_query(str(source), query)
     stream = pa.RecordBatchReader._import_from_c_capsule(capsule)
     df = stream.read_pandas()
