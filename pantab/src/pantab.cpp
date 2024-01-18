@@ -615,36 +615,22 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
   }
 }
 
-static auto
-arrowTypeFromHyper(const hyperapi::SqlType &sqltype) -> enum ArrowType {
-  if (sqltype == hyperapi::SqlType::smallInt()){return NANOARROW_TYPE_INT16;}
-else if (sqltype == hyperapi::SqlType::integer()) {
-  return NANOARROW_TYPE_INT32;
-}
-else if (sqltype == hyperapi::SqlType::bigInt()) {
-  return NANOARROW_TYPE_INT64;
-}
-else if (sqltype == hyperapi::SqlType::doublePrecision()) {
-  return NANOARROW_TYPE_DOUBLE;
-}
-else if (sqltype == hyperapi::SqlType::text()) {
-  return NANOARROW_TYPE_LARGE_STRING;
-}
-else if (sqltype == hyperapi::SqlType::boolean()) {
-  return NANOARROW_TYPE_BOOL;
-}
-else if (sqltype == hyperapi::SqlType::timestamp()) {
-  return NANOARROW_TYPE_TIMESTAMP;
-}
-else if (sqltype == hyperapi::SqlType::timestampTZ()) {
-  return NANOARROW_TYPE_TIMESTAMP; // todo: how to encode tz info?
-}
-else if (sqltype == hyperapi::SqlType::date()) {
-  return NANOARROW_TYPE_DATE32;
-}
-
-throw nb::type_error(
-    ("unimplemented pandas dtype for type: " + sqltype.toString()).c_str());
+static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
+    -> enum ArrowType {
+      switch (sqltype.getTag()){
+        case hyperapi::TypeTag::SmallInt : return NANOARROW_TYPE_INT16;
+        case hyperapi::TypeTag::Int : return NANOARROW_TYPE_INT32;
+        case hyperapi::TypeTag::BigInt : return NANOARROW_TYPE_INT64;
+        case hyperapi::TypeTag::Double : return NANOARROW_TYPE_DOUBLE;
+        case hyperapi::TypeTag::Varchar : case hyperapi::TypeTag::Char :
+            case hyperapi::TypeTag::Text : return NANOARROW_TYPE_LARGE_STRING;
+        case hyperapi::TypeTag::Bool : return NANOARROW_TYPE_BOOL;
+        case hyperapi::TypeTag::Date : return NANOARROW_TYPE_DATE32;
+        case hyperapi::TypeTag::Timestamp : case hyperapi::TypeTag::
+        TimestampTZ : return NANOARROW_TYPE_TIMESTAMP;
+        default : throw nb::type_error(
+            ("Reader not implemented for type: " + sqltype.toString()).c_str());
+      }
 }
 
 static auto releaseArrowStream(void *ptr) noexcept -> void {
