@@ -649,8 +649,9 @@ throw nb::type_error(
 
 static auto releaseArrowStream(void *ptr) noexcept -> void {
   auto stream = static_cast<ArrowArrayStream *>(ptr);
-  // TODO: this probably leaks?
-  // ArrowArrayStreamRelease(stream);
+  if (stream->release != nullptr) {
+    ArrowArrayStreamRelease(stream);
+  }
 }
 
 ///
