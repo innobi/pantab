@@ -542,6 +542,11 @@ class DateReadHelper : public ReadHelper {
     if (ArrowBufferAppendInt32(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append date32 value");
     }
+
+    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array_);
+    if (ArrowBitmapAppend(validity_bitmap, true, 1)) {
+      throw std::runtime_error("Could not append validity buffer for date32");
+    };
     array_->length++;
   }
 };
@@ -573,6 +578,12 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
     if (ArrowBufferAppendInt64(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append timestamp64 value");
     }
+
+    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array_);
+    if (ArrowBitmapAppend(validity_bitmap, true, 1)) {
+      throw std::runtime_error(
+          "Could not append validity buffer for timestamp");
+    };
     array_->length++;
   }
 };
@@ -638,7 +649,8 @@ throw nb::type_error(
 
 static auto releaseArrowStream(void *ptr) noexcept -> void {
   auto stream = static_cast<ArrowArrayStream *>(ptr);
-  ArrowArrayStreamRelease(stream);
+  // TODO: this probably leaks?
+  // ArrowArrayStreamRelease(stream);
 }
 
 ///

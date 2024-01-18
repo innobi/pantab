@@ -60,6 +60,7 @@ def frame_from_hyper_query(
     # Call native library to read tuples from result set
     capsule = libpantab.read_from_hyper_query(str(source), query)
     stream = pa.RecordBatchReader._import_from_c_capsule(capsule)
-    df = stream.read_pandas()
+    tbl = stream.read_all()
+    df = tbl.to_pandas(types_mapper=pd.ArrowDtype)
 
     return df

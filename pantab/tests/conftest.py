@@ -170,14 +170,14 @@ def roundtripped():
             "datetime64": "timestamp[us][pyarrow]",
             "datetime64_utc": "timestamp[us, UTC][pyarrow]",
             # "timedelta64": "timedelta64[ns]",
-            "object": "string[pyarrow]",
+            "object": "large_string[pyarrow]",
             "int16_limits": "int16[pyarrow]",
             "int32_limits": "int32[pyarrow]",
             "int64_limits": "int64[pyarrow]",
             "float32_limits": "double[pyarrow]",
             "float64_limits": "double[pyarrow]",
-            "non-ascii": "string[pyarrow]",
-            "string": "string[pyarrow]",
+            "non-ascii": "large_string[pyarrow]",
+            "string": "large_string[pyarrow]",
         }
     )
     return df
