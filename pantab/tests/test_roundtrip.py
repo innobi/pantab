@@ -15,10 +15,6 @@ def test_basic(df, roundtripped, tmp_hyper, table_name, table_mode):
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
-        # TODO: somehow concat turns string[pyarrow] into string python
-        for col in ("object", "non-ascii", "string"):
-            expected[col] = expected[col].astype("string[pyarrow]")
-
     tm.assert_frame_equal(result, expected)
 
 
@@ -35,10 +31,6 @@ def test_multiple_tables(df, roundtripped, tmp_hyper, table_name, table_mode):
     expected = roundtripped
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
-
-        # TODO: somehow concat turns string[pyarrow] into string python
-        for col in ("object", "non-ascii", "string"):
-            expected[col] = expected[col].astype("string[pyarrow]")
 
     # some test trickery here
     if not isinstance(table_name, TableName) or table_name.schema_name is None:

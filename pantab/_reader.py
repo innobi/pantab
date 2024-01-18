@@ -4,6 +4,7 @@ import tempfile
 from typing import Dict, Optional, Union
 
 import pandas as pd
+import pyarrow as pa
 import tableauhyperapi as tab_api
 
 import pantab.src.pantab as libpantab  # type: ignore
@@ -20,25 +21,8 @@ def frame_from_hyper(
     if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
         table = tab_api.TableName("public", table)
 
-    data, columns, dtypes = libpantab.read_from_hyper_table(
-        str(source),
-        table.schema_name.name.unescaped,  # TODO: this probably allows injection
-        table.name.unescaped,
-    )
-    df = pd.DataFrame(data, columns=columns)
-    dtype_map = {k: v for k, v in zip(columns, dtypes) if v != "datetime64[ns, UTC]"}
-    df = df.astype(dtype_map)
-
-    tz_aware_columns = {
-        col for col, dtype in zip(columns, dtypes) if dtype == "datetime64[ns, UTC]"
-    }
-    for col in tz_aware_columns:
-        try:
-            df[col] = df[col].dt.tz_localize("UTC")
-        except AttributeError:  # happens when df[col] is empty
-            df[col] = df[col].astype("datetime64[ns, UTC]")
-
-    return df
+    query = f"SELECT * FROM {table}"
+    return frame_from_hyper_query(source, query)
 
 
 def frames_from_hyper(
@@ -74,19 +58,9 @@ def frame_from_hyper_query(
 ) -> pd.DataFrame:
     """See api.rst for documentation."""
     # Call native library to read tuples from result set
-    df = pd.DataFrame(libpantab.read_from_hyper_query(str(source), query))
-    data, columns, dtypes = libpantab.read_from_hyper_query(str(source), query)
-    df = pd.DataFrame(data, columns=columns)
-    dtype_map = {k: v for k, v in zip(columns, dtypes) if v != "datetime64[ns, UTC]"}
-    df = df.astype(dtype_map)
-
-    tz_aware_columns = {
-        col for col, dtype in zip(columns, dtypes) if dtype == "datetime64[ns, UTC]"
-    }
-    for col in tz_aware_columns:
-        try:
-            df[col] = df[col].dt.tz_localize("UTC")
-        except AttributeError:  # happens when df[col] is empty
-            df[col] = df[col].astype("datetime64[ns, UTC]")
+    capsule = libpantab.read_from_hyper_query(str(source), query)
+    stream = pa.RecordBatchReader._import_from_c_capsule(capsule)
+    tbl = stream.read_all()
+    df = tbl.to_pandas(types_mapper=pd.ArrowDtype)
 
     return df

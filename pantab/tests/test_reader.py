@@ -54,7 +54,7 @@ def test_reads_non_writeable(datapath):
         "double[pyarrow]"
     )
     expected["Non-Nullable String"] = expected["Non-Nullable String"].astype(
-        "string[pyarrow]"
+        "large_string[pyarrow]"
     )
 
     tm.assert_frame_equal(result, expected)
@@ -67,7 +67,7 @@ def test_read_query(df, tmp_hyper):
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
 
     expected = pd.DataFrame([[1, "_2"], [6, "_7"], [0, "_0"]], columns=["i", "_i2"])
-    expected = expected.astype({"i": "int16[pyarrow]", "_i2": "string[pyarrow]"})
+    expected = expected.astype({"i": "int16[pyarrow]", "_i2": "large_string[pyarrow]"})
 
     tm.assert_frame_equal(result, expected)
 
