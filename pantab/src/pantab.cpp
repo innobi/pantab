@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstddef>
+#include <hyperapi/SqlType.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -18,6 +19,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
+#include "nanoarrow/nanoarrow.h"
 #include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
@@ -441,237 +443,294 @@ void write_to_hyper(
 
 class ReadHelper {
 public:
-  ReadHelper() = default;
+  ReadHelper(struct ArrowArray *array) : array_(array) {}
   virtual ~ReadHelper() = default;
-  virtual auto Read(const hyperapi::Value &) -> nb::object = 0;
+  virtual auto Read(const hyperapi::Value &) -> void = 0;
+
+protected:
+  struct ArrowArray *array_;
 };
 
 class IntegralReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
-    return nb::int_(value.get<int64_t>());
+    if (ArrowArrayAppendInt(array_, value.get<int64_t>())) {
+      throw std::runtime_error("ArrowAppendInt failed");
+    };
   }
 };
 
 class FloatReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
-    return nb::float_(value.get<double>());
+    if (ArrowArrayAppendDouble(array_, value.get<double>())) {
+      throw std::runtime_error("ArrowAppendDouble failed");
+    };
   }
 };
 
 class BooleanReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
-    // TODO: bool support added in nanobind >= 1..9.0
-    // return nb::bool_(value.get<bool>());
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
-    return nb::int_(value.get<bool>());
+    if (ArrowArrayAppendInt(array_, value.get<bool>())) {
+      throw std::runtime_error("ArrowAppendBool failed");
+    };
   }
 };
 
 class StringReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
-    return nb::str(value.get<std::string>().c_str());
+
+    const auto strval = value.get<std::string>();
+    const ArrowStringView string_view{strval.c_str(),
+                                      static_cast<int64_t>(strval.size())};
+
+    if (ArrowArrayAppendString(array_, string_view)) {
+      throw std::runtime_error("ArrowAppendString failed");
+    };
   }
 };
 
 class DateReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
 
+    // TODO: need some bounds /overflow checking
+    // tableau uses uint32 but we have int32
+    constexpr int32_t tableau_to_unix_days = 2440588;
     const auto hyper_date = value.get<hyperapi::Date>();
-    const auto year = hyper_date.getYear();
-    const auto month = hyper_date.getMonth();
-    const auto day = hyper_date.getDay();
+    const auto raw_value = static_cast<int32_t>(hyper_date.getRaw());
+    const auto arrow_value = raw_value - tableau_to_unix_days;
 
-    PyObject *result = PyDate_FromDate(year, month, day);
-    if (result == nullptr) {
-      throw std::invalid_argument("could not parse date");
+    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
+    if (!ArrowBufferAppendInt32(data_buffer, arrow_value)) {
+      throw std::runtime_error("Failed to append date32 value");
     }
-    return nb::object(result, nb::detail::steal_t{});
   }
 };
 
 template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
-  auto Read(const hyperapi::Value &value) -> nb::object override {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      return nb::none();
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
     }
 
     using timestamp_t =
         typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
                                   hyperapi::Timestamp>::type;
     const auto hyper_ts = value.get<timestamp_t>();
-    const auto hyper_date = hyper_ts.getDate();
-    const auto hyper_time = hyper_ts.getTime();
-    const auto year = hyper_date.getYear();
-    const auto month = hyper_date.getMonth();
-    const auto day = hyper_date.getDay();
-    const auto hour = hyper_time.getHour();
-    const auto min = hyper_time.getMinute();
-    const auto sec = hyper_time.getSecond();
-    const auto usec = hyper_time.getMicrosecond();
 
-    PyObject *result =
-        PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, usec);
-    if (result == nullptr) {
-      throw std::invalid_argument("could not parse timestamp");
+    // TODO: need some bounds /overflow checking
+    // tableau uses uint64 but we have int64
+    constexpr int64_t tableau_to_unix_usec =
+        2440588LL * 24 * 60 * 60 * 1000 * 1000;
+    const auto raw_usec = static_cast<int64_t>(hyper_ts.getRaw());
+    const auto arrow_value = raw_usec - tableau_to_unix_usec;
+
+    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
+    if (!ArrowBufferAppendInt64(data_buffer, arrow_value)) {
+      throw std::runtime_error("Failed to append timestamp64 value");
     }
-    return nb::object(result, nb::detail::steal_t{});
   }
 };
 
-static auto makeReadHelper(hyperapi::SqlType sqltype)
+static auto makeReadHelper(const ArrowSchemaView *schema_view,
+                           struct ArrowArray *array)
     -> std::unique_ptr<ReadHelper> {
-  if ((sqltype == hyperapi::SqlType::smallInt()) ||
-      (sqltype == hyperapi::SqlType::integer()) ||
-      (sqltype == hyperapi::SqlType::bigInt())) {
-    return std::unique_ptr<ReadHelper>(new IntegralReadHelper());
-  } else if (sqltype == hyperapi::SqlType::doublePrecision()) {
-    return std::unique_ptr<ReadHelper>(new FloatReadHelper());
-  } else if ((sqltype == hyperapi::SqlType::text())) {
-    return std::unique_ptr<ReadHelper>(new StringReadHelper());
-  } else if (sqltype == hyperapi::SqlType::boolean()) {
-    return std::unique_ptr<ReadHelper>(new BooleanReadHelper());
-  } else if (sqltype == hyperapi::SqlType::date()) {
-    return std::unique_ptr<ReadHelper>(new DateReadHelper());
-  } else if (sqltype == hyperapi::SqlType::timestamp()) {
-    return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<false>());
-  } else if (sqltype == hyperapi::SqlType::timestampTZ()) {
-    return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<true>());
+  switch (schema_view->type) {
+  case NANOARROW_TYPE_INT16:
+  case NANOARROW_TYPE_INT32:
+  case NANOARROW_TYPE_INT64:
+    return std::unique_ptr<ReadHelper>(new IntegralReadHelper(array));
+  case NANOARROW_TYPE_DOUBLE:
+    return std::unique_ptr<ReadHelper>(new FloatReadHelper(array));
+  case NANOARROW_TYPE_LARGE_STRING:
+    return std::unique_ptr<ReadHelper>(new StringReadHelper(array));
+  case NANOARROW_TYPE_BOOL:
+    return std::unique_ptr<ReadHelper>(new BooleanReadHelper(array));
+  case NANOARROW_TYPE_DATE32:
+    return std::unique_ptr<ReadHelper>(new DateReadHelper(array));
+  case NANOARROW_TYPE_TIMESTAMP:
+    if (strcmp("", schema_view->timezone)) {
+      return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<true>(array));
+    } else {
+      return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<false>(array));
+    }
+  default:
+    throw nb::type_error("unknownn arrow type provided");
   }
-
-  throw nb::type_error(("cannot read sql type: " + sqltype.toString()).c_str());
 }
 
-static auto pandasDtypeFromHyper(const hyperapi::SqlType &sqltype)
-    -> std::string {
-  if (sqltype == hyperapi::SqlType::smallInt()) {
-    return "int16[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::integer()) {
-    return "int32[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::bigInt()) {
-    return "int64[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::doublePrecision()) {
-    return "double[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::text()) {
-    return "string[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::boolean()) {
-    return "boolean[pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::timestamp()) {
-    return "timestamp[us][pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::timestampTZ()) {
-    return "timestamp[us, UTC][pyarrow]";
-  } else if (sqltype == hyperapi::SqlType::date()) {
-    return "date32[pyarrow]";
-  }
-
-  throw nb::type_error(
-      ("unimplemented pandas dtype for type: " + sqltype.toString()).c_str());
+static auto
+arrowTypeFromHyper(const hyperapi::SqlType &sqltype) -> enum ArrowType {
+  if (sqltype == hyperapi::SqlType::smallInt()){return NANOARROW_TYPE_INT16;}
+else if (sqltype == hyperapi::SqlType::integer()) {
+  return NANOARROW_TYPE_INT32;
+}
+else if (sqltype == hyperapi::SqlType::bigInt()) {
+  return NANOARROW_TYPE_INT64;
+}
+else if (sqltype == hyperapi::SqlType::doublePrecision()) {
+  return NANOARROW_TYPE_DOUBLE;
+}
+else if (sqltype == hyperapi::SqlType::text()) {
+  return NANOARROW_TYPE_LARGE_STRING;
+}
+else if (sqltype == hyperapi::SqlType::boolean()) {
+  return NANOARROW_TYPE_BOOL;
+}
+else if (sqltype == hyperapi::SqlType::timestamp()) {
+  return NANOARROW_TYPE_TIMESTAMP;
+}
+else if (sqltype == hyperapi::SqlType::timestampTZ()) {
+  return NANOARROW_TYPE_TIMESTAMP; // todo: how to encode tz info?
+}
+else if (sqltype == hyperapi::SqlType::date()) {
+  return NANOARROW_TYPE_DATE32;
 }
 
-using ColumnNames = std::vector<std::string>;
-using ResultBody = std::vector<std::vector<nb::object>>;
-// In a future version of pantab it would be nice to not require pandas dtypes
-// However, the current reader just creates PyObjects and loses that information
-// when passing back to the Python runtime; hence the explicit passing
-using PandasDtypes = std::vector<std::string>;
+throw nb::type_error(
+    ("unimplemented pandas dtype for type: " + sqltype.toString()).c_str());
+}
+
+static auto releaseArrowStream(void *ptr) noexcept -> void {
+  auto stream = static_cast<ArrowArrayStream *>(ptr);
+  ArrowArrayStreamRelease(stream);
+}
+
 ///
 /// read_from_hyper_query is slightly different than read_from_hyper_table
 /// because the former detects a schema from the hyper Result object
 /// which does not hold nullability information
 ///
 auto read_from_hyper_query(const std::string &path, const std::string &query)
-    -> std::tuple<ResultBody, ColumnNames, PandasDtypes> {
-  std::vector<std::vector<nb::object>> result;
+    -> nb::capsule {
   hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
-
-  std::vector<std::string> columnNames;
-  std::vector<std::string> pandasDtypes;
-  std::vector<std::unique_ptr<ReadHelper>> read_helpers;
 
   hyperapi::Result hyperResult = connection.executeQuery(query);
   const auto resultSchema = hyperResult.getSchema();
-  for (const auto &column : resultSchema.getColumns()) {
-    read_helpers.push_back(makeReadHelper(column.getType()));
-    auto name = column.getName().getUnescaped();
-    columnNames.push_back(name);
 
-    // the query result set does not tell us if columns are nullable or not
+  auto schema = std::unique_ptr<struct ArrowSchema>{new (struct ArrowSchema)};
+
+  ArrowSchemaInit(schema.get());
+  if (ArrowSchemaSetTypeStruct(schema.get(), resultSchema.getColumnCount())) {
+    throw std::runtime_error("ArrowSchemaSetTypeStruct failed");
+  }
+
+  const auto column_count = resultSchema.getColumnCount();
+  for (size_t i = 0; i < column_count; i++) {
+    const auto column = resultSchema.getColumn(i);
+    auto name = column.getName().getUnescaped();
+    if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
+      throw std::runtime_error("ArrowSchemaSetName failed");
+    }
+
     auto const sqltype = column.getType();
-    pandasDtypes.push_back(pandasDtypeFromHyper(sqltype));
+    if (sqltype.getTag() == hyperapi::TypeTag::TimestampTZ) {
+      if (ArrowSchemaSetTypeDateTime(schema->children[i],
+                                     NANOARROW_TYPE_TIMESTAMP,
+                                     NANOARROW_TIME_UNIT_MICRO, "UTC")) {
+        throw std::runtime_error("ArrowSchemaSetDateTime failed");
+      }
+    } else if (sqltype.getTag() == hyperapi::TypeTag::Timestamp) {
+      if (ArrowSchemaSetTypeDateTime(schema->children[i],
+                                     NANOARROW_TYPE_TIMESTAMP,
+                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
+        throw std::runtime_error("ArrowSchemaSetDateTime failed");
+      }
+    } else {
+      const enum ArrowType arrow_type = arrowTypeFromHyper(sqltype);
+      if (ArrowSchemaSetType(schema->children[i], arrow_type)) {
+        throw std::runtime_error("ArrowSchemaSetType failed");
+      }
+    }
+  }
+
+  auto array = std::unique_ptr<struct ArrowArray>{new (struct ArrowArray)};
+  if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
+    throw std::runtime_error("ArrowSchemaInitFromSchema failed");
+  }
+  std::vector<std::unique_ptr<ReadHelper>> read_helpers{column_count};
+  for (size_t i = 0; i < column_count; i++) {
+    struct ArrowSchemaView schema_view;
+    if (ArrowSchemaViewInit(&schema_view, schema->children[i], nullptr)) {
+      throw std::runtime_error("ArrowSchemaViewInit failed");
+    }
+
+    read_helpers.push_back(makeReadHelper(&schema_view, array->children[i]));
+  }
+
+  if (ArrowArrayStartAppending(array.get())) {
+    throw std::runtime_error("ArrowArrayStartAppending failed");
   }
   for (const hyperapi::Row &row : hyperResult) {
-    std::vector<nb::object> rowdata;
     size_t column_idx = 0;
     for (const hyperapi::Value &value : row) {
       const auto &read_helper = read_helpers[column_idx];
-      rowdata.push_back(read_helper->Read(value));
+      read_helper->Read(value);
       column_idx++;
     }
-    result.push_back(rowdata);
-  }
-
-  return std::make_tuple(result, columnNames, pandasDtypes);
-}
-
-auto read_from_hyper_table(const std::string &path, const std::string &schema,
-                           const std::string &table)
-    -> std::tuple<ResultBody, ColumnNames, PandasDtypes> {
-  std::vector<std::vector<nb::object>> result;
-  hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau};
-  hyperapi::Connection connection(hyper.getEndpoint(), path);
-  hyperapi::TableName extractTable{schema, table};
-  const hyperapi::Catalog &catalog = connection.getCatalog();
-  const hyperapi::TableDefinition tableDef =
-      catalog.getTableDefinition(extractTable);
-
-  std::vector<std::string> columnNames;
-  std::vector<std::string> pandasDtypes;
-  std::vector<std::unique_ptr<ReadHelper>> read_helpers;
-
-  for (auto &column : tableDef.getColumns()) {
-    read_helpers.push_back(makeReadHelper(column.getType()));
-    auto name = column.getName().getUnescaped();
-    columnNames.push_back(name);
-
-    auto const sqltype = column.getType();
-    pandasDtypes.push_back(pandasDtypeFromHyper(sqltype));
-  }
-
-  hyperapi::Result hyperResult =
-      connection.executeQuery("SELECT * FROM " + extractTable.toString());
-  for (const hyperapi::Row &row : hyperResult) {
-    std::vector<nb::object> rowdata;
-    size_t column_idx = 0;
-    for (const hyperapi::Value &value : row) {
-      const auto &read_helper = read_helpers[column_idx];
-      rowdata.push_back(read_helper->Read(value));
-      column_idx++;
+    if (ArrowArrayFinishElement(array.get())) {
+      throw std::runtime_error("ArrowArrayFinishElement failed");
     }
-    result.push_back(rowdata);
+  }
+  if (ArrowArrayFinishBuildingDefault(array.get(), nullptr)) {
+    throw std::runtime_error("ArrowArrayFinishBuildingDefault failed");
   }
 
-  return std::make_tuple(result, columnNames, pandasDtypes);
-}
+  auto stream =
+      (struct ArrowArrayStream *)malloc(sizeof(struct ArrowArrayStream));
+  if (ArrowBasicArrayStreamInit(stream, schema.get(), 1)) {
+    free(stream);
+    throw std::runtime_error("ArrowBasicArrayStreamInit failed");
+  }
+  ArrowBasicArrayStreamSetArray(stream, 0, array.get());
 
-static auto releaseArrowStream(void *ptr) noexcept -> void {
-  auto stream = static_cast<ArrowArrayStream *>(ptr);
-  ArrowArrayStreamRelease(stream);
+  nb::capsule result{stream, "arrow_array_stream", &releaseArrowStream};
+  return result;
 }
 
 auto get_sample_capsule() -> nb::capsule {
@@ -725,8 +784,6 @@ NB_MODULE(pantab, m) { // NOLINT
         nb::arg("path"), nb::arg("table_mode"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
            nb::arg("query"))
-      .def("read_from_hyper_table", &read_from_hyper_table, nb::arg("path"),
-           nb::arg("schema"), nb::arg("table"))
       .def("get_sample_capsule", &get_sample_capsule);
   PyDateTime_IMPORT;
 }
