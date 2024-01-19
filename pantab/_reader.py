@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 import tempfile
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -27,9 +27,9 @@ def frame_from_hyper(
 
 def frames_from_hyper(
     source: Union[str, pathlib.Path],
-) -> Dict[tab_api.TableName, pd.DataFrame]:
+) -> dict[tab_api.TableName, pd.DataFrame]:
     """See api.rst for documentation."""
-    result: Dict[TableType, pd.DataFrame] = {}
+    result: dict[TableType, pd.DataFrame] = {}
 
     table_names = []
     with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
