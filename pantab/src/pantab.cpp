@@ -1,10 +1,5 @@
 #include <chrono>
-#include <cstddef>
-#include <hyperapi/SqlType.hpp>
-#include <memory>
-#include <stdexcept>
 #include <string>
-#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -12,15 +7,11 @@
 #include <hyperapi/impl/Inserter.impl.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/chrono.h>
 #include <nanobind/stl/map.h>
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/vector.h>
 
-#include "nanoarrow/nanoarrow.h"
-#include "nanoarrow/nanoarrow_types.h"
+#include "datetime.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
@@ -511,10 +502,10 @@ class StringReadHelper : public ReadHelper {
     }
 
     const auto strval = value.get<std::string>();
-    const ArrowStringView string_view{strval.c_str(),
-                                      static_cast<int64_t>(strval.size())};
+    const ArrowStringView arrow_string_view{
+        strval.c_str(), static_cast<int64_t>(strval.size())};
 
-    if (ArrowArrayAppendString(array_, string_view)) {
+    if (ArrowArrayAppendString(array_, arrow_string_view)) {
       throw std::runtime_error("ArrowAppendString failed");
     };
   }
