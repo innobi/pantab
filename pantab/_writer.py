@@ -2,7 +2,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -33,7 +33,7 @@ def frame_to_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: Dict[pantab_types.TableType, pd.DataFrame],
+    dict_of_frames: dict[pantab_types.TableType, pd.DataFrame],
     database: Union[str, pathlib.Path],
     table_mode: str = "w",
     *,
