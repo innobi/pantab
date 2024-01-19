@@ -39,3 +39,16 @@ def test_multiple_tables(df, roundtripped, tmp_hyper, table_name, table_mode):
     assert set(result.keys()) == set((table_name, TableName("public", "table2")))
     for val in result.values():
         tm.assert_frame_equal(val, expected)
+
+
+def test_empty_roundtrip(df, roundtripped, tmp_hyper, table_name, table_mode):
+    # object case is by definition vague, so lets punt that for now
+    df = df.drop(columns=["object"])
+    empty = df.iloc[:0]
+    pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+
+    expected = roundtripped.iloc[:0]
+    expected = expected.drop(columns=["object"])
+    tm.assert_frame_equal(result, expected)
