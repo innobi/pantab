@@ -136,7 +136,7 @@ def get_basic_dataframe():
             "int64_limits": np.int64,
             "float32_limits": np.float64,
             "float64_limits": np.float64,
-            "non-ascii": "object",
+            "non-ascii": "string",
         }
     )
 
