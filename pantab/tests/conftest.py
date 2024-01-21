@@ -144,6 +144,14 @@ def get_basic_dataframe():
     # See pandas GH issue #56994
     df["binary"] = pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None], type=pa.binary())
     df["binary"] = df["binary"].astype("binary[pyarrow]")
+    df["interval"] = pa.array(
+        [
+            pa.scalar((1, 15, -30000), type=pa.month_day_nano_interval()),
+            pa.scalar((-1, -15, 30000), type=pa.month_day_nano_interval()),
+            None,
+        ]
+    )
+    df["interval"] = df["interval"].astype("month_day_nano_interval[pyarrow]")
 
     return df
 
@@ -184,6 +192,7 @@ def roundtripped():
             "non-ascii": "large_string[pyarrow]",
             "string": "large_string[pyarrow]",
             "binary": "large_binary[pyarrow]",
+            "interval": "month_day_nano_interval[pyarrow]",
         }
     )
     return df

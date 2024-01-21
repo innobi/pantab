@@ -14,6 +14,7 @@ def test_basic(df, roundtripped, tmp_hyper, table_name, table_mode):
     expected = roundtripped
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
+    breakpoint()
 
     tm.assert_frame_equal(result, expected)
 
