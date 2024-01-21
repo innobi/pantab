@@ -12,7 +12,6 @@
 #include <nanobind/stl/tuple.h>
 
 #include "datetime.h"
-#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
