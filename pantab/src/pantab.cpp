@@ -141,8 +141,13 @@ public:
 
     const struct ArrowBufferView buffer_view =
         ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
+#if defined(_WIN32) && defined(_MSC_VER)
     const auto result = std::string_view{
         buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+#else
+    const auto result = std::string{
+        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+#endif
     hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
   }
 };
