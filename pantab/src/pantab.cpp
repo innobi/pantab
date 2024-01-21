@@ -63,12 +63,9 @@ public:
                const struct ArrowArray *chunk, const struct ArrowSchema *schema,
                struct ArrowError *error, int64_t column_position)
       : inserter_(std::move(inserter)), chunk_(chunk), schema_(schema),
-        error_(error), column_position_(column_position) {}
-
-  virtual ~InsertHelper() = default;
-
-  void Init() {
-    struct ArrowSchema *child_schema = schema_->children[column_position_];
+        error_(error), column_position_(column_position) {
+    const struct ArrowSchema *child_schema =
+        schema_->children[column_position_];
 
     if (ArrowArrayViewInitFromSchema(&array_view_, child_schema, error_) != 0) {
       throw std::runtime_error("Could not construct insert helper: " +
@@ -82,6 +79,7 @@ public:
     }
   }
 
+  virtual ~InsertHelper() = default;
   virtual void insertValueAtIndex(size_t) {}
 
 protected:
@@ -141,10 +139,10 @@ public:
       return;
     }
 
-    struct ArrowBufferView buffer_view =
+    const struct ArrowBufferView buffer_view =
         ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
-    auto result = std::string{buffer_view.data.as_char,
-                              static_cast<size_t>(buffer_view.size_bytes)};
+    const auto result = std::string{
+        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
     hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
   }
 };
@@ -155,7 +153,6 @@ public:
 
   void insertValueAtIndex(size_t idx) override {
     constexpr size_t elem_size = sizeof(int32_t);
-    int32_t value;
     if (ArrowArrayViewIsNull(&array_view_, idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
@@ -163,6 +160,7 @@ public:
       return;
     }
 
+    int32_t value;
     memcpy(&value,
            array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
@@ -175,9 +173,9 @@ public:
     const auto tt = std::chrono::system_clock::to_time_t(tp);
 
     const struct tm utc_tm = *std::gmtime(&tt);
-    hyperapi::Date dt{1900 + utc_tm.tm_year,
-                      static_cast<int16_t>(1 + utc_tm.tm_mon),
-                      static_cast<int16_t>(1 + utc_tm.tm_yday)};
+    const hyperapi::Date dt{1900 + utc_tm.tm_year,
+                            static_cast<int16_t>(1 + utc_tm.tm_mon),
+                            static_cast<int16_t>(1 + utc_tm.tm_yday)};
 
     hyperapi::internal::ValueInserter{*inserter_}.addValue(dt);
   }
@@ -196,8 +194,8 @@ public:
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
-    int64_t value;
 
+    int64_t value;
     memcpy(&value,
            array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
@@ -224,20 +222,20 @@ public:
     if (ret != 0) {
       throw std::invalid_argument("could not convert datetime value ");
     }
-    hyperapi::Date dt{static_cast<int32_t>(dts.year),
-                      static_cast<int16_t>(dts.month),
-                      static_cast<int16_t>(dts.day)};
-    hyperapi::Time time{static_cast<int8_t>(dts.hour),
-                        static_cast<int8_t>(dts.min),
-                        static_cast<int8_t>(dts.sec), dts.us};
+    const hyperapi::Date dt{static_cast<int32_t>(dts.year),
+                            static_cast<int16_t>(dts.month),
+                            static_cast<int16_t>(dts.day)};
+    const hyperapi::Time time{static_cast<int8_t>(dts.hour),
+                              static_cast<int8_t>(dts.min),
+                              static_cast<int8_t>(dts.sec), dts.us};
 
     if constexpr (TZAware) {
-      hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
+      const hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
       hyperapi::internal::ValueInserter{*inserter_}.addValue(
           static_cast<hyperapi::OffsetTimestamp>(ts));
 
     } else {
-      hyperapi::Timestamp ts{dt, time};
+      const hyperapi::Timestamp ts{dt, time};
       hyperapi::internal::ValueInserter{*inserter_}.addValue(
           static_cast<hyperapi::Timestamp>(ts));
     }
@@ -344,7 +342,7 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::object> &dict_of_exportable,
     const std::string &path, const std::string &table_mode) {
-  hyperapi::HyperProcess hyper{
+  const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
 
   // TODO: we don't have separate table / database create modes in the API
@@ -359,13 +357,13 @@ void write_to_hyper(
   for (auto const &[schema_and_table, exportable] : dict_of_exportable) {
     const auto hyper_schema = std::get<0>(schema_and_table);
     const auto hyper_table = std::get<1>(schema_and_table);
-    auto arrow_c_stream = nb::getattr(exportable, "__arrow_c_stream__")();
+    const auto arrow_c_stream = nb::getattr(exportable, "__arrow_c_stream__")();
 
     PyObject *obj = arrow_c_stream.ptr();
     if (!PyCapsule_CheckExact(obj)) {
       throw std::invalid_argument("Object does not provide capsule");
     }
-    auto c_stream = static_cast<struct ArrowArrayStream *>(
+    const auto c_stream = static_cast<struct ArrowArrayStream *>(
         PyCapsule_GetPointer(obj, "arrow_array_stream"));
     auto stream = nanoarrow::UniqueArrayStream{c_stream};
 
@@ -376,29 +374,27 @@ void write_to_hyper(
     }
 
     struct ArrowError error;
-    auto names_vec = std::vector<std::string>{};
     std::vector<hyperapi::TableDefinition::Column> hyper_columns;
-
     for (int64_t i = 0; i < schema.n_children; i++) {
       const auto hypertype =
           hyperTypeFromArrowSchema(schema.children[i], &error);
       const auto name = std::string{schema.children[i]->name};
-      names_vec.push_back(name);
 
       // Almost all arrow types are nullable
       hyper_columns.emplace_back(hyperapi::TableDefinition::Column{
           name, hypertype, hyperapi::Nullability::Nullable});
     }
 
-    hyperapi::TableName table_name{hyper_schema, hyper_table};
-    hyperapi::TableDefinition tableDef{table_name, hyper_columns};
+    const hyperapi::TableName table_name{hyper_schema, hyper_table};
+    const hyperapi::TableDefinition tableDef{table_name, hyper_columns};
     catalog.createSchemaIfNotExists(*table_name.getSchemaName());
     if (table_mode == "w") {
       catalog.createTable(tableDef);
     } else if (table_mode == "a") {
       catalog.createTableIfNotExists(tableDef);
     }
-    auto inserter = std::make_shared<hyperapi::Inserter>(connection, tableDef);
+    const auto inserter =
+        std::make_shared<hyperapi::Inserter>(connection, tableDef);
 
     struct ArrowArray chunk;
     int errcode;
@@ -416,7 +412,6 @@ void write_to_hyper(
         auto insert_helper =
             makeInsertHelper(inserter, &chunk, &schema, &error, i);
 
-        insert_helper->Init();
         insert_helpers.push_back(std::move(insert_helper));
       }
 
@@ -638,11 +633,11 @@ static auto releaseArrowStream(void *ptr) noexcept -> void {
 ///
 auto read_from_hyper_query(const std::string &path, const std::string &query)
     -> nb::capsule {
-  hyperapi::HyperProcess hyper{
+  const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
 
-  hyperapi::Result hyperResult = connection.executeQuery(query);
+  auto hyperResult = connection.executeQuery(query);
   const auto resultSchema = hyperResult.getSchema();
 
   auto schema = std::unique_ptr<struct ArrowSchema>{new (struct ArrowSchema)};
@@ -655,12 +650,12 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   const auto column_count = resultSchema.getColumnCount();
   for (size_t i = 0; i < column_count; i++) {
     const auto column = resultSchema.getColumn(i);
-    auto name = column.getName().getUnescaped();
+    const auto name = column.getName().getUnescaped();
     if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
       throw std::runtime_error("ArrowSchemaSetName failed");
     }
 
-    auto const sqltype = column.getType();
+    const auto sqltype = column.getType();
     if (sqltype.getTag() == hyperapi::TypeTag::TimestampTZ) {
       if (ArrowSchemaSetTypeDateTime(schema->children[i],
                                      NANOARROW_TYPE_TIMESTAMP,
@@ -681,7 +676,8 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
     }
   }
 
-  auto array = std::unique_ptr<struct ArrowArray>{new (struct ArrowArray)};
+  const auto array =
+      std::unique_ptr<struct ArrowArray>{new (struct ArrowArray)};
   if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
     throw std::runtime_error("ArrowSchemaInitFromSchema failed");
   }
@@ -699,9 +695,9 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   if (ArrowArrayStartAppending(array.get())) {
     throw std::runtime_error("ArrowArrayStartAppending failed");
   }
-  for (const hyperapi::Row &row : hyperResult) {
+  for (const auto &row : hyperResult) {
     size_t column_idx = 0;
-    for (const hyperapi::Value &value : row) {
+    for (const auto &value : row) {
       const auto &read_helper = read_helpers[column_idx];
       read_helper->Read(value);
       column_idx++;
