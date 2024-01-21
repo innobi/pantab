@@ -141,7 +141,7 @@ public:
 
     const struct ArrowBufferView buffer_view =
         ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
-    const auto result = std::string{
+    const auto result = std::string_view{
         buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
     hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
   }
@@ -378,11 +378,13 @@ void write_to_hyper(
     for (int64_t i = 0; i < schema.n_children; i++) {
       const auto hypertype =
           hyperTypeFromArrowSchema(schema.children[i], &error);
-      const auto name = std::string{schema.children[i]->name};
 
       // Almost all arrow types are nullable
-      hyper_columns.emplace_back(hyperapi::TableDefinition::Column{
-          name, hypertype, hyperapi::Nullability::Nullable});
+      const hyperapi::TableDefinition::Column column{
+          std::string(schema.children[i]->name), hypertype,
+          hyperapi::Nullability::Nullable};
+
+      hyper_columns.emplace_back(std::move(column));
     }
 
     const hyperapi::TableName table_name{hyper_schema, hyper_table};
@@ -496,9 +498,9 @@ class StringReadHelper : public ReadHelper {
       return;
     }
 
-    const auto strval = value.get<std::string>();
+    const auto strval = value.get<std::string_view>();
     const ArrowStringView arrow_string_view{
-        strval.c_str(), static_cast<int64_t>(strval.size())};
+        strval.data(), static_cast<int64_t>(strval.size())};
 
     if (ArrowArrayAppendString(array_, arrow_string_view)) {
       throw std::runtime_error("ArrowAppendString failed");
