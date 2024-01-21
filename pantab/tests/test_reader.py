@@ -122,3 +122,39 @@ def test_read_varchar(tmp_hyper):
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_oid(tmp_hyper):
+    column_name = "OID Column"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.oid(),
+                nullability=tab_api.NOT_NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([[123], [456]])
+                inserter.execute()
+
+    expected = pd.DataFrame(
+        [[123], [456]], columns=[column_name], dtype="uint32[pyarrow]"
+    )
+
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+    tm.assert_frame_equal(result, expected)
