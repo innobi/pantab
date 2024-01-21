@@ -464,7 +464,7 @@ protected:
   struct ArrowArray *array_;
 };
 
-class IntegralReadHelper : public ReadHelper {
+template <typename T> class IntegralReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
   auto Read(const hyperapi::Value &value) -> void override {
@@ -474,7 +474,7 @@ class IntegralReadHelper : public ReadHelper {
       }
       return;
     }
-    if (ArrowArrayAppendInt(array_, value.get<int64_t>())) {
+    if (ArrowArrayAppendInt(array_, value.get<T>())) {
       throw std::runtime_error("ArrowAppendInt failed");
     };
   }
@@ -629,9 +629,13 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
     -> std::unique_ptr<ReadHelper> {
   switch (schema_view->type) {
   case NANOARROW_TYPE_INT16:
+    return std::unique_ptr<ReadHelper>(new IntegralReadHelper<int16_t>(array));
   case NANOARROW_TYPE_INT32:
+    return std::unique_ptr<ReadHelper>(new IntegralReadHelper<int32_t>(array));
   case NANOARROW_TYPE_INT64:
-    return std::unique_ptr<ReadHelper>(new IntegralReadHelper(array));
+    return std::unique_ptr<ReadHelper>(new IntegralReadHelper<int64_t>(array));
+  case NANOARROW_TYPE_UINT32:
+    return std::unique_ptr<ReadHelper>(new IntegralReadHelper<uint32_t>(array));
   case NANOARROW_TYPE_DOUBLE:
     return std::unique_ptr<ReadHelper>(new FloatReadHelper(array));
   case NANOARROW_TYPE_LARGE_BINARY:
@@ -659,6 +663,7 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::SmallInt : return NANOARROW_TYPE_INT16;
         case hyperapi::TypeTag::Int : return NANOARROW_TYPE_INT32;
         case hyperapi::TypeTag::BigInt : return NANOARROW_TYPE_INT64;
+        case hyperapi::TypeTag::Oid : return NANOARROW_TYPE_UINT32;
         case hyperapi::TypeTag::Double : return NANOARROW_TYPE_DOUBLE;
         case hyperapi::TypeTag::Bytes : return NANOARROW_TYPE_LARGE_BINARY;
         case hyperapi::TypeTag::Varchar : case hyperapi::TypeTag::Char :
