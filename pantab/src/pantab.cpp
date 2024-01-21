@@ -12,6 +12,7 @@
 #include <nanobind/stl/tuple.h>
 
 #include "datetime.h"
+#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
@@ -40,6 +41,9 @@ static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
     return hyperapi::SqlType::doublePrecision();
   case NANOARROW_TYPE_BOOL:
     return hyperapi::SqlType::boolean();
+  case NANOARROW_TYPE_BINARY:
+  case NANOARROW_TYPE_LARGE_BINARY:
+    return hyperapi::SqlType::bytes();
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
     return hyperapi::SqlType::text();
@@ -124,6 +128,26 @@ public:
     const double value = ArrowArrayViewGetDoubleUnsafe(&array_view_, idx);
     hyperapi::internal::ValueInserter{*inserter_}.addValue(
         static_cast<T>(value));
+  }
+};
+
+class BinaryInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<std:::string_view>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    const struct ArrowBufferView buffer_view =
+        ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
+    const hyperapi::ByteSpan result{
+        buffer_view.data.as_uint8, static_cast<size_t>(buffer_view.size_bytes)};
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
   }
 };
 
@@ -278,6 +302,10 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_BOOL:
     return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<bool>(
+        inserter, chunk, schema, error, column_position));
+  case NANOARROW_TYPE_BINARY:
+  case NANOARROW_TYPE_LARGE_BINARY:
+    return std::unique_ptr<InsertHelper>(new BinaryInsertHelper(
         inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
@@ -485,6 +513,29 @@ class BooleanReadHelper : public ReadHelper {
   }
 };
 
+class BytesReadHelper : public ReadHelper {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+
+    // TODO: we can use the non-owning hyperapi::ByteSpan template type but
+    // there is a bug in that header file that needs an upstream fix first
+    const auto bytes = value.get<std::vector<uint8_t>>();
+    const ArrowBufferView arrow_buffer_view{bytes.data(),
+                                            static_cast<int64_t>(bytes.size())};
+
+    if (ArrowArrayAppendBytes(array_, arrow_buffer_view)) {
+      throw std::runtime_error("ArrowAppendString failed");
+    };
+  }
+};
+
 class StringReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
@@ -584,6 +635,8 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
     return std::unique_ptr<ReadHelper>(new IntegralReadHelper(array));
   case NANOARROW_TYPE_DOUBLE:
     return std::unique_ptr<ReadHelper>(new FloatReadHelper(array));
+  case NANOARROW_TYPE_LARGE_BINARY:
+    return std::unique_ptr<ReadHelper>(new BytesReadHelper(array));
   case NANOARROW_TYPE_LARGE_STRING:
     return std::unique_ptr<ReadHelper>(new StringReadHelper(array));
   case NANOARROW_TYPE_BOOL:
@@ -608,6 +661,7 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::Int : return NANOARROW_TYPE_INT32;
         case hyperapi::TypeTag::BigInt : return NANOARROW_TYPE_INT64;
         case hyperapi::TypeTag::Double : return NANOARROW_TYPE_DOUBLE;
+        case hyperapi::TypeTag::Bytes : return NANOARROW_TYPE_LARGE_BINARY;
         case hyperapi::TypeTag::Varchar : case hyperapi::TypeTag::Char :
             case hyperapi::TypeTag::Text : return NANOARROW_TYPE_LARGE_STRING;
         case hyperapi::TypeTag::Bool : return NANOARROW_TYPE_BOOL;
