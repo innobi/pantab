@@ -666,8 +666,9 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::Oid : return NANOARROW_TYPE_UINT32;
         case hyperapi::TypeTag::Double : return NANOARROW_TYPE_DOUBLE;
         case hyperapi::TypeTag::Bytes : return NANOARROW_TYPE_LARGE_BINARY;
-        case hyperapi::TypeTag::Varchar : case hyperapi::TypeTag::Char :
-            case hyperapi::TypeTag::Text : return NANOARROW_TYPE_LARGE_STRING;
+        case hyperapi::TypeTag::Varchar : case hyperapi::TypeTag::
+        Char : case hyperapi::TypeTag::Text : case hyperapi::TypeTag::
+        Json : return NANOARROW_TYPE_LARGE_STRING;
         case hyperapi::TypeTag::Bool : return NANOARROW_TYPE_BOOL;
         case hyperapi::TypeTag::Date : return NANOARROW_TYPE_DATE32;
         case hyperapi::TypeTag::Timestamp : case hyperapi::TypeTag::
