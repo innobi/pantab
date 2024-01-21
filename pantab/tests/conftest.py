@@ -2,6 +2,7 @@ import pathlib
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
 import pytest
 import tableauhyperapi as tab_api
 
@@ -140,6 +141,10 @@ def get_basic_dataframe():
         }
     )
 
+    # See pandas GH issue #56994
+    df["binary"] = pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None], type=pa.binary())
+    df["binary"] = df["binary"].astype("binary[pyarrow]")
+
     return df
 
 
@@ -178,6 +183,7 @@ def roundtripped():
             "float64_limits": "double[pyarrow]",
             "non-ascii": "large_string[pyarrow]",
             "string": "large_string[pyarrow]",
+            "binary": "large_binary[pyarrow]",
         }
     )
     return df
