@@ -2,7 +2,6 @@ import json
 
 import pandas as pd
 import pandas.testing as tm
-import pytest
 import tableauhyperapi as tab_api
 
 import pantab
@@ -18,17 +17,6 @@ def test_read_doesnt_modify_existing_file(df, tmp_hyper):
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
-
-
-def test_reports_unsupported_type(datapath):
-    """
-    Test that we report an error if we encounter an unsupported column type.
-    Previously, we did not do so but instead assumed that all unsupported columns
-    would be string columns. This led to very fascinating failures.
-    """
-    db_path = datapath / "geography.hyper"
-    with pytest.raises(TypeError, match=r"GEOGRAPHY"):
-        pantab.frame_from_hyper(db_path, table="test")
 
 
 def test_read_non_roundtrippable(datapath):
@@ -198,6 +186,73 @@ def test_read_json(tmp_hyper):
         [[json.dumps({"foo": 42})], [json.dumps({"bar": -42})]],
         columns=[column_name],
         dtype="large_string[pyarrow]",
+    )
+
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_geography(tmp_hyper):
+    # Hyper uses a proprietary format for geography; best we can do is read out bytes
+    column_name = "Geography Column"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.geography(),
+                nullability=tab_api.NOT_NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            inserter_definition = [
+                tab_api.TableDefinition.Column(
+                    name="geo_as_text",
+                    type=tab_api.SqlType.text(),
+                    nullability=tab_api.NOT_NULLABLE,
+                )
+            ]
+            column_mappings = [
+                tab_api.Inserter.ColumnMapping(
+                    column_name, "CAST(geo_as_text AS GEOGRAPHY)"
+                )
+            ]
+            with tab_api.Inserter(
+                connection,
+                table,
+                column_mappings,
+                inserter_definition=inserter_definition,
+            ) as inserter:
+                # WKT examples for Seattle / Munich taken from Hyper documentation
+                # https://tableau.github.io/hyper-db/docs/guides/hyper_file/geodata
+                inserter.add_rows(
+                    [["point(-122.338083 47.647528)"], ["point(11.584329 48.139257)"]]
+                )
+                inserter.execute()
+
+    expected = pd.DataFrame(
+        [
+            [
+                b"\x07\xaa\x02\xe0%n\xd9\x01\x01\n\x00\xce\xab\xe8\xfa=\xff\x96\xf0\x8a\x9f\x01"
+            ],
+            [
+                b"\x07\xaa\x02\x0c&n\x82\x01\x01\n\x00\xb0\xe2\xd4\xcc>\xd4\xbc\x97\x88\x0f"
+            ],
+        ],
+        columns=[column_name],
+        dtype="large_binary[pyarrow]",
     )
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
