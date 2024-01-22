@@ -54,6 +54,8 @@ static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
     } else {
       return hyperapi::SqlType::timestamp();
     }
+  case NANOARROW_TYPE_TIME64:
+    return hyperapi::SqlType::time();
   default:
     throw std::invalid_argument("Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));
@@ -358,6 +360,15 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
+  case NANOARROW_TYPE_TIME64:
+    switch (schema_view.time_unit) {
+    case NANOARROW_TIME_UNIT_MICRO:
+      return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int64_t>(
+          inserter, chunk, schema, error, column_position));
+    default:
+      throw std::invalid_argument(
+          "Only microsecond-precision timestamp writes are implemented!");
+    }
   default:
     throw std::invalid_argument("makeInsertHelper: Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));
@@ -624,6 +635,24 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
   }
 };
 
+class TimeReadHelper : public ReadHelper {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+    const auto time = value.get<hyperapi::Time>();
+    const auto raw_value = time.getRaw();
+    if (ArrowArrayAppendInt(array_, raw_value)) {
+      throw std::runtime_error("ArrowAppendInt failed");
+    };
+  }
+};
+
 static auto makeReadHelper(const ArrowSchemaView *schema_view,
                            struct ArrowArray *array)
     -> std::unique_ptr<ReadHelper> {
@@ -652,6 +681,8 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
     } else {
       return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<false>(array));
     }
+  case NANOARROW_TYPE_TIME64:
+    return std::unique_ptr<ReadHelper>(new TimeReadHelper(array));
   default:
     throw nb::type_error("unknownn arrow type provided");
   }
@@ -673,6 +704,7 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::Date : return NANOARROW_TYPE_DATE32;
         case hyperapi::TypeTag::Timestamp : case hyperapi::TypeTag::
         TimestampTZ : return NANOARROW_TYPE_TIMESTAMP;
+        case hyperapi::TypeTag::Time : return NANOARROW_TYPE_TIME64;
         default : throw nb::type_error(
             ("Reader not implemented for type: " + sqltype.toString()).c_str());
       }
@@ -715,19 +747,30 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
     }
 
     const auto sqltype = column.getType();
-    if (sqltype.getTag() == hyperapi::TypeTag::TimestampTZ) {
+    switch (sqltype.getTag()) {
+    case hyperapi::TypeTag::TimestampTZ:
       if (ArrowSchemaSetTypeDateTime(schema->children[i],
                                      NANOARROW_TYPE_TIMESTAMP,
                                      NANOARROW_TIME_UNIT_MICRO, "UTC")) {
-        throw std::runtime_error("ArrowSchemaSetDateTime failed");
+        throw std::runtime_error(
+            "ArrowSchemaSetDateTime failed for TimestampTZ type");
       }
-    } else if (sqltype.getTag() == hyperapi::TypeTag::Timestamp) {
+      break;
+    case hyperapi::TypeTag::Timestamp:
       if (ArrowSchemaSetTypeDateTime(schema->children[i],
                                      NANOARROW_TYPE_TIMESTAMP,
                                      NANOARROW_TIME_UNIT_MICRO, nullptr)) {
-        throw std::runtime_error("ArrowSchemaSetDateTime failed");
+        throw std::runtime_error(
+            "ArrowSchemaSetDateTime failed for Timestamp type");
       }
-    } else {
+      break;
+    case hyperapi::TypeTag::Time:
+      if (ArrowSchemaSetTypeDateTime(schema->children[i], NANOARROW_TYPE_TIME64,
+                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
+        throw std::runtime_error("ArrowSchemaSetDateTime failed for Time type");
+      }
+      break;
+    default:
       const enum ArrowType arrow_type = arrowTypeFromHyper(sqltype);
       if (ArrowSchemaSetType(schema->children[i], arrow_type)) {
         throw std::runtime_error("ArrowSchemaSetType failed");
