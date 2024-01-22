@@ -503,9 +503,15 @@ class StringReadHelper : public ReadHelper {
       return;
     }
 
+#if defined(_WIN32) && defined(_MSC_VER)
+    const auto strval = value.get<std::string>();
+    const ArrowStringView arrow_string_view{
+        strval.c_str(), static_cast<int64_t>(strval.size())};
+#else
     const auto strval = value.get<std::string_view>();
     const ArrowStringView arrow_string_view{
         strval.data(), static_cast<int64_t>(strval.size())};
+#endif
 
     if (ArrowArrayAppendString(array_, arrow_string_view)) {
       throw std::runtime_error("ArrowAppendString failed");
