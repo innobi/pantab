@@ -1,5 +1,6 @@
 import pandas as pd
 import pandas.testing as tm
+import pyarrow as pa
 from tableauhyperapi import TableName
 
 import pantab
@@ -44,7 +45,11 @@ def test_multiple_tables(df, roundtripped, tmp_hyper, table_name, table_mode):
 def test_empty_roundtrip(df, roundtripped, tmp_hyper, table_name, table_mode):
     # object case is by definition vague, so lets punt that for now
     df = df.drop(columns=["object"])
-    empty = df.iloc[:0]
+
+    if isinstance(df, pa.Table):
+        empty = df.filter([False, False, False])
+    else:
+        empty = df.iloc[:0]
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)

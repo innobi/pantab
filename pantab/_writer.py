@@ -2,27 +2,49 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Optional, Union
+from typing import Any, Literal, Optional, Union
 
-import pandas as pd
-import pyarrow as pa
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
 import pantab.src.pantab as libpantab  # type: ignore
 
 
-def _validate_table_mode(table_mode: str) -> None:
+def _validate_table_mode(table_mode: Literal["a", "w"]) -> None:
     if table_mode not in {"a", "w"}:
         raise ValueError("'table_mode' must be either 'w' or 'a'")
 
 
+def _get_capsule_from_obj(obj):
+    """Returns the Arrow capsule underlying obj"""
+    # Check first for the Arrow C Data Interface compliance
+    if hasattr(obj, "__arrow_c_stream__"):
+        return obj.__arrow_c_stream__()
+
+    # pandas < 3.0 did not have the Arrow C Data Interface, so
+    # convert to PyArrow
+    try:
+        import pandas as pd
+        import pyarrow as pa
+
+        if isinstance(obj, pd.DataFrame):
+            return pa.Table.from_pandas(obj).__arrow_c_stream__()
+    except ModuleNotFoundError:
+        pass
+
+    # More introspection could happen in the future...but end with TypeError if we
+    # can not find what we are looking for
+    raise TypeError(
+        f"Could not convert object of type '{type(obj)}' to Arrow C Data Interface"
+    )
+
+
 def frame_to_hyper(
-    df: pd.DataFrame,
+    df,
     database: Union[str, pathlib.Path],
     *,
     table: pantab_types.TableType,
-    table_mode: str = "w",
+    table_mode: Literal["a", "w"] = "w",
 ) -> None:
     """See api.rst for documentation"""
     frames_to_hyper(
@@ -33,9 +55,9 @@ def frame_to_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: dict[pantab_types.TableType, pd.DataFrame],
+    dict_of_frames: dict[pantab_types.TableType, Any],
     database: Union[str, pathlib.Path],
-    table_mode: str = "w",
+    table_mode: Literal["a", "w"] = "w",
     *,
     hyper_process: Optional[tab_api.HyperProcess] = None,
 ) -> None:
@@ -55,7 +77,7 @@ def frames_to_hyper(
         return (table.schema_name.name.unescaped, table.name.unescaped)
 
     data = {
-        convert_to_table_name(key): pa.Table.from_pandas(val)
+        convert_to_table_name(key): _get_capsule_from_obj(val)
         for key, val in dict_of_frames.items()
     }
     libpantab.write_to_hyper(data, path=str(tmp_db), table_mode=table_mode)

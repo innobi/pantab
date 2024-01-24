@@ -1,3 +1,4 @@
+import datetime
 import pathlib
 
 import numpy as np
@@ -7,7 +8,87 @@ import pytest
 import tableauhyperapi as tab_api
 
 
-def get_basic_dataframe():
+def basic_arrow_table():
+    tbl = pa.Table.from_arrays(
+        [
+            pa.array([1, 6, 0], type=pa.int16()),
+            pa.array([2, 7, 0], type=pa.int32()),
+            pa.array([3, 8, 0], type=pa.int64()),
+            pa.array([1, None, None], type=pa.int16()),
+            pa.array([2, None, None], type=pa.int32()),
+            pa.array([3, None, None], type=pa.int64()),
+            pa.array([4, 9.0, None], type=pa.float32()),
+            pa.array([5, 10.0, None], type=pa.float64()),
+            pa.array([1.0, 1.0, None], type=pa.float32()),
+            pa.array([2.0, 2.0, None], type=pa.float64()),
+            pa.array([True, False, False], type=pa.bool_()),
+            pa.array([True, False, None], type=pa.bool_()),
+            pa.array(
+                [datetime.date(2024, 1, 1), datetime.date(2024, 1, 1), None],
+                type=pa.date32(),
+            ),
+            pa.array(
+                [
+                    datetime.datetime(2018, 1, 1, 0, 0, 0),
+                    datetime.datetime(2019, 1, 1, 0, 0, 0),
+                    None,
+                ],
+                type=pa.timestamp("us"),
+            ),
+            pa.array(
+                [
+                    datetime.datetime(2018, 1, 1, 0, 0, 0),
+                    datetime.datetime(2019, 1, 1, 0, 0, 0),
+                    None,
+                ],
+                type=pa.timestamp("us", "utc"),
+            ),
+            pa.array(["foo", "bar", None], type=pa.large_string()),
+            pa.array(["foo", "bar", None], type=pa.string()),
+            pa.array([-(2**15), 2**15 - 1, 0], type=pa.int16()),
+            pa.array([-(2**31), 2**31 - 1, 0], type=pa.int32()),
+            pa.array([-(2**63), 2**63 - 1, 0], type=pa.int64()),
+            pa.array([-(2**24), 2**24 - 1, None], type=pa.float32()),
+            pa.array([-(2**53), 2**53 - 1, None], type=pa.float64()),
+            pa.array(
+                ["\xef\xff\xdc\xde\xee", "\xfa\xfb\xdd\xaf\xaa", None], type=pa.utf8()
+            ),
+            pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None], type=pa.binary()),
+            pa.array([234, 42, None], type=pa.time64("us")),
+        ],
+        names=[
+            "int16",
+            "int32",
+            "int64",
+            "Int16",
+            "Int32",
+            "Int64",
+            "float32",
+            "float64",
+            "Float32",
+            "Float64",
+            "bool",
+            "boolean",
+            "date32",
+            "datetime64",
+            "datetime64_utc",
+            "object",
+            "string",
+            "int16_limits",
+            "int32_limits",
+            "int64_limits",
+            "float32_limits",
+            "float64_limits",
+            "non-ascii",
+            "binary",
+            "time64us",
+        ],
+    )
+
+    return tbl
+
+
+def basic_dataframe():
     df = pd.DataFrame(
         [
             [
@@ -49,7 +130,7 @@ def get_basic_dataframe():
                 False,
                 False,
                 pd.to_datetime("2024-01-01"),
-                pd.to_datetime("1/1/19"),
+                pd.to_datetime("2019-01-01"),
                 pd.to_datetime("2019-01-01", utc=True),
                 "bar",
                 "bar",
@@ -144,22 +225,24 @@ def get_basic_dataframe():
     # See pandas GH issue #56994
     df["binary"] = pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None], type=pa.binary())
     df["binary"] = df["binary"].astype("binary[pyarrow]")
-    df["time64us"] = pd.DataFrame({"col": pa.array([234, 42], type=pa.time64("us"))})
+    df["time64us"] = pd.DataFrame(
+        {"col": pa.array([234, 42, None], type=pa.time64("us"))}
+    )
     df["time64us"] = df["time64us"].astype("time64[us][pyarrow]")
 
     return df
 
 
-@pytest.fixture
-def df():
+@pytest.fixture(params=[basic_arrow_table(), basic_dataframe()])
+def df(request):
     """Fixture to use which should contain all data types."""
-    return get_basic_dataframe()
+    return request.param
 
 
 @pytest.fixture
 def roundtripped():
     """Roundtripped DataFrames should use arrow dtypes by default"""
-    df = get_basic_dataframe()
+    df = basic_dataframe()
     df = df.astype(
         {
             "int16": "int16[pyarrow]",

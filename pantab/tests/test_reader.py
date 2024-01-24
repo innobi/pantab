@@ -2,6 +2,7 @@ import json
 
 import pandas as pd
 import pandas.testing as tm
+import pytest
 import tableauhyperapi as tab_api
 
 import pantab
@@ -63,7 +64,7 @@ def test_read_query(df, tmp_hyper):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_read_query(df: pd.DataFrame, roundtripped, tmp_hyper):
+def test_empty_read_query(df, roundtripped, tmp_hyper):
     """
     red-green for empty query results
     """
@@ -71,6 +72,9 @@ def test_empty_read_query(df: pd.DataFrame, roundtripped, tmp_hyper):
     table_name = "test"
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
     query = f"SELECT * FROM {table_name} limit 0"
+
+    if not isinstance(df, pd.DataFrame):
+        pytest.skip("Need to implement this test properly for pyarrow")
     expected = pd.DataFrame(columns=df.columns)
     expected = expected.astype(roundtripped.dtypes)
 
