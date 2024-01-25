@@ -234,7 +234,7 @@ def basic_dataframe():
 
 
 @pytest.fixture(params=[basic_arrow_table, basic_dataframe])
-def df(request):
+def frame(request):
     """Fixture to use which should contain all data types."""
     return request.param()
 

@@ -6,10 +6,10 @@ from tableauhyperapi import TableName
 import pantab
 
 
-def test_basic(df, roundtripped, tmp_hyper, table_name, table_mode):
+def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode):
     # Write twice; depending on mode this should either overwrite or duplicate entries
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
     expected = roundtripped
@@ -19,13 +19,13 @@ def test_basic(df, roundtripped, tmp_hyper, table_name, table_mode):
     tm.assert_frame_equal(result, expected)
 
 
-def test_multiple_tables(df, roundtripped, tmp_hyper, table_name, table_mode):
+def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode):
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frames_to_hyper(
-        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+        {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
     )
     pantab.frames_to_hyper(
-        {table_name: df, "table2": df}, tmp_hyper, table_mode=table_mode
+        {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
     )
     result = pantab.frames_from_hyper(tmp_hyper)
 
@@ -42,14 +42,14 @@ def test_multiple_tables(df, roundtripped, tmp_hyper, table_name, table_mode):
         tm.assert_frame_equal(val, expected)
 
 
-def test_empty_roundtrip(df, roundtripped, tmp_hyper, table_name, table_mode):
+def test_empty_roundtrip(frame, roundtripped, tmp_hyper, table_name, table_mode):
     # object case is by definition vague, so lets punt that for now
-    df = df.drop(columns=["object"])
+    frame = frame.drop(columns=["object"])
 
-    if isinstance(df, pa.Table):
-        empty = df.schema.empty_table()
+    if isinstance(frame, pa.Table):
+        empty = frame.schema.empty_table()
     else:
-        empty = df.iloc[:0]
+        empty = frame.iloc[:0]
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
