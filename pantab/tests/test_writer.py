@@ -76,7 +76,8 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mo
         raise NotImplementedError("test not implemented for object")
 
     # Try out our write methods
-    with pytest.raises(Exception):
+    msg = "Unsupported Arrow type"
+    with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table="test", table_mode=table_mode)
         pantab.frames_to_hyper({"test": df}, tmp_hyper, table_mode=table_mode)
 
