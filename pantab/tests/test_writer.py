@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timezone
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
@@ -22,11 +23,21 @@ def test_bad_table_mode_raises(df, tmp_hyper):
         pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
 
 
-@pytest.mark.parametrize("new_dtype", ["int64", float])
+@pytest.mark.parametrize("new_dtype", ["int64", "float"])
 def test_append_mode_raises_column_dtype_mismatch(new_dtype, df, tmp_hyper, table_name):
+    if isinstance(df, pd.DataFrame):
+        df = df[["int16"]].copy()
+    else:
+        df = df.select(["int16"])
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
-    df["int16"] = df["int16"].astype(new_dtype)
+    if isinstance(df, pd.DataFrame):
+        df["int16"] = df["int16"].astype(new_dtype)
+    elif isinstance(df, pa.Table):
+        schema = pa.schema([pa.field("int16", new_dtype)])
+        df = df.cast(schema)
+    else:
+        raise NotImplementedError("test not implemented for object")
     # TODO: a better error message from hyper would be nice here
     # seems like a limitation of hyper api
     msg = ""
@@ -44,7 +55,13 @@ def test_failed_write_doesnt_overwrite_file(df, tmp_hyper, monkeypatch, table_mo
     last_modified = tmp_hyper.stat().st_mtime
 
     # Pick a dtype we know will fail
-    df["should_fail"] = pd.Series([tuple((1, 2))])
+    if isinstance(df, pd.DataFrame):
+        df["should_fail"] = pd.Series([list((1, 2))])
+    elif isinstance(df, pa.Table):
+        new_column = pa.array([[1, 2], None, None])
+        df = df.append_column("should_fail", new_column)
+    else:
+        raise NotImplementedError("test not implemented for object")
 
     # Try out our write methods
     with pytest.raises(Exception):

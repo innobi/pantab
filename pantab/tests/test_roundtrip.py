@@ -47,7 +47,7 @@ def test_empty_roundtrip(df, roundtripped, tmp_hyper, table_name, table_mode):
     df = df.drop(columns=["object"])
 
     if isinstance(df, pa.Table):
-        empty = df.filter([False, False, False])
+        empty = df.schema.empty_table()
     else:
         empty = df.iloc[:0]
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
