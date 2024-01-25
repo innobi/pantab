@@ -380,6 +380,41 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   }
 }
 
+///
+/// If a table already exists, ensure the structure is the same as what we
+/// append
+///
+void assertColumnsEqual(
+    const std::vector<hyperapi::TableDefinition::Column> &new_columns,
+    const std::vector<hyperapi::TableDefinition::Column> &old_columns) {
+  const size_t new_size = new_columns.size();
+  const size_t old_size = old_columns.size();
+  if (new_size != old_size) {
+    throw std::invalid_argument(
+        "Number of columns in new table definition does not match existing");
+  }
+
+  for (size_t i = 0; i < new_size; i++) {
+    const auto new_col = new_columns[i];
+    const auto old_col = old_columns[i];
+    const auto new_name = new_col.getName();
+    const auto old_name = old_col.getName();
+    if (new_name != old_name) {
+      throw std::invalid_argument(
+          "Column name mismatch at index " + std::to_string(i) +
+          "; new: " + new_name.toString() + " old: " + old_name.toString());
+    }
+
+    const auto new_type = new_col.getType();
+    const auto old_type = old_col.getType();
+    if (new_type != old_type) {
+      throw std::invalid_argument(
+          "Column type mismatch at index " + std::to_string(i) +
+          "; new: " + new_type.toString() + " old: " + old_type.toString());
+    }
+  }
+};
+
 using SchemaAndTableName = std::tuple<std::string, std::string>;
 
 void write_to_hyper(
@@ -433,10 +468,12 @@ void write_to_hyper(
     const hyperapi::TableName table_name{hyper_schema, hyper_table};
     const hyperapi::TableDefinition tableDef{table_name, hyper_columns};
     catalog.createSchemaIfNotExists(*table_name.getSchemaName());
-    if (table_mode == "w") {
+
+    if ((table_mode == "a") && (catalog.hasTable(table_name))) {
+      const auto existing_def = catalog.getTableDefinition(table_name);
+      assertColumnsEqual(hyper_columns, std::move(existing_def.getColumns()));
+    } else {
       catalog.createTable(tableDef);
-    } else if (table_mode == "a") {
-      catalog.createTableIfNotExists(tableDef);
     }
     const auto inserter =
         std::make_shared<hyperapi::Inserter>(connection, tableDef);

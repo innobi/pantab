@@ -22,15 +22,27 @@ def test_bad_table_mode_raises(df, tmp_hyper):
         pantab.frames_to_hyper({"a": df}, tmp_hyper, table_mode="x")
 
 
-@pytest.mark.parametrize("new_dtype", ["int64", float])
-def test_append_mode_raises_column_dtype_mismatch(new_dtype, df, tmp_hyper, table_name):
+@pytest.mark.parametrize(
+    "new_dtype,hyper_type_name", [("int64", "BIGINT"), (float, "DOUBLE PRECISION")]
+)
+def test_append_mode_raises_column_dtype_mismatch(
+    new_dtype, hyper_type_name, df, tmp_hyper, table_name
+):
     pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
 
     df["int16"] = df["int16"].astype(new_dtype)
-    # TODO: a better error message from hyper would be nice here
-    # seems like a limitation of hyper api
-    msg = ""
-    with pytest.raises(RuntimeError, match=msg):
+
+    msg = f"Column type mismatch at index 0; new: {hyper_type_name} old: SMALLINT"
+    with pytest.raises(ValueError, match=msg):
+        pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
+
+
+def test_append_mode_raises_ncolumns_mismatch(df, tmp_hyper, table_name):
+    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+
+    df = df.drop(columns=["int16"])
+    msg = "Number of columns"
+    with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(df, tmp_hyper, table=table_name, table_mode="a")
 
 
