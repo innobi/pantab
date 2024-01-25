@@ -24,7 +24,7 @@ def test_bad_table_mode_raises(df, tmp_hyper):
 
 
 @pytest.mark.parametrize(
-    "new_dtype,hyper_type_name", [("int64", "BIGINT"), (float, "DOUBLE PRECISION")]
+    "new_dtype,hyper_type_name", [("int64", "BIGINT"), ("float", "DOUBLE PRECISION")]
 )
 def test_append_mode_raises_column_dtype_mismatch(
     new_dtype, hyper_type_name, df, tmp_hyper, table_name
