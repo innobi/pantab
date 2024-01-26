@@ -2,11 +2,11 @@ import re
 from datetime import datetime, timezone
 
 import pandas as pd
-import pyarrow as pa
 import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
 import pantab
+import pantab.tests.util as tu
 
 
 def test_bad_table_mode_raises(frame, tmp_hyper):
@@ -29,20 +29,10 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
 def test_append_mode_raises_column_dtype_mismatch(
     new_dtype, hyper_type_name, frame, tmp_hyper, table_name
 ):
-    if isinstance(frame, pd.DataFrame):
-        frame = frame[["int16"]].copy()
-    else:
-        frame = frame.select(["int16"])
+    frame = tu.select_columns(frame, "int16")
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
-    if isinstance(frame, pd.DataFrame):
-        frame["int16"] = frame["int16"].astype(new_dtype)
-    elif isinstance(frame, pa.Table):
-        schema = pa.schema([pa.field("int16", new_dtype)])
-        frame = frame.cast(schema)
-    else:
-        raise NotImplementedError("test not implemented for object")
-
+    tu.cast_column_to_type(frame, "int16", new_dtype)
     msg = f"Column type mismatch at index 0; new: {hyper_type_name} old: SMALLINT"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
@@ -51,12 +41,7 @@ def test_append_mode_raises_column_dtype_mismatch(
 def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name):
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
-    if isinstance(frame, pd.DataFrame):
-        frame = frame.drop(columns=["int16"])
-    elif isinstance(frame, pa.Table):
-        frame = frame.drop_columns(["int16"])
-    else:
-        raise NotImplementedError("test not implemented for object")
+    frame = tu.drop_columns(frame, ["int16"])
     msg = "Number of columns"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
@@ -72,14 +57,7 @@ def test_failed_write_doesnt_overwrite_file(frame, tmp_hyper, monkeypatch, table
     last_modified = tmp_hyper.stat().st_mtime
 
     # Pick a dtype we know will fail
-    if isinstance(frame, pd.DataFrame):
-        frame["should_fail"] = pd.Series([list((1, 2))])
-    elif isinstance(frame, pa.Table):
-        new_column = pa.array([[1, 2], None, None])
-        frame = frame.append_column("should_fail", new_column)
-    else:
-        raise NotImplementedError("test not implemented for object")
-
+    frame = tu.add_non_writeable_column(frame)
     # Try out our write methods
     msg = "Unsupported Arrow type"
     with pytest.raises(ValueError, match=msg):
