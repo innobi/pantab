@@ -32,6 +32,15 @@ def _get_capsule_from_obj(obj):
     except ModuleNotFoundError:
         pass
 
+    # see polars GH issue #12530 - PyCapsule interface not yet developed
+    try:
+        import polars as pl
+
+        if isinstance(obj, pl.DataFrame):
+            return obj.to_arrow().__arrow_c_stream__()
+    except ModuleNotFoundError:
+        pass
+
     # More introspection could happen in the future...but end with TypeError if we
     # can not find what we are looking for
     raise TypeError(

@@ -3,7 +3,6 @@ import shutil
 import tempfile
 from typing import Union
 
-import pandas as pd
 import pyarrow as pa
 import tableauhyperapi as tab_api
 
@@ -26,9 +25,16 @@ def frame_from_hyper_query(
 
     if return_type == "pyarrow":
         return tbl
+    elif return_type == "polars":
+        import polars as pl
 
-    df = tbl.to_pandas(types_mapper=pd.ArrowDtype)
-    return df
+        return pl.from_arrow(tbl)
+    elif return_type == "pandas":
+        import pandas as pd
+
+        return tbl.to_pandas(types_mapper=pd.ArrowDtype)
+
+    raise NotImplementedError("Please choose an appropriate 'return_type' value")
 
 
 def frame_from_hyper(
@@ -50,7 +56,7 @@ def frames_from_hyper(
     return_type="pandas",
 ):
     """See api.rst for documentation."""
-    result: dict[TableType, pd.DataFrame] = {}
+    result = {}
 
     table_names = []
     with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(

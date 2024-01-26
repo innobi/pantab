@@ -211,6 +211,31 @@ public:
   }
 };
 
+template <enum ArrowTimeUnit TU> class TimeInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<T>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
+    // TODO: check for overflow in these branches
+    if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
+      value *= 1'000'000;
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
+      value *= 1000;
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
+      value /= 1000;
+    }
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(value);
+  }
+};
+
 template <enum TimeUnit TU, bool TZAware>
 class TimestampInsertHelper : public InsertHelper {
 public:
@@ -367,13 +392,25 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_TIME64:
     switch (schema_view.time_unit) {
+    // must be a smarter way to do this!
+    case NANOARROW_TIME_UNIT_SECOND: // untested
+      return std::unique_ptr<InsertHelper>(
+          new TimeInsertHelper<NANOARROW_TIME_UNIT_SECOND>(
+              inserter, chunk, schema, error, column_position));
+    case NANOARROW_TIME_UNIT_MILLI: // untested
+      return std::unique_ptr<InsertHelper>(
+          new TimeInsertHelper<NANOARROW_TIME_UNIT_MILLI>(
+              inserter, chunk, schema, error, column_position));
     case NANOARROW_TIME_UNIT_MICRO:
-      return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int64_t>(
-          inserter, chunk, schema, error, column_position));
-    default:
-      throw std::invalid_argument(
-          "Only microsecond-precision timestamp writes are implemented!");
+      return std::unique_ptr<InsertHelper>(
+          new TimeInsertHelper<NANOARROW_TIME_UNIT_MICRO>(
+              inserter, chunk, schema, error, column_position));
+    case NANOARROW_TIME_UNIT_NANO:
+      return std::unique_ptr<InsertHelper>(
+          new TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>(
+              inserter, chunk, schema, error, column_position));
     }
+    break;
   default:
     throw std::invalid_argument("makeInsertHelper: Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));

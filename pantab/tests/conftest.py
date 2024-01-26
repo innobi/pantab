@@ -4,6 +4,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 import pandas.testing as tm
+import polars as pl
 import pyarrow as pa
 import pytest
 import tableauhyperapi as tab_api
@@ -26,7 +27,7 @@ def basic_arrow_table():
             ("boolean", pa.bool_()),
             ("date32", pa.date32()),
             ("datetime64", pa.timestamp("us")),
-            ("datetime64_utc", pa.timestamp("us", "utc")),
+            ("datetime64_utc", pa.timestamp("us", "UTC")),
             ("object", pa.large_string()),
             ("string", pa.string()),
             ("int16_limits", pa.int16()),
@@ -234,7 +235,13 @@ def basic_dataframe():
     return df
 
 
-@pytest.fixture(params=[basic_arrow_table, basic_dataframe])
+def basic_polars_frame():
+    tbl = basic_arrow_table()
+    df = pl.from_arrow(tbl)
+    return df
+
+
+@pytest.fixture(params=[basic_arrow_table, basic_dataframe, basic_polars_frame])
 def frame(request):
     """Fixture to use which should contain all data types."""
     return request.param()
@@ -309,10 +316,16 @@ def roundtripped_pandas():
     return df
 
 
+def roundtripped_polars():
+    df = basic_polars_frame()
+    return df
+
+
 @pytest.fixture(
     params=[
         ("pandas", roundtripped_pandas),
         ("pyarrow", roundtripped_pyarrow),
+        ("polars", roundtripped_polars),
     ]
 )
 def roundtripped(request):
@@ -362,6 +375,8 @@ class Compat:
         elif isinstance(result, pa.Table):
             assert result.equals(expected, check_metadata=True)
             return
+        elif isinstance(result, pl.DataFrame):
+            assert result.equals(expected)
         else:
             raise NotImplementedError("assert_frame_equal not implemented for type")
 
@@ -372,6 +387,8 @@ class Compat:
             return pd.concat([frame1, frame2]).reset_index(drop=True)
         elif isinstance(frame1, pa.Table):
             return pa.concat_tables([frame1, frame2])
+        elif isinstance(frame1, pl.DataFrame):
+            return pl.concat([frame1, frame2])
         else:
             raise NotImplementedError("concat_frames not implemented for type")
 
@@ -381,6 +398,8 @@ class Compat:
             return frame.iloc[:0]
         elif isinstance(frame, pa.Table):
             return frame.schema.empty_table()
+        elif isinstance(frame, pl.DataFrame):
+            return frame.filter(False)
         else:
             raise NotImplementedError("empty_like not implemented for type")
 
@@ -390,6 +409,8 @@ class Compat:
             return frame.drop(columns=columns)
         elif isinstance(frame, pa.Table):
             return frame.drop_columns(columns)
+        elif isinstance(frame, pl.DataFrame):
+            return frame.drop(columns=columns)
         else:
             raise NotImplementedError("drop_columns not implemented for type")
 
@@ -398,6 +419,8 @@ class Compat:
         if isinstance(frame, pd.DataFrame):
             return frame[columns]
         elif isinstance(frame, pa.Table):
+            return frame.select(columns)
+        elif isinstance(frame, pl.DataFrame):
             return frame.select(columns)
         else:
             raise NotImplementedError("select_columns not implemented for type")
@@ -410,6 +433,13 @@ class Compat:
         elif isinstance(frame, pa.Table):
             schema = pa.schema([pa.field(column, type_)])
             return frame.cast(schema)
+        elif isinstance(frame, pl.DataFrame):
+            # hacky :-(
+            if type_ == "int64":
+                frame = frame.cast({column: pl.Int64()})
+            elif type_ == "float":
+                frame = frame.cast({column: pl.Float64()})
+            return frame
         else:
             raise NotImplementedError("cast_column_to_type not implemented for type")
 
@@ -421,6 +451,11 @@ class Compat:
         elif isinstance(frame, pa.Table):
             new_column = pa.array([[1, 2], None, None])
             frame = frame.append_column("should_fail", new_column)
+            return frame
+        elif isinstance(frame, pl.DataFrame):
+            frame = frame.with_columns(
+                pl.Series(name="should_fail", values=[list((1, 2))])
+            )
             return frame
         else:
             raise NotImplementedError("test not implemented for object")
