@@ -316,10 +316,16 @@ def roundtripped_pandas():
     return df
 
 
+def roundtripped_polars():
+    df = basic_polars_frame()
+    return df
+
+
 @pytest.fixture(
     params=[
         ("pandas", roundtripped_pandas),
         ("pyarrow", roundtripped_pyarrow),
+        ("polars", roundtripped_polars),
     ]
 )
 def roundtripped(request):
@@ -369,6 +375,8 @@ class Compat:
         elif isinstance(result, pa.Table):
             assert result.equals(expected, check_metadata=True)
             return
+        elif isinstance(result, pl.DataFrame):
+            assert result.equals(expected)
         else:
             raise NotImplementedError("assert_frame_equal not implemented for type")
 
