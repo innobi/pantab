@@ -447,7 +447,8 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
           new TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>(
               inserter, chunk, schema, error, column_position));
     }
-    break;
+    throw std::runtime_error(
+        "This code block should not be hit - contact a developer");
   default:
     throw std::invalid_argument("makeInsertHelper: Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));
