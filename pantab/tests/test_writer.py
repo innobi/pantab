@@ -6,7 +6,8 @@ import pytest
 from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
 import pantab
-import pantab.tests.util as tu
+
+from . import util as tu
 
 
 def test_bad_table_mode_raises(frame, tmp_hyper):

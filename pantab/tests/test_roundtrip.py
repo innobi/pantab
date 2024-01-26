@@ -1,7 +1,8 @@
 from tableauhyperapi import TableName
 
 import pantab
-import pantab.tests.util as tu
+
+from . import util as tu
 
 
 def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode):
