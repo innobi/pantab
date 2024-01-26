@@ -1,25 +1,27 @@
-import pandas as pd
-import pandas.testing as tm
-import pyarrow as pa
 from tableauhyperapi import TableName
 
 import pantab
 
 
-def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode):
+def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
-    expected = roundtripped
+    return_type, expected = roundtripped
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
+
     if table_mode == "a":
-        expected = pd.concat([expected, expected]).reset_index(drop=True)
+        expected = compat.concat_frames(expected, expected)
 
-    tm.assert_frame_equal(result, expected)
+    compat.assert_frame_equal(result, expected)
 
 
-def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode):
+def test_multiple_tables(
+    frame, roundtripped, tmp_hyper, table_name, table_mode, compat
+):
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frames_to_hyper(
         {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
@@ -27,11 +29,12 @@ def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode)
     pantab.frames_to_hyper(
         {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
     )
-    result = pantab.frames_from_hyper(tmp_hyper)
 
-    expected = roundtripped
+    return_type, expected = roundtripped
+    result = pantab.frames_from_hyper(tmp_hyper, return_type=return_type)
+
     if table_mode == "a":
-        expected = pd.concat([expected, expected]).reset_index(drop=True)
+        expected = compat.concat_frames(expected, expected)
 
     # some test trickery here
     if not isinstance(table_name, TableName) or table_name.schema_name is None:
@@ -39,26 +42,23 @@ def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode)
 
     assert set(result.keys()) == set((table_name, TableName("public", "table2")))
     for val in result.values():
-        tm.assert_frame_equal(val, expected)
+        compat.assert_frame_equal(val, expected)
 
 
-def test_empty_roundtrip(frame, roundtripped, tmp_hyper, table_name, table_mode):
+def test_empty_roundtrip(
+    frame, roundtripped, tmp_hyper, table_name, table_mode, compat
+):
     # object case is by definition vague, so lets punt that for now
-    if isinstance(frame, pd.DataFrame):
-        frame = frame.drop(columns=["object"])
-    elif isinstance(frame, pa.Table):
-        frame = frame.drop_columns(["object"])
-    else:
-        raise NotImplementedError("test not implemented for object")
-
-    if isinstance(frame, pa.Table):
-        empty = frame.schema.empty_table()
-    else:
-        empty = frame.iloc[:0]
+    frame = compat.drop_columns(frame, ["object"])
+    empty = compat.empty_like(frame)
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
-    expected = roundtripped.iloc[:0]
-    expected = expected.drop(columns=["object"])
-    tm.assert_frame_equal(result, expected)
+    return_type, expected = roundtripped
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
+
+    expected = compat.drop_columns(expected, ["object"])
+    expected = compat.empty_like(expected)
+    compat.assert_frame_equal(result, expected)
