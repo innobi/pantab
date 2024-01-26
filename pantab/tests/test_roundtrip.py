@@ -44,7 +44,12 @@ def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode)
 
 def test_empty_roundtrip(frame, roundtripped, tmp_hyper, table_name, table_mode):
     # object case is by definition vague, so lets punt that for now
-    frame = frame.drop(columns=["object"])
+    if isinstance(frame, pd.DataFrame):
+        frame = frame.drop(columns=["object"])
+    elif isinstance(frame, pa.Table):
+        frame = frame.drop_columns(["object"])
+    else:
+        raise NotImplementedError("test not implemented for object")
 
     if isinstance(frame, pa.Table):
         empty = frame.schema.empty_table()
