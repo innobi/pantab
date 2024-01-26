@@ -10,9 +10,12 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode):
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
-    expected = roundtripped
+    return_type, expected = roundtripped
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
+
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
@@ -27,9 +30,10 @@ def test_multiple_tables(frame, roundtripped, tmp_hyper, table_name, table_mode)
     pantab.frames_to_hyper(
         {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
     )
-    result = pantab.frames_from_hyper(tmp_hyper)
 
-    expected = roundtripped
+    return_type, expected = roundtripped
+    result = pantab.frames_from_hyper(tmp_hyper, return_type=return_type)
+
     if table_mode == "a":
         expected = pd.concat([expected, expected]).reset_index(drop=True)
 
@@ -57,8 +61,12 @@ def test_empty_roundtrip(frame, roundtripped, tmp_hyper, table_name, table_mode)
         empty = frame.iloc[:0]
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
     pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
-    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
 
-    expected = roundtripped.iloc[:0]
+    return_type, expected = roundtripped
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
+
+    expected = expected.iloc[:0]
     expected = expected.drop(columns=["object"])
     tm.assert_frame_equal(result, expected)

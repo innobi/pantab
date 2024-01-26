@@ -239,8 +239,7 @@ def frame(request):
     return request.param()
 
 
-@pytest.fixture
-def roundtripped():
+def roundtripped_pandas():
     """Roundtripped DataFrames should use arrow dtypes by default"""
     df = basic_dataframe()
     df = df.astype(
@@ -259,7 +258,6 @@ def roundtripped():
             "boolean": "boolean[pyarrow]",
             "datetime64": "timestamp[us][pyarrow]",
             "datetime64_utc": "timestamp[us, UTC][pyarrow]",
-            # "timedelta64": "timedelta64[ns]",
             "object": "large_string[pyarrow]",
             "int16_limits": "int16[pyarrow]",
             "int32_limits": "int32[pyarrow]",
@@ -273,6 +271,12 @@ def roundtripped():
         }
     )
     return df
+
+
+@pytest.fixture(params=[("pandas", roundtripped_pandas)])
+def roundtripped(request):
+    result_obj = request.param[1]()
+    return (request.param[0], result_obj)
 
 
 @pytest.fixture
