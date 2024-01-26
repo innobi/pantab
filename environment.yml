@@ -10,6 +10,7 @@ dependencies:
   - pandas
   - pandas-stubs
   - pip
+  - polars
   - pyarrow
   - python
   - pytest
@@ -19,4 +20,3 @@ dependencies:
   - sphinx_rtd_theme
   - pip:
     - asv
-    - tableauhyperapi>=0.0.14567
