@@ -2,13 +2,14 @@ import json
 
 import pandas as pd
 import pandas.testing as tm
+import pytest
 import tableauhyperapi as tab_api
 
 import pantab
 
 
-def test_read_doesnt_modify_existing_file(df, tmp_hyper):
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+def test_read_doesnt_modify_existing_file(frame, tmp_hyper):
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
     last_modified = tmp_hyper.stat().st_mtime
 
     # Try out our read methods
@@ -51,8 +52,8 @@ def test_reads_non_writeable(datapath):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_query(df, tmp_hyper):
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+def test_read_query(frame, tmp_hyper):
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
 
     query = "SELECT int16 AS i, '_' || int32 AS _i2 FROM test"
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
@@ -63,15 +64,18 @@ def test_read_query(df, tmp_hyper):
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_read_query(df: pd.DataFrame, roundtripped, tmp_hyper):
+def test_empty_read_query(frame, roundtripped, tmp_hyper):
     """
     red-green for empty query results
     """
     # sql cols need to base case insensitive & unique
     table_name = "test"
-    pantab.frame_to_hyper(df, tmp_hyper, table=table_name)
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
     query = f"SELECT * FROM {table_name} limit 0"
-    expected = pd.DataFrame(columns=df.columns)
+
+    if not isinstance(frame, pd.DataFrame):
+        pytest.skip("Need to implement this test properly for pyarrow")
+    expected = pd.DataFrame(columns=frame.columns)
     expected = expected.astype(roundtripped.dtypes)
 
     result = pantab.frame_from_hyper_query(tmp_hyper, query)

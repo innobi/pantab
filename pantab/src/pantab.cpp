@@ -418,7 +418,7 @@ void assertColumnsEqual(
 using SchemaAndTableName = std::tuple<std::string, std::string>;
 
 void write_to_hyper(
-    const std::map<SchemaAndTableName, nb::object> &dict_of_exportable,
+    const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode) {
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau};
@@ -432,17 +432,12 @@ void write_to_hyper(
   hyperapi::Connection connection{hyper.getEndpoint(), path, createMode};
   const hyperapi::Catalog &catalog = connection.getCatalog();
 
-  for (auto const &[schema_and_table, exportable] : dict_of_exportable) {
+  for (auto const &[schema_and_table, capsule] : dict_of_capsules) {
     const auto hyper_schema = std::get<0>(schema_and_table);
     const auto hyper_table = std::get<1>(schema_and_table);
-    const auto arrow_c_stream = nb::getattr(exportable, "__arrow_c_stream__")();
 
-    PyObject *obj = arrow_c_stream.ptr();
-    if (!PyCapsule_CheckExact(obj)) {
-      throw std::invalid_argument("Object does not provide capsule");
-    }
     const auto c_stream = static_cast<struct ArrowArrayStream *>(
-        PyCapsule_GetPointer(obj, "arrow_array_stream"));
+        PyCapsule_GetPointer(capsule.ptr(), "arrow_array_stream"));
     auto stream = nanoarrow::UniqueArrayStream{c_stream};
 
     struct ArrowSchema schema;
@@ -876,7 +871,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
 }
 
 NB_MODULE(pantab, m) { // NOLINT
-  m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_exportable"),
+  m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_capsules"),
         nb::arg("path"), nb::arg("table_mode"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
            nb::arg("query"));
