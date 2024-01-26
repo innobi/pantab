@@ -28,10 +28,10 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
 def test_append_mode_raises_column_dtype_mismatch(
     new_dtype, hyper_type_name, frame, tmp_hyper, table_name, compat
 ):
-    frame = compat.select_columns(frame, "int16")
+    frame = compat.select_columns(frame, ["int16"])
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
-    compat.cast_column_to_type(frame, "int16", new_dtype)
+    frame = compat.cast_column_to_type(frame, "int16", new_dtype)
     msg = f"Column type mismatch at index 0; new: {hyper_type_name} old: SMALLINT"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
