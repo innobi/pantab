@@ -3,6 +3,7 @@ import pathlib
 
 import numpy as np
 import pandas as pd
+import pandas.testing as tm
 import pyarrow as pa
 import pytest
 import tableauhyperapi as tab_api
@@ -349,3 +350,82 @@ def table_name(request):
 def datapath():
     """Location of data files in test folder."""
     return pathlib.Path(__file__).parent / "data"
+
+
+class Compat:
+    @staticmethod
+    def assert_frame_equal(result, expected):
+        assert isinstance(result, type(expected))
+        if isinstance(result, pd.DataFrame):
+            tm.assert_frame_equal(result, expected)
+            return
+        elif isinstance(result, pa.Table):
+            assert result.equals(expected, check_metadata=True)
+            return
+        else:
+            raise NotImplementedError("assert_frame_equal not implemented for type")
+
+    @staticmethod
+    def concat_frames(frame1, frame2):
+        assert isinstance(frame1, type(frame2))
+        if isinstance(frame1, pd.DataFrame):
+            return pd.concat([frame1, frame2]).reset_index(drop=True)
+        elif isinstance(frame1, pa.Table):
+            return pa.concat_tables([frame1, frame2])
+        else:
+            raise NotImplementedError("concat_frames not implemented for type")
+
+    @staticmethod
+    def empty_like(frame):
+        if isinstance(frame, pd.DataFrame):
+            return frame.iloc[:0]
+        elif isinstance(frame, pa.Table):
+            return frame.schema.empty_table()
+        else:
+            raise NotImplementedError("empty_like not implemented for type")
+
+    @staticmethod
+    def drop_columns(frame, columns):
+        if isinstance(frame, pd.DataFrame):
+            return frame.drop(columns=columns)
+        elif isinstance(frame, pa.Table):
+            return frame.drop_columns(columns)
+        else:
+            raise NotImplementedError("drop_columns not implemented for type")
+
+    @staticmethod
+    def select_columns(frame, columns):
+        if isinstance(frame, pd.DataFrame):
+            return frame[columns]
+        elif isinstance(frame, pa.Table):
+            return frame.select(columns)
+        else:
+            raise NotImplementedError("select_columns not implemented for type")
+
+    @staticmethod
+    def cast_column_to_type(frame, column, type_):
+        if isinstance(frame, pd.DataFrame):
+            frame[column] = frame[column].astype(type_)
+            return frame
+        elif isinstance(frame, pa.Table):
+            schema = pa.schema([pa.field(column, type_)])
+            return frame.cast(schema)
+        else:
+            raise NotImplementedError("cast_column_to_type not implemented for type")
+
+    @staticmethod
+    def add_non_writeable_column(frame):
+        if isinstance(frame, pd.DataFrame):
+            frame["should_fail"] = pd.Series([list((1, 2))])
+            return frame
+        elif isinstance(frame, pa.Table):
+            new_column = pa.array([[1, 2], None, None])
+            frame = frame.append_column("should_fail", new_column)
+            return frame
+        else:
+            raise NotImplementedError("test not implemented for object")
+
+
+@pytest.fixture()
+def compat():
+    return Compat

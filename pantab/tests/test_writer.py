@@ -7,8 +7,6 @@ from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
 import pantab
 
-from . import util as tu
-
 
 def test_bad_table_mode_raises(frame, tmp_hyper):
     msg = "'table_mode' must be either 'w' or 'a'"
@@ -28,27 +26,29 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
     "new_dtype,hyper_type_name", [("int64", "BIGINT"), ("float", "DOUBLE PRECISION")]
 )
 def test_append_mode_raises_column_dtype_mismatch(
-    new_dtype, hyper_type_name, frame, tmp_hyper, table_name
+    new_dtype, hyper_type_name, frame, tmp_hyper, table_name, compat
 ):
-    frame = tu.select_columns(frame, "int16")
+    frame = compat.select_columns(frame, "int16")
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
-    tu.cast_column_to_type(frame, "int16", new_dtype)
+    compat.cast_column_to_type(frame, "int16", new_dtype)
     msg = f"Column type mismatch at index 0; new: {hyper_type_name} old: SMALLINT"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
-def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name):
+def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, compat):
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
-    frame = tu.drop_columns(frame, ["int16"])
+    frame = compat.drop_columns(frame, ["int16"])
     msg = "Number of columns"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
-def test_failed_write_doesnt_overwrite_file(frame, tmp_hyper, monkeypatch, table_mode):
+def test_failed_write_doesnt_overwrite_file(
+    frame, tmp_hyper, monkeypatch, table_mode, compat
+):
     pantab.frame_to_hyper(
         frame,
         tmp_hyper,
@@ -58,7 +58,7 @@ def test_failed_write_doesnt_overwrite_file(frame, tmp_hyper, monkeypatch, table
     last_modified = tmp_hyper.stat().st_mtime
 
     # Pick a dtype we know will fail
-    frame = tu.add_non_writeable_column(frame)
+    frame = compat.add_non_writeable_column(frame)
     # Try out our write methods
     msg = "Unsupported Arrow type"
     with pytest.raises(ValueError, match=msg):
