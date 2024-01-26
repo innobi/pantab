@@ -28,9 +28,6 @@ classifiers = [
 keywords = ["tableau", "visualization", "pandas", "dataframe"]
 
 dependencies = [
-    "pandas>=2.0.0",
-    "tableauhyperapi>=0.0.14567",
-    "numpy",
     # in the future we need not require pyarrow as pandas implements the
     # PyCapsule interface. See pandas PR #56587
     "pyarrow>=14.0.0",
@@ -70,7 +67,7 @@ build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
 test-command = "pytest --import-mode=importlib {project}/pantab/tests"
-test-requires = ["pytest"]
+test-requires = ["pytest", "pandas>=2.0.0", "polars", "numpy"]
 
 [tool.ruff]
 line-length = 88
