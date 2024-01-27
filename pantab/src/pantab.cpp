@@ -321,13 +321,11 @@ public:
 
     // Hyper has no template specialization to insert an interval; instead we
     // must use their internal representation
-    hyper_interval_t raw_data;
-    memcpy(&raw_data, &arrow_interval.months, sizeof(int32_t));
-    memcpy(&raw_data + sizeof(int32_t), &arrow_interval.days, sizeof(int32_t));
-    memcpy(&raw_data + sizeof(int64_t), &usec, sizeof(int32_t));
+    hyperapi::Interval interval(0, arrow_interval.months, arrow_interval.days,
+                                0, 0, 0, usec);
     // hyperapi::Interval interval{0, arrow_interval.months,
     // arrow_interval.days, 0, 0, 0, usec};
-    hyperapi::internal::ValueInserter(*inserter_).addValue(raw_data);
+    inserter_->add(interval);
   }
 };
 
