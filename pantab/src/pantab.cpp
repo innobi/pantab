@@ -8,6 +8,7 @@
 #include <nanoarrow/nanoarrow.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/map.h>
+#include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 
@@ -492,7 +493,9 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
-    const std::string &path, const std::string &table_mode) {
+    const std::string &path, const std::string &table_mode,
+    const std::set<std::string> &json_columns,
+    const std::set<std::string> &geo_columns) {
   const std::unordered_map<std::string, std::string> params = {
       {"log_config", ""}};
   const hyperapi::HyperProcess hyper{
@@ -524,15 +527,27 @@ void write_to_hyper(
     struct ArrowError error;
     std::vector<hyperapi::TableDefinition::Column> hyper_columns;
     for (int64_t i = 0; i < schema.n_children; i++) {
-      const auto hypertype =
-          hyperTypeFromArrowSchema(schema.children[i], &error);
+      const auto col_name = std::string{schema.children[i]->name};
+      if (json_columns.find(col_name) != json_columns.end()) {
+        const auto hypertype = hyperapi::SqlType::json();
+        const hyperapi::TableDefinition::Column column{
+            col_name, hypertype, hyperapi::Nullability::Nullable};
 
-      // Almost all arrow types are nullable
-      const hyperapi::TableDefinition::Column column{
-          std::string(schema.children[i]->name), hypertype,
-          hyperapi::Nullability::Nullable};
+        hyper_columns.emplace_back(std::move(column));
+      } else if (geo_columns.find(col_name) != geo_columns.end()) {
+        const auto hypertype = hyperapi::SqlType::geography();
+        const hyperapi::TableDefinition::Column column{
+            col_name, hypertype, hyperapi::Nullability::Nullable};
 
-      hyper_columns.emplace_back(std::move(column));
+        hyper_columns.emplace_back(std::move(column));
+      } else {
+        const auto hypertype =
+            hyperTypeFromArrowSchema(schema.children[i], &error);
+        const hyperapi::TableDefinition::Column column{
+            col_name, hypertype, hyperapi::Nullability::Nullable};
+
+        hyper_columns.emplace_back(std::move(column));
+      }
     }
 
     const hyperapi::TableName table_name{hyper_schema, hyper_table};
@@ -982,7 +997,8 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
 
 NB_MODULE(pantab, m) { // NOLINT
   m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_capsules"),
-        nb::arg("path"), nb::arg("table_mode"))
+        nb::arg("path"), nb::arg("table_mode"), nb::arg("json_columns"),
+        nb::arg("geo_columns"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
            nb::arg("query"));
   PyDateTime_IMPORT;

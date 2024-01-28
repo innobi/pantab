@@ -2,7 +2,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Union
 
 import tableauhyperapi as tab_api
 
@@ -54,24 +54,31 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableType,
     table_mode: Literal["a", "w"] = "w",
+    json_columns: list[str] = None,
+    geo_columns: list[str] = None,
 ) -> None:
     """See api.rst for documentation"""
     frames_to_hyper(
         {table: df},
         database,
-        table_mode,
+        table_mode=table_mode,
     )
 
 
 def frames_to_hyper(
     dict_of_frames: dict[pantab_types.TableType, Any],
     database: Union[str, pathlib.Path],
-    table_mode: Literal["a", "w"] = "w",
     *,
-    hyper_process: Optional[tab_api.HyperProcess] = None,
+    table_mode: Literal["a", "w"] = "w",
+    json_columns: set[str] = None,
+    geo_columns: set[str] = None,
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
+    if json_columns is None:
+        json_columns = set()
+    if geo_columns is None:
+        geo_columns = set()
 
     tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
@@ -89,7 +96,13 @@ def frames_to_hyper(
         convert_to_table_name(key): _get_capsule_from_obj(val)
         for key, val in dict_of_frames.items()
     }
-    libpantab.write_to_hyper(data, path=str(tmp_db), table_mode=table_mode)
+    libpantab.write_to_hyper(
+        data,
+        path=str(tmp_db),
+        table_mode=table_mode,
+        json_columns=json_columns,
+        geo_columns=geo_columns,
+    )
 
     # In Python 3.9+ we can just pass the path object, but due to bpo 32689
     # and subsequent typeshed changes it is easier to just pass as str for now
