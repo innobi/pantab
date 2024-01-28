@@ -3,7 +3,14 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
-from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
+from tableauhyperapi import (
+    Connection,
+    CreateMode,
+    HyperProcess,
+    SqlType,
+    TableName,
+    Telemetry,
+)
 
 import pantab
 
@@ -109,3 +116,39 @@ def test_utc_bug(tmp_hyper):
     expected: {frame.utc_time}
     actual: {[c[0] for c in resp]}
     """
+
+
+def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
+    pantab.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+    )
+
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(
+            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(TableName("test"))
+            json_col = table_def.get_column_by_name("json")
+            geo_col = table_def.get_column_by_name("geography")
+            assert json_col.type == SqlType.text()
+            assert geo_col.type == SqlType.bytes()
+
+    pantab.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        json_columns={"json"},
+        geo_columns={"geography"},
+    )
+
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(
+            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(TableName("test"))
+            json_col = table_def.get_column_by_name("json")
+            geo_col = table_def.get_column_by_name("geography")
+            assert json_col.type == SqlType.json()
+            assert geo_col.type == SqlType.geography()

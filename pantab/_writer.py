@@ -62,6 +62,8 @@ def frame_to_hyper(
         {table: df},
         database,
         table_mode=table_mode,
+        json_columns=json_columns,
+        geo_columns=geo_columns,
     )
 
 
@@ -96,6 +98,7 @@ def frames_to_hyper(
         convert_to_table_name(key): _get_capsule_from_obj(val)
         for key, val in dict_of_frames.items()
     }
+
     libpantab.write_to_hyper(
         data,
         path=str(tmp_db),
