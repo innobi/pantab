@@ -56,4 +56,4 @@ else()
   message("Could not find clang-tidy installation - checks disabled")
 endif()
 
-add_subdirectory(pantab/src)
+add_subdirectory(src/pantab)

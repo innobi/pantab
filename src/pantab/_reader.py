@@ -7,7 +7,7 @@ import pyarrow as pa
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
-import pantab.src.pantab as libpantab  # type: ignore
+import pantab.libpantab as libpantab  # type: ignore
 
 
 def frame_from_hyper_query(

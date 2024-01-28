@@ -2,16 +2,16 @@ import pandas as pd
 import pandas.testing as tm
 import tableauhyperapi as tab_api
 
-import pantab as pt
+import pantab
 
 
 def test_read_doesnt_modify_existing_file(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
     last_modified = tmp_hyper.stat().st_mtime
 
     # Try out our read methods
-    pt.frame_from_hyper(tmp_hyper, table="test")
-    pt.frames_from_hyper(tmp_hyper)
+    pantab.frame_from_hyper(tmp_hyper, table="test")
+    pantab.frames_from_hyper(tmp_hyper)
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
@@ -46,16 +46,16 @@ def test_reads_nullable_columns(tmp_hyper, compat):
                 inserter.add_rows([[1], [2]])
                 inserter.execute()
 
-    result = pt.frame_from_hyper(tmp_hyper, table=table_name)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     expected = pd.DataFrame([[1], [2]], dtype="int32[pyarrow]", columns=[column_name])
     compat.assert_frame_equal(result, expected)
 
 
 def test_read_query(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
 
     query = "SELECT int16 AS i, '_' || int32 AS _i2 FROM test"
-    result = pt.frame_from_hyper_query(tmp_hyper, query)
+    result = pantab.frame_from_hyper_query(tmp_hyper, query)
 
     expected = pd.DataFrame([[1, "_2"], [6, "_7"], [0, "_0"]], columns=["i", "_i2"])
     expected = expected.astype({"i": "int16[pyarrow]", "_i2": "large_string[pyarrow]"})
@@ -95,5 +95,5 @@ def test_read_varchar(tmp_hyper):
         [["foo"], ["bar"]], columns=[column_name], dtype="large_string[pyarrow]"
     )
 
-    result = pt.frame_from_hyper(tmp_hyper, table=table_name)
+    result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     tm.assert_frame_equal(result, expected)

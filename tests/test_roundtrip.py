@@ -1,7 +1,7 @@
 import pyarrow as pa
 from tableauhyperapi import TableName
 
-import pantab as pt
+import pantab
 
 
 def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
@@ -11,7 +11,7 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
-    pt.frame_to_hyper(
+    pantab.frame_to_hyper(
         frame,
         tmp_hyper,
         table=table_name,
@@ -19,7 +19,7 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         json_columns={"json"},
         geo_columns={"geography"},
     )
-    pt.frame_to_hyper(
+    pantab.frame_to_hyper(
         frame,
         tmp_hyper,
         table=table_name,
@@ -28,7 +28,9 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         geo_columns={"geography"},
     )
 
-    result = pt.frame_from_hyper(tmp_hyper, table=table_name, return_type=return_type)
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
 
     if table_mode == "a":
         expected = compat.concat_frames(expected, expected)
@@ -45,14 +47,14 @@ def test_multiple_tables(
         expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
-    pt.frames_to_hyper(
+    pantab.frames_to_hyper(
         {table_name: frame, "table2": frame},
         tmp_hyper,
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
     )
-    pt.frames_to_hyper(
+    pantab.frames_to_hyper(
         {table_name: frame, "table2": frame},
         tmp_hyper,
         table_mode=table_mode,
@@ -60,7 +62,7 @@ def test_multiple_tables(
         geo_columns={"geography"},
     )
 
-    result = pt.frames_from_hyper(tmp_hyper, return_type=return_type)
+    result = pantab.frames_from_hyper(tmp_hyper, return_type=return_type)
 
     if table_mode == "a":
         expected = compat.concat_frames(expected, expected)
@@ -85,7 +87,7 @@ def test_empty_roundtrip(
     # object case is by definition vague, so lets punt that for now
     frame = compat.drop_columns(frame, ["object"])
     empty = compat.empty_like(frame)
-    pt.frame_to_hyper(
+    pantab.frame_to_hyper(
         empty,
         tmp_hyper,
         table=table_name,
@@ -93,7 +95,7 @@ def test_empty_roundtrip(
         json_columns={"json"},
         geo_columns={"geography"},
     )
-    pt.frame_to_hyper(
+    pantab.frame_to_hyper(
         empty,
         tmp_hyper,
         table=table_name,
@@ -102,7 +104,9 @@ def test_empty_roundtrip(
         geo_columns={"geography"},
     )
 
-    result = pt.frame_from_hyper(tmp_hyper, table=table_name, return_type=return_type)
+    result = pantab.frame_from_hyper(
+        tmp_hyper, table=table_name, return_type=return_type
+    )
 
     expected = compat.drop_columns(expected, ["object"])
     expected = compat.empty_like(expected)

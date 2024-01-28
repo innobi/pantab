@@ -7,7 +7,7 @@ from typing import Any, Literal, Union
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
-import pantab.src.pantab as libpantab  # type: ignore
+import pantab.libpantab as libpantab  # type: ignore
 
 
 def _validate_table_mode(table_mode: Literal["a", "w"]) -> None:

@@ -48,8 +48,9 @@ dev = ["pytest"]
     filename = "NEWS.rst"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "pantab/tests",
+testpaths = ["tests"]
+addopts = [
+    "--import-mode=importlib",
 ]
 
 [tool.mypy]
@@ -67,7 +68,7 @@ known_first_party = "pantab"
 build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
-test-command = "pytest --import-mode=importlib {project}/pantab/tests"
+test-command = "pytest {project}/tests"
 test-requires = ["pytest", "pandas>=2.0.0", "polars", "numpy"]
 
 [tool.ruff]
