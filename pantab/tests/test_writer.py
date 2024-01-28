@@ -184,12 +184,19 @@ def test_utc_bug(tmp_hyper):
     """
 
 
+def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
+    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+        with Connection(
+            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(TableName("test"))
+            oid_col = table_def.get_column_by_name("oid")
+            assert oid_col.type == SqlType.oid()
+
+
 def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
-    pantab.frame_to_hyper(
-        frame,
-        tmp_hyper,
-        table="test",
-    )
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
 
     with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
         with Connection(
