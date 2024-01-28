@@ -37,9 +37,11 @@ def basic_arrow_table():
             ("float64_limits", pa.float64()),
             ("oid", pa.uint32()),
             ("non-ascii", pa.utf8()),
+            ("json", pa.large_string()),
             ("binary", pa.binary()),
             ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
+            ("geography", pa.large_binary()),
         ]
     )
     tbl = pa.Table.from_arrays(
@@ -84,6 +86,7 @@ def basic_arrow_table():
             pa.array(
                 ["\xef\xff\xdc\xde\xee", "\xfa\xfb\xdd\xaf\xaa", None],
             ),
+            pa.array(['{"foo": 42}', '{"bar": -42}', None]),
             pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None]),
             pa.array(
                 [
@@ -93,6 +96,13 @@ def basic_arrow_table():
                 ]
             ),
             pa.array([234, 42, None]),
+            pa.array(
+                [
+                    b"\x07\xaa\x02\xe0%n\xd9\x01\x01\n\x00\xce\xab\xe8\xfa=\xff\x96\xf0\x8a\x9f\x01",
+                    b"\x07\xaa\x02\x0c&n\x82\x01\x01\n\x00\xb0\xe2\xd4\xcc>\xd4\xbc\x97\x88\x0f",
+                    None,
+                ]
+            ),
         ],
         schema=schema,
     )
@@ -128,6 +138,7 @@ def basic_dataframe():
                 -(2**53),
                 1,
                 "\xef\xff\xdc\xde\xee",
+                '{"foo": 42}',
             ],
             [
                 6,
@@ -154,6 +165,7 @@ def basic_dataframe():
                 2**53 - 1,
                 42,
                 "\xfa\xfb\xdd\xaf\xaa",
+                '{"bar": -42}',
             ],
             [
                 0,
@@ -180,6 +192,7 @@ def basic_dataframe():
                 np.nan,
                 pd.NA,
                 np.nan,
+                pd.NA,
             ],
         ],
         columns=[
@@ -207,6 +220,7 @@ def basic_dataframe():
             "float64_limits",
             "oid",
             "non-ascii",
+            "json",
         ],
     )
 
@@ -236,6 +250,7 @@ def basic_dataframe():
             "float64_limits": np.float64,
             "oid": "UInt32",
             "non-ascii": "string",
+            "json": "string",
         }
     )
 
@@ -255,6 +270,14 @@ def basic_dataframe():
         {"col": pa.array([234, 42, None], type=pa.time64("us"))}
     )
     df["time64us"] = df["time64us"].astype("time64[us][pyarrow]")
+    df["geography"] = pa.array(
+        [
+            b"\x07\xaa\x02\xe0%n\xd9\x01\x01\n\x00\xce\xab\xe8\xfa=\xff\x96\xf0\x8a\x9f\x01",
+            b"\x07\xaa\x02\x0c&n\x82\x01\x01\n\x00\xb0\xe2\xd4\xcc>\xd4\xbc\x97\x88\x0f",
+            None,
+        ]
+    )
+    df["geography"] = df["geography"].astype("large_binary[pyarrow]")
 
     return df
 
@@ -301,9 +324,11 @@ def roundtripped_pyarrow():
             ("float64_limits", pa.float64()),
             ("oid", pa.uint32()),
             ("non-ascii", pa.large_string()),
+            ("json", pa.large_string()),
             ("binary", pa.large_binary()),
             ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
+            ("geography", pa.large_binary()),
         ]
     )
     tbl = basic_arrow_table()
@@ -338,10 +363,12 @@ def roundtripped_pandas():
             "float64_limits": "double[pyarrow]",
             "oid": "uint32[pyarrow]",
             "non-ascii": "large_string[pyarrow]",
+            "json": "large_string[pyarrow]",
             "string": "large_string[pyarrow]",
             "binary": "large_binary[pyarrow]",
             # "interval": "month_day_nano_interval[pyarrow]",
             "time64us": "time64[us][pyarrow]",
+            "geography": "large_binary[pyarrow]",
         }
     )
     return df
