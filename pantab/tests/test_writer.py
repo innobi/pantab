@@ -231,3 +231,34 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
             geo_col = table_def.get_column_by_name("geography")
             assert json_col.type == tab_api.SqlType.json()
             assert geo_col.type == tab_api.SqlType.geography()
+
+
+def test_can_write_wkt_as_geo(tmp_hyper):
+    df = pd.DataFrame(
+        [
+            ["point(-122.338083 47.647528)"],
+            ["point(11.584329 48.139257)"],
+        ],
+        columns=["geography"],
+    )
+
+    pantab.frame_to_hyper(df, tmp_hyper, table="test", geo_columns=["geography"])
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
+            geo_col = table_def.get_column_by_name("geography")
+            assert geo_col.type == tab_api.SqlType.geography()
+            data = connection.execute_list_query("select * from test")
+
+    assert data[0][0] == (
+        b"\x07\xaa\x02\xe0%n\xd9\x01\x01\n\x00\xce\xab\xe8\xfa=\xff\x96\xf0\x8a\x9f\x01"
+    )
+    assert data[1][0] == (
+        b"\x07\xaa\x02\x0c&n\x82\x01\x01\n\x00\xb0\xe2\xd4\xcc>\xd4\xbc\x97\x88\x0f"
+    )

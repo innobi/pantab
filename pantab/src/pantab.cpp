@@ -565,6 +565,9 @@ void write_to_hyper(
 
     struct ArrowError error;
     std::vector<hyperapi::TableDefinition::Column> hyper_columns;
+    std::vector<hyperapi::Inserter::ColumnMapping> column_mappings;
+    // subtley different from hyper_columns with geo
+    std::vector<hyperapi::TableDefinition::Column> inserter_defs;
     for (int64_t i = 0; i < schema.n_children; i++) {
       const auto col_name = std::string{schema.children[i]->name};
       if (json_columns.find(col_name) != json_columns.end()) {
@@ -572,20 +575,53 @@ void write_to_hyper(
         const hyperapi::TableDefinition::Column column{
             col_name, hypertype, hyperapi::Nullability::Nullable};
 
-        hyper_columns.emplace_back(std::move(column));
+        hyper_columns.emplace_back(column);
+        inserter_defs.emplace_back(std::move(column));
+        const hyperapi::Inserter::ColumnMapping mapping{col_name};
+        column_mappings.emplace_back(mapping);
       } else if (geo_columns.find(col_name) != geo_columns.end()) {
-        const auto hypertype = hyperapi::SqlType::geography();
-        const hyperapi::TableDefinition::Column column{
-            col_name, hypertype, hyperapi::Nullability::Nullable};
+        // if binary just write as is; for text we provide conversion
+        const auto detected_type =
+            hyperTypeFromArrowSchema(schema.children[i], &error);
+        if (detected_type == hyperapi::SqlType::text()) {
+          const auto hypertype = hyperapi::SqlType::geography();
+          const hyperapi::TableDefinition::Column column{
+              col_name, hypertype, hyperapi::Nullability::Nullable};
 
-        hyper_columns.emplace_back(std::move(column));
+          hyper_columns.emplace_back(std::move(column));
+          const auto insertertype = hyperapi::SqlType::text();
+          const auto as_text_name = col_name + "_as_text";
+          const hyperapi::TableDefinition::Column inserter_column{
+              as_text_name, insertertype, hyperapi::Nullability::Nullable};
+          inserter_defs.emplace_back(std::move(inserter_column));
+
+          const auto escaped = hyperapi::escapeName(as_text_name);
+          const hyperapi::Inserter::ColumnMapping mapping{
+              col_name, "CAST(" + escaped + " AS GEOGRAPHY)"};
+          column_mappings.emplace_back(mapping);
+        } else if (detected_type == hyperapi::SqlType::bytes()) {
+          const auto hypertype = hyperapi::SqlType::geography();
+          const hyperapi::TableDefinition::Column column{
+              col_name, hypertype, hyperapi::Nullability::Nullable};
+
+          hyper_columns.emplace_back(column);
+          inserter_defs.emplace_back(std::move(column));
+          const hyperapi::Inserter::ColumnMapping mapping{col_name};
+          column_mappings.emplace_back(mapping);
+        } else {
+          throw std::runtime_error(
+              "Unexpected code path hit - contact a developer");
+        }
       } else {
         const auto hypertype =
             hyperTypeFromArrowSchema(schema.children[i], &error);
         const hyperapi::TableDefinition::Column column{
             col_name, hypertype, hyperapi::Nullability::Nullable};
 
-        hyper_columns.emplace_back(std::move(column));
+        hyper_columns.emplace_back(column);
+        inserter_defs.emplace_back(std::move(column));
+        const hyperapi::Inserter::ColumnMapping mapping{col_name};
+        column_mappings.emplace_back(mapping);
       }
     }
 
@@ -599,8 +635,8 @@ void write_to_hyper(
     } else {
       catalog.createTable(tableDef);
     }
-    const auto inserter =
-        std::make_shared<hyperapi::Inserter>(connection, tableDef);
+    const auto inserter = std::make_shared<hyperapi::Inserter>(
+        connection, tableDef, column_mappings, inserter_defs);
 
     struct ArrowArray chunk;
     int errcode;
