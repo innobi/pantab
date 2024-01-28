@@ -4,14 +4,6 @@ from datetime import datetime, timezone
 import pandas as pd
 import pytest
 import tableauhyperapi as tab_api
-from tableauhyperapi import (
-    Connection,
-    CreateMode,
-    HyperProcess,
-    SqlType,
-    TableName,
-    Telemetry,
-)
 
 import pantab
 
@@ -168,9 +160,11 @@ def test_utc_bug(tmp_hyper):
         {"utc_time": [datetime.now(timezone.utc), pd.Timestamp("today", tz="UTC")]}
     )
     pantab.frame_to_hyper(frame, tmp_hyper, table="exp")
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
             resp = connection.execute_list_query("select utc_time from exp")
     assert all(
@@ -186,27 +180,35 @@ def test_utc_bug(tmp_hyper):
 
 def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
     pantab.frame_to_hyper(frame, tmp_hyper, table="test")
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            table_def = connection.catalog.get_table_definition(TableName("test"))
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
             oid_col = table_def.get_column_by_name("oid")
-            assert oid_col.type == SqlType.oid()
+            assert oid_col.type == tab_api.SqlType.oid()
 
 
 def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
     pantab.frame_to_hyper(frame, tmp_hyper, table="test")
 
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            table_def = connection.catalog.get_table_definition(TableName("test"))
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
             json_col = table_def.get_column_by_name("json")
             geo_col = table_def.get_column_by_name("geography")
-            assert json_col.type == SqlType.text()
-            assert geo_col.type == SqlType.bytes()
+            assert json_col.type == tab_api.SqlType.text()
+            assert geo_col.type == tab_api.SqlType.bytes()
 
     pantab.frame_to_hyper(
         frame,
@@ -216,12 +218,16 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
         geo_columns={"geography"},
     )
 
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            table_def = connection.catalog.get_table_definition(TableName("test"))
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
             json_col = table_def.get_column_by_name("json")
             geo_col = table_def.get_column_by_name("geography")
-            assert json_col.type == SqlType.json()
-            assert geo_col.type == SqlType.geography()
+            assert json_col.type == tab_api.SqlType.json()
+            assert geo_col.type == tab_api.SqlType.geography()
