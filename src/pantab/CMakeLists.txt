@@ -10,7 +10,7 @@ set_target_properties(nanoarrow
                       ON)
 
 install(TARGETS libpantab
-  LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/src)
+  LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
 
 if(WIN32)
   set(HYPERAPI_LIB_NAME "tableauhyperapi.lib")
@@ -26,6 +26,6 @@ endif()
 # Auditwheel doesn't know how to handle the cmake dependencies
 # so we manually install here and exclude from auditwheel
 install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/${HYPERAPI_LIB_NAME}
-   DESTINATION ${SKBUILD_PROJECT_NAME}/pantab)
+   DESTINATION ${SKBUILD_PROJECT_NAME})
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
-  DESTINATION ${SKBUILD_PROJECT_NAME}/pantab/hyper)
+  DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)
