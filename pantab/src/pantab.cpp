@@ -457,8 +457,10 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode) {
+  const std::unordered_map<std::string, std::string> params = {
+      {"log_config", ""}};
   const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau};
+      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
 
   // TODO: we don't have separate table / database create modes in the API
   // but probably should; for now we infer this from table mode
@@ -807,8 +809,10 @@ static auto releaseArrowStream(void *ptr) noexcept -> void {
 ///
 auto read_from_hyper_query(const std::string &path, const std::string &query)
     -> nb::capsule {
+  const std::unordered_map<std::string, std::string> params = {
+      {"log_config", ""}};
   const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau};
+      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
 
   auto hyperResult = connection.executeQuery(query);
