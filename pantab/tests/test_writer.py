@@ -47,6 +47,41 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+@pytest.mark.skip("Hyper API calls abort() when this condition is not met")
+def test_writing_to_non_nullable_column_without_nulls(frame, tmp_hyper, compat):
+    # With arrow as our backend we define everything as nullable, but we should
+    # still be able to append to non-nullable columns
+    column_name = "int32"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.int(),
+                nullability=tab_api.NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([[1], [2]])
+                inserter.execute()
+
+    frame = compat.select_columns(frame, [column_name])
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+
+
 def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
     column_name = "string"
     table_name = tab_api.TableName("public", "table")
@@ -75,7 +110,7 @@ def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
                 inserter.add_rows([["foo"], ["bar"]])
                 inserter.execute()
 
-    frame = compat.select_columns(frame, ["string"])
+    frame = compat.select_columns(frame, [column_name])
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
