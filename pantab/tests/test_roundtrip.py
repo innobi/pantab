@@ -11,8 +11,22 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
-    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
-    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table=table_name,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
+    )
+    pantab.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table=table_name,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
+    )
 
     result = pantab.frame_from_hyper(
         tmp_hyper, table=table_name, return_type=return_type
@@ -34,10 +48,18 @@ def test_multiple_tables(
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frames_to_hyper(
-        {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
+        {table_name: frame, "table2": frame},
+        tmp_hyper,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
     )
     pantab.frames_to_hyper(
-        {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
+        {table_name: frame, "table2": frame},
+        tmp_hyper,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
     )
 
     result = pantab.frames_from_hyper(tmp_hyper, return_type=return_type)
@@ -65,8 +87,22 @@ def test_empty_roundtrip(
     # object case is by definition vague, so lets punt that for now
     frame = compat.drop_columns(frame, ["object"])
     empty = compat.empty_like(frame)
-    pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
-    pantab.frame_to_hyper(empty, tmp_hyper, table=table_name, table_mode=table_mode)
+    pantab.frame_to_hyper(
+        empty,
+        tmp_hyper,
+        table=table_name,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
+    )
+    pantab.frame_to_hyper(
+        empty,
+        tmp_hyper,
+        table=table_name,
+        table_mode=table_mode,
+        json_columns={"json"},
+        geo_columns={"geography"},
+    )
 
     result = pantab.frame_from_hyper(
         tmp_hyper, table=table_name, return_type=return_type
