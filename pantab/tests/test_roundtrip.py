@@ -1,3 +1,4 @@
+import pyarrow as pa
 from tableauhyperapi import TableName
 
 import pantab
@@ -5,8 +6,9 @@ import pantab
 
 def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
     return_type, expected = roundtripped
-    if return_type != "pyarrow":
+    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
         frame = compat.drop_columns(frame, ["interval"])
+        expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode=table_mode)
@@ -26,8 +28,10 @@ def test_multiple_tables(
     frame, roundtripped, tmp_hyper, table_name, table_mode, compat
 ):
     return_type, expected = roundtripped
-    if return_type != "pyarrow":
+    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
         frame = compat.drop_columns(frame, ["interval"])
+        expected = compat.drop_columns(expected, ["interval"])
+
     # Write twice; depending on mode this should either overwrite or duplicate entries
     pantab.frames_to_hyper(
         {table_name: frame, "table2": frame}, tmp_hyper, table_mode=table_mode
@@ -54,8 +58,9 @@ def test_empty_roundtrip(
     frame, roundtripped, tmp_hyper, table_name, table_mode, compat
 ):
     return_type, expected = roundtripped
-    if return_type != "pyarrow":
+    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
         frame = compat.drop_columns(frame, ["interval"])
+        expected = compat.drop_columns(expected, ["interval"])
 
     # object case is by definition vague, so lets punt that for now
     frame = compat.drop_columns(frame, ["object"])

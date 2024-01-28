@@ -428,7 +428,7 @@ class Compat:
     @staticmethod
     def drop_columns(frame, columns):
         if isinstance(frame, pd.DataFrame):
-            return frame.drop(columns=columns)
+            return frame.drop(columns=columns, errors="ignore")
         elif isinstance(frame, pa.Table):
             return frame.drop_columns(columns)
         elif isinstance(frame, pl.DataFrame):
