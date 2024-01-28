@@ -51,6 +51,9 @@ dev = ["pytest"]
 testpaths = [
     "pantab/tests",
 ]
+addopts = [
+    "--import-mode=importlib",
+]
 
 [tool.mypy]
 [[tool.mypy.overrides]]
@@ -67,7 +70,7 @@ known_first_party = "pantab"
 build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
-test-command = "pytest --import-mode=importlib {project}/pantab/tests"
+test-command = "pytest {project}/pantab/tests"
 test-requires = ["pytest", "pandas>=2.0.0", "polars", "numpy"]
 
 [tool.ruff]

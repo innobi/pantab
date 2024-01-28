@@ -6,7 +6,7 @@ from typing import Literal, Union
 import pyarrow as pa
 import tableauhyperapi as tab_api
 
-import pantab.src.pantab as libpantab  # type: ignore
+import pantab.libpantab as libpantab  # type: ignore
 
 TableType = Union[str, tab_api.Name, tab_api.TableName]
 

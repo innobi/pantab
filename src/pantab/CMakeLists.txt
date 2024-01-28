@@ -1,10 +1,10 @@
-nanobind_add_module(pantab NOMINSIZE pantab.cpp numpy_datetime.cpp)
-target_include_directories(pantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
-target_link_libraries(pantab
+nanobind_add_module(libpantab NOMINSIZE pantab.cpp numpy_datetime.cpp)
+target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
+target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
-set_target_properties(pantab PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+set_target_properties(libpantab PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 set_target_properties(nanoarrow
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
@@ -26,6 +26,6 @@ endif()
 # Auditwheel doesn't know how to handle the cmake dependencies
 # so we manually install here and exclude from auditwheel
 install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/${HYPERAPI_LIB_NAME}
-   DESTINATION ${SKBUILD_PROJECT_NAME}/src)
+   DESTINATION ${SKBUILD_PROJECT_NAME})
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
-  DESTINATION ${SKBUILD_PROJECT_NAME}/src/hyper)
+  DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)

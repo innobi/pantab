@@ -1050,7 +1050,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   return result;
 }
 
-NB_MODULE(pantab, m) { // NOLINT
+NB_MODULE(libpantab, m) { // NOLINT
   m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_capsules"),
         nb::arg("path"), nb::arg("table_mode"), nb::arg("json_columns"),
         nb::arg("geo_columns"))
