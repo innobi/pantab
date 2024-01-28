@@ -2,12 +2,12 @@ import pathlib
 import shutil
 import tempfile
 import uuid
-from typing import Any, Literal, Union
+from typing import Any, Literal, Optional, Union
 
 import tableauhyperapi as tab_api
 
 import pantab._types as pantab_types
-import pantab.libpantab as libpantab  # type: ignore
+import pantab.libpantab as libpantab
 
 
 def _validate_table_mode(table_mode: Literal["a", "w"]) -> None:
@@ -54,8 +54,8 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableNameType,
     table_mode: Literal["a", "w"] = "w",
-    json_columns: list[str] = None,
-    geo_columns: list[str] = None,
+    json_columns: Optional[set[str]] = None,
+    geo_columns: Optional[set[str]] = None,
 ) -> None:
     """See api.rst for documentation"""
     frames_to_hyper(
@@ -72,8 +72,8 @@ def frames_to_hyper(
     database: Union[str, pathlib.Path],
     *,
     table_mode: Literal["a", "w"] = "w",
-    json_columns: set[str] = None,
-    geo_columns: set[str] = None,
+    json_columns: Optional[set[str]] = None,
+    geo_columns: Optional[set[str]] = None,
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)

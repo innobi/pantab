@@ -55,7 +55,7 @@ addopts = [
 
 [tool.mypy]
 [[tool.mypy.overrides]]
-module = ["tableauhyperapi.*"]
+module = ["tableauhyperapi.*", "pyarrow.*"]
 ignore_missing_imports = true
 
 [tool.isort]
