@@ -39,6 +39,8 @@ static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
     return hyperapi::SqlType::integer();
   case NANOARROW_TYPE_INT64:
     return hyperapi::SqlType::bigInt();
+  case NANOARROW_TYPE_UINT32:
+    return hyperapi::SqlType::oid();
   case NANOARROW_TYPE_FLOAT:
   case NANOARROW_TYPE_DOUBLE:
     return hyperapi::SqlType::doublePrecision();
@@ -117,6 +119,24 @@ public:
     const int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
     hyperapi::internal::ValueInserter{*inserter_}.addValue(
         static_cast<T>(value));
+  }
+};
+
+class UInt32InsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<T>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    const uint64_t value = ArrowArrayViewGetUIntUnsafe(&array_view_, idx);
+    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+        static_cast<uint32_t>(value));
   }
 };
 
@@ -358,6 +378,9 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   case NANOARROW_TYPE_INT64:
     return std::unique_ptr<InsertHelper>(new IntegralInsertHelper<int64_t>(
         inserter, chunk, schema, error, column_position));
+  case NANOARROW_TYPE_UINT32:
+    return std::unique_ptr<InsertHelper>(new UInt32InsertHelper(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_FLOAT:
     return std::unique_ptr<InsertHelper>(new FloatingInsertHelper<float>(
         inserter, chunk, schema, error, column_position));
@@ -454,11 +477,27 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   }
 }
 
+static bool isCompatibleHyperType(const hyperapi::SqlType &new_type,
+                                  const hyperapi::SqlType &old_type) {
+  if (new_type == old_type) {
+    return true;
+  }
+
+  // we don't ever write varchar, but a user may want to append to a database
+  // which has an existing varchar column and I *think* that is OK
+  if ((new_type == hyperapi::SqlType::text()) &&
+      (old_type.getTag() == hyperapi::TypeTag::Varchar)) {
+    return true;
+  }
+
+  return false;
+}
+
 ///
 /// If a table already exists, ensure the structure is the same as what we
 /// append
 ///
-void assertColumnsEqual(
+static void assertColumnsEqual(
     const std::vector<hyperapi::TableDefinition::Column> &new_columns,
     const std::vector<hyperapi::TableDefinition::Column> &old_columns) {
   const size_t new_size = new_columns.size();
@@ -481,7 +520,7 @@ void assertColumnsEqual(
 
     const auto new_type = new_col.getType();
     const auto old_type = old_col.getType();
-    if (new_type != old_type) {
+    if (!isCompatibleHyperType(new_type, old_type)) {
       throw std::invalid_argument(
           "Column type mismatch at index " + std::to_string(i) +
           "; new: " + new_type.toString() + " old: " + old_type.toString());
@@ -616,6 +655,22 @@ template <typename T> class IntegralReadHelper : public ReadHelper {
     }
     if (ArrowArrayAppendInt(array_, value.get<T>())) {
       throw std::runtime_error("ArrowAppendInt failed");
+    };
+  }
+};
+
+class OidReadHelper : public ReadHelper {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+    if (ArrowArrayAppendUInt(array_, value.get<uint32_t>())) {
+      throw std::runtime_error("ArrowAppendUInt failed");
     };
   }
 };
@@ -828,7 +883,7 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
   case NANOARROW_TYPE_INT64:
     return std::unique_ptr<ReadHelper>(new IntegralReadHelper<int64_t>(array));
   case NANOARROW_TYPE_UINT32:
-    return std::unique_ptr<ReadHelper>(new IntegralReadHelper<uint32_t>(array));
+    return std::unique_ptr<ReadHelper>(new OidReadHelper(array));
   case NANOARROW_TYPE_DOUBLE:
     return std::unique_ptr<ReadHelper>(new FloatReadHelper(array));
   case NANOARROW_TYPE_LARGE_BINARY:

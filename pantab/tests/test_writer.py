@@ -3,14 +3,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
-from tableauhyperapi import (
-    Connection,
-    CreateMode,
-    HyperProcess,
-    SqlType,
-    TableName,
-    Telemetry,
-)
+import tableauhyperapi as tab_api
 
 import pantab
 
@@ -53,6 +46,73 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+@pytest.mark.skip("Hyper API calls abort() when this condition is not met")
+def test_writing_to_non_nullable_column_without_nulls(frame, tmp_hyper, compat):
+    # With arrow as our backend we define everything as nullable, but we should
+    # still be able to append to non-nullable columns
+    column_name = "int32"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.int(),
+                nullability=tab_api.NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([[1], [2]])
+                inserter.execute()
+
+    frame = compat.select_columns(frame, [column_name])
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+
+
+def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
+    column_name = "string"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.varchar(42),
+                nullability=tab_api.NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([["foo"], ["bar"]])
+                inserter.execute()
+
+    frame = compat.select_columns(frame, [column_name])
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+
+
 def test_failed_write_doesnt_overwrite_file(
     frame, tmp_hyper, monkeypatch, table_mode, compat
 ):
@@ -64,9 +124,7 @@ def test_failed_write_doesnt_overwrite_file(
     )
     last_modified = tmp_hyper.stat().st_mtime
 
-    # Pick a dtype we know will fail
     frame = compat.add_non_writeable_column(frame)
-    # Try out our write methods
     msg = "Unsupported Arrow type"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table="test", table_mode=table_mode)
@@ -102,9 +160,11 @@ def test_utc_bug(tmp_hyper):
         {"utc_time": [datetime.now(timezone.utc), pd.Timestamp("today", tz="UTC")]}
     )
     pantab.frame_to_hyper(frame, tmp_hyper, table="exp")
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
             resp = connection.execute_list_query("select utc_time from exp")
     assert all(
@@ -118,22 +178,37 @@ def test_utc_bug(tmp_hyper):
     """
 
 
-def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
-    pantab.frame_to_hyper(
-        frame,
-        tmp_hyper,
-        table="test",
-    )
-
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            table_def = connection.catalog.get_table_definition(TableName("test"))
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
+            oid_col = table_def.get_column_by_name("oid")
+            assert oid_col.type == tab_api.SqlType.oid()
+
+
+def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
+    pantab.frame_to_hyper(frame, tmp_hyper, table="test")
+
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
             json_col = table_def.get_column_by_name("json")
             geo_col = table_def.get_column_by_name("geography")
-            assert json_col.type == SqlType.text()
-            assert geo_col.type == SqlType.bytes()
+            assert json_col.type == tab_api.SqlType.text()
+            assert geo_col.type == tab_api.SqlType.bytes()
 
     pantab.frame_to_hyper(
         frame,
@@ -143,12 +218,16 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
         geo_columns={"geography"},
     )
 
-    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-        with Connection(
-            hyper.endpoint, tmp_hyper, CreateMode.CREATE_IF_NOT_EXISTS
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
         ) as connection:
-            table_def = connection.catalog.get_table_definition(TableName("test"))
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
             json_col = table_def.get_column_by_name("json")
             geo_col = table_def.get_column_by_name("geography")
-            assert json_col.type == SqlType.json()
-            assert geo_col.type == SqlType.geography()
+            assert json_col.type == tab_api.SqlType.json()
+            assert geo_col.type == tab_api.SqlType.geography()
