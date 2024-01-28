@@ -37,6 +37,7 @@ def basic_arrow_table():
             ("float64_limits", pa.float64()),
             ("non-ascii", pa.utf8()),
             ("binary", pa.binary()),
+            ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
         ]
     )
@@ -82,6 +83,13 @@ def basic_arrow_table():
                 ["\xef\xff\xdc\xde\xee", "\xfa\xfb\xdd\xaf\xaa", None],
             ),
             pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None]),
+            pa.array(
+                [
+                    pa.scalar((1, 15, -30000), type=pa.month_day_nano_interval()),
+                    pa.scalar((-1, -15, 30000), type=pa.month_day_nano_interval()),
+                    None,
+                ]
+            ),
             pa.array([234, 42, None]),
         ],
         schema=schema,
@@ -227,6 +235,15 @@ def basic_dataframe():
     # See pandas GH issue #56994
     df["binary"] = pa.array([b"\xde\xad\xbe\xef", b"\xff\xee", None], type=pa.binary())
     df["binary"] = df["binary"].astype("binary[pyarrow]")
+    # pandas interval support is broken in pyarrow < 16
+    # df["interval"] = pa.array(
+    #    [
+    #        pa.scalar((1, 15, -30000), type=pa.month_day_nano_interval()),
+    #        pa.scalar((-1, -15, 30000), type=pa.month_day_nano_interval()),
+    #        None,
+    #    ]
+    # )
+    # df["interval"] = df["interval"].astype("month_day_nano_interval[pyarrow]")
     df["time64us"] = pd.DataFrame(
         {"col": pa.array([234, 42, None], type=pa.time64("us"))}
     )
@@ -237,6 +254,9 @@ def basic_dataframe():
 
 def basic_polars_frame():
     tbl = basic_arrow_table()
+
+    # polars does not support month_day_nano_interval yet
+    tbl = tbl.drop_columns(["interval"])
     df = pl.from_arrow(tbl)
     return df
 
@@ -274,6 +294,7 @@ def roundtripped_pyarrow():
             ("float64_limits", pa.float64()),
             ("non-ascii", pa.large_string()),
             ("binary", pa.large_binary()),
+            ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
         ]
     )
@@ -310,6 +331,7 @@ def roundtripped_pandas():
             "non-ascii": "large_string[pyarrow]",
             "string": "large_string[pyarrow]",
             "binary": "large_binary[pyarrow]",
+            # "interval": "month_day_nano_interval[pyarrow]",
             "time64us": "time64[us][pyarrow]",
         }
     )
@@ -406,7 +428,7 @@ class Compat:
     @staticmethod
     def drop_columns(frame, columns):
         if isinstance(frame, pd.DataFrame):
-            return frame.drop(columns=columns)
+            return frame.drop(columns=columns, errors="ignore")
         elif isinstance(frame, pa.Table):
             return frame.drop_columns(columns)
         elif isinstance(frame, pl.DataFrame):

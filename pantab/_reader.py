@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 import tempfile
-from typing import Union
+from typing import Literal, Union
 
 import pyarrow as pa
 import tableauhyperapi as tab_api
@@ -15,7 +15,7 @@ def frame_from_hyper_query(
     source: Union[str, pathlib.Path],
     query: str,
     *,
-    return_type="pandas",
+    return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
 ):
     """See api.rst for documentation."""
     # Call native library to read tuples from result set
@@ -41,7 +41,7 @@ def frame_from_hyper(
     source: Union[str, pathlib.Path],
     *,
     table: TableType,
-    return_type="pandas",
+    return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
 ):
     """See api.rst for documentation"""
     if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
@@ -53,7 +53,7 @@ def frame_from_hyper(
 
 def frames_from_hyper(
     source: Union[str, pathlib.Path],
-    return_type="pandas",
+    return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
 ):
     """See api.rst for documentation."""
     result = {}

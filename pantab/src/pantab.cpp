@@ -12,6 +12,9 @@
 #include <nanobind/stl/tuple.h>
 
 #include "datetime.h"
+#include "nanoarrow/array_inline.h"
+#include "nanoarrow/nanoarrow.h"
+#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
@@ -54,6 +57,8 @@ static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
     } else {
       return hyperapi::SqlType::timestamp();
     }
+  case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
+    return hyperapi::SqlType::interval();
   case NANOARROW_TYPE_TIME64:
     return hyperapi::SqlType::time();
   default:
@@ -297,6 +302,33 @@ public:
   }
 };
 
+class IntervalInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void insertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
+      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      return;
+    }
+
+    struct ArrowInterval arrow_interval;
+    ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
+    ArrowArrayViewGetIntervalUnsafe(&array_view_, idx, &arrow_interval);
+    const auto usec = static_cast<int32_t>(arrow_interval.ns / 1000);
+
+    // Hyper has no template specialization to insert an interval; instead we
+    // must use their internal representation
+    hyperapi::Interval interval(0, arrow_interval.months, arrow_interval.days,
+                                0, 0, 0, usec);
+    // hyperapi::Interval interval{0, arrow_interval.months,
+    // arrow_interval.days, 0, 0, 0, usec};
+    inserter_->add(interval);
+  }
+};
+
 static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
                              struct ArrowArray *chunk,
                              struct ArrowSchema *schema,
@@ -390,6 +422,9 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
+  case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
+    return std::unique_ptr<InsertHelper>(new IntervalInsertHelper(
+        inserter, chunk, schema, error, column_position));
   case NANOARROW_TYPE_TIME64:
     switch (schema_view.time_unit) {
     // must be a smarter way to do this!
@@ -410,7 +445,8 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
           new TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>(
               inserter, chunk, schema, error, column_position));
     }
-    break;
+    throw std::runtime_error(
+        "This code block should not be hit - contact a developer");
   default:
     throw std::invalid_argument("makeInsertHelper: Unsupported Arrow type: " +
                                 std::to_string(schema_view.type));
@@ -729,11 +765,40 @@ class TimeReadHelper : public ReadHelper {
       }
       return;
     }
+
     const auto time = value.get<hyperapi::Time>();
     const auto raw_value = time.getRaw();
     if (ArrowArrayAppendInt(array_, raw_value)) {
       throw std::runtime_error("ArrowAppendInt failed");
-    };
+    }
+  }
+};
+
+class IntervalReadHelper : public ReadHelper {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+
+    struct ArrowInterval arrow_interval;
+    ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
+    const auto interval_value = value.get<hyperapi::Interval>();
+    arrow_interval.months =
+        interval_value.getYears() * 12 + interval_value.getMonths();
+    arrow_interval.days = interval_value.getDays();
+    arrow_interval.ns = interval_value.getHours() * 3'600'000'000'000LL +
+                        interval_value.getMinutes() * 60'000'000'000LL +
+                        interval_value.getSeconds() * 1'000'000'000LL +
+                        interval_value.getMicroseconds() * 1'000LL;
+
+    if (ArrowArrayAppendInterval(array_, &arrow_interval)) {
+      throw std::runtime_error("Failed to append interval value");
+    }
   }
 };
 
@@ -765,6 +830,8 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
     } else {
       return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<false>(array));
     }
+  case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
+    return std::unique_ptr<ReadHelper>(new IntervalReadHelper(array));
   case NANOARROW_TYPE_TIME64:
     return std::unique_ptr<ReadHelper>(new TimeReadHelper(array));
   default:
@@ -789,6 +856,8 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::Date : return NANOARROW_TYPE_DATE32;
         case hyperapi::TypeTag::Timestamp : case hyperapi::TypeTag::
         TimestampTZ : return NANOARROW_TYPE_TIMESTAMP;
+        case hyperapi::TypeTag::
+        Interval : return NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO;
         case hyperapi::TypeTag::Time : return NANOARROW_TYPE_TIME64;
         default : throw nb::type_error(
             ("Reader not implemented for type: " + sqltype.toString()).c_str());
