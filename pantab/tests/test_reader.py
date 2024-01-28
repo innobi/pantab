@@ -136,8 +136,6 @@ def test_read_oid(tmp_hyper):
 
 
 def test_read_json(tmp_hyper):
-    # Hyper just uses string to serialize/de-serialize, but we don't have an API
-    # yet for users to control writing JSON. So just testing the read until then
     column_name = "JSON Column"
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(

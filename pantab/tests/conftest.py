@@ -35,6 +35,7 @@ def basic_arrow_table():
             ("int64_limits", pa.int64()),
             ("float32_limits", pa.float32()),
             ("float64_limits", pa.float64()),
+            ("oid", pa.uint32()),
             ("non-ascii", pa.utf8()),
             ("binary", pa.binary()),
             ("interval", pa.month_day_nano_interval()),
@@ -79,6 +80,7 @@ def basic_arrow_table():
             pa.array([-(2**63), 2**63 - 1, 0]),
             pa.array([-(2**24), 2**24 - 1, None]),
             pa.array([-(2**53), 2**53 - 1, None]),
+            pa.array([1, 42, None]),
             pa.array(
                 ["\xef\xff\xdc\xde\xee", "\xfa\xfb\xdd\xaf\xaa", None],
             ),
@@ -124,6 +126,7 @@ def basic_dataframe():
                 np.iinfo(np.int64).min,
                 -(2**24),
                 -(2**53),
+                1,
                 "\xef\xff\xdc\xde\xee",
             ],
             [
@@ -149,6 +152,7 @@ def basic_dataframe():
                 np.iinfo(np.int64).max,
                 2**24 - 1,
                 2**53 - 1,
+                42,
                 "\xfa\xfb\xdd\xaf\xaa",
             ],
             [
@@ -174,6 +178,7 @@ def basic_dataframe():
                 0,
                 np.nan,
                 np.nan,
+                pd.NA,
                 np.nan,
             ],
         ],
@@ -200,6 +205,7 @@ def basic_dataframe():
             "int64_limits",
             "float32_limits",
             "float64_limits",
+            "oid",
             "non-ascii",
         ],
     )
@@ -228,6 +234,7 @@ def basic_dataframe():
             "int64_limits": np.int64,
             "float32_limits": np.float64,
             "float64_limits": np.float64,
+            "oid": "UInt32",
             "non-ascii": "string",
         }
     )
@@ -292,6 +299,7 @@ def roundtripped_pyarrow():
             ("int64_limits", pa.int64()),
             ("float32_limits", pa.float64()),
             ("float64_limits", pa.float64()),
+            ("oid", pa.uint32()),
             ("non-ascii", pa.large_string()),
             ("binary", pa.large_binary()),
             ("interval", pa.month_day_nano_interval()),
@@ -328,6 +336,7 @@ def roundtripped_pandas():
             "int64_limits": "int64[pyarrow]",
             "float32_limits": "double[pyarrow]",
             "float64_limits": "double[pyarrow]",
+            "oid": "uint32[pyarrow]",
             "non-ascii": "large_string[pyarrow]",
             "string": "large_string[pyarrow]",
             "binary": "large_binary[pyarrow]",
