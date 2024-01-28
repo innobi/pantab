@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
+import tableauhyperapi as tab_api
 from tableauhyperapi import Connection, CreateMode, HyperProcess, Telemetry
 
 import pantab
@@ -46,6 +47,38 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
+    column_name = "string"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.varchar(42),
+                nullability=tab_api.NULLABLE,
+            )
+        ],
+    )
+
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([["foo"], ["bar"]])
+                inserter.execute()
+
+    frame = compat.select_columns(frame, ["string"])
+    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+
+
 def test_failed_write_doesnt_overwrite_file(
     frame, tmp_hyper, monkeypatch, table_mode, compat
 ):
@@ -57,9 +90,7 @@ def test_failed_write_doesnt_overwrite_file(
     )
     last_modified = tmp_hyper.stat().st_mtime
 
-    # Pick a dtype we know will fail
     frame = compat.add_non_writeable_column(frame)
-    # Try out our write methods
     msg = "Unsupported Arrow type"
     with pytest.raises(ValueError, match=msg):
         pantab.frame_to_hyper(frame, tmp_hyper, table="test", table_mode=table_mode)

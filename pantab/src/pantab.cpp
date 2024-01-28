@@ -453,11 +453,27 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   }
 }
 
+static bool isCompatibleHyperType(const hyperapi::SqlType &new_type,
+                                  const hyperapi::SqlType &old_type) {
+  if (new_type == old_type) {
+    return true;
+  }
+
+  // we don't ever write varchar, but a user may want to append to a database
+  // which has an existing varchar column and I *think* that is OK
+  if ((new_type == hyperapi::SqlType::text()) &&
+      (old_type.getTag() == hyperapi::TypeTag::Varchar)) {
+    return true;
+  }
+
+  return false;
+}
+
 ///
 /// If a table already exists, ensure the structure is the same as what we
 /// append
 ///
-void assertColumnsEqual(
+static void assertColumnsEqual(
     const std::vector<hyperapi::TableDefinition::Column> &new_columns,
     const std::vector<hyperapi::TableDefinition::Column> &old_columns) {
   const size_t new_size = new_columns.size();
@@ -480,7 +496,7 @@ void assertColumnsEqual(
 
     const auto new_type = new_col.getType();
     const auto old_type = old_col.getType();
-    if (new_type != old_type) {
+    if (!isCompatibleHyperType(new_type, old_type)) {
       throw std::invalid_argument(
           "Column type mismatch at index " + std::to_string(i) +
           "; new: " + new_type.toString() + " old: " + old_type.toString());
