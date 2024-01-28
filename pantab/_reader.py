@@ -6,9 +6,8 @@ from typing import Literal, Union
 import pyarrow as pa
 import tableauhyperapi as tab_api
 
+import pantab._types as pantab_types
 import pantab.src.pantab as libpantab  # type: ignore
-
-TableType = Union[str, tab_api.Name, tab_api.TableName]
 
 
 def frame_from_hyper_query(
@@ -40,7 +39,7 @@ def frame_from_hyper_query(
 def frame_from_hyper(
     source: Union[str, pathlib.Path],
     *,
-    table: TableType,
+    table: pantab_types.TableNameType,
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
 ):
     """See api.rst for documentation"""

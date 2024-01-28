@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-import pantab
+import pantab as pt
 
 
 class TimeSuite:
@@ -57,15 +57,15 @@ class TimeSuite:
         )
 
         path = "test.hyper"
-        pantab.frame_to_hyper(df, path, table="test")
+        pt.frame_to_hyper(df, path, table="test")
 
         return df
 
     def time_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+        pt.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
 
     def time_read_frame(self):
-        pantab.frame_from_hyper("test.hyper", table="test")
+        pt.frame_from_hyper("test.hyper", table="test")
 
 
 class TimeWriteLong:
@@ -73,20 +73,20 @@ class TimeWriteLong:
         self.df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
 
     def time_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+        pt.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
 
     def peakmem_write_frame(self):
-        pantab.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
+        pt.frame_to_hyper(self.df, "dummy.hyper", table="dummy")
 
 
 class TimeReadLong:
     def setup(self):
         df = pd.DataFrame(np.ones((10_000_000, 1)), columns=["a"])
         path = "test.hyper"
-        pantab.frame_to_hyper(df, path, table="test")
+        pt.frame_to_hyper(df, path, table="test")
 
     def time_read_frame(self):
-        pantab.frame_from_hyper("test.hyper", table="test")
+        pt.frame_from_hyper("test.hyper", table="test")
 
     def peakmem_read_frame(self):
-        pantab.frame_from_hyper("test.hyper", table="test")
+        pt.frame_from_hyper("test.hyper", table="test")
