@@ -7,14 +7,14 @@ Writing to a Hyper Extract
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
 
    df = pd.DataFrame([
        ["dog", 4],
        ["cat", 4],
    ], columns=["animal", "num_of_legs"])
 
-   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+   pt.frame_to_hyper(df, "example.hyper", table="animals")
 
 The above example will write out to a file named "example.hyper", which Tableau can then report off of.
 
@@ -25,9 +25,9 @@ Reading a Hyper Extract
 
 .. code-block:: python
 
-   import pantab
+   import pantab as pt
 
-   df = pantab.frame_from_hyper("example.hyper", table="animals")
+   df = pt.frame_from_hyper("example.hyper", table="animals")
    print(df)
 
 Working with Schemas
@@ -38,7 +38,7 @@ By default tables will be written to the "public" schema. You can control this b
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
    from tableauhyperapi import TableName
 
    # Let's write somewhere besides the default public schema
@@ -49,10 +49,10 @@ By default tables will be written to the "public" schema. You can control this b
        ["cat", 4],
    ], columns=["animal", "num_of_legs"])
 
-   pantab.frame_to_hyper(df, "example.hyper", table=table)
+   pt.frame_to_hyper(df, "example.hyper", table=table)
 
    # Can also be round-tripped
-   df2 = pantab.frame_from_hyper("example.hyper", table=table)
+   df2 = pt.frame_from_hyper("example.hyper", table=table)
 
 .. note::
 
@@ -67,7 +67,7 @@ Reading and Writing Multiple Tables
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
    from tableauhyperapi import TableName
 
    dict_of_frames = {
@@ -75,10 +75,10 @@ Reading and Writing Multiple Tables
        TableName("non_public_schema", "table2"): pd.DataFrame([[3, 4]], columns=list("cd")),
    }
 
-   pantab.frames_to_hyper(dict_of_frames, "example.hyper")
+   pt.frames_to_hyper(dict_of_frames, "example.hyper")
 
    # Can also be round-tripped
-   result = pantab.frames_from_hyper("example.hyper")
+   result = pt.frames_from_hyper("example.hyper")
 
 
 .. note::
@@ -93,19 +93,19 @@ By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloa
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
 
    df = pd.DataFrame([
        ["dog", 4],
        ["cat", 4],
    ], columns=["animal", "num_of_legs"])
 
-   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+   pt.frame_to_hyper(df, "example.hyper", table="animals")
 
    new_data = pd.DataFrame([["moose", 4]], columns=["animal", "num_of_legs"])
 
    # Instead of overwriting the animals table, we can append via table_mode
-   pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a")
+   pt.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a")
 
 Please note that ``table_mode="a"`` will create the table(s) if they do not already exist.
 
@@ -120,7 +120,7 @@ With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper fil
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
 
    df = pd.DataFrame([
        ["dog", 4],
@@ -129,7 +129,7 @@ With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper fil
        ["centipede", 100],
    ], columns=["animal", "num_of_legs"])
 
-   pantab.frame_to_hyper(df, "example.hyper", table="animals")
+   pt.frame_to_hyper(df, "example.hyper", table="animals")
 
    # Read a subset of the data from the Hyper file
    query = """
@@ -137,7 +137,7 @@ With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper fil
    FROM animals
    WHERE num_of_legs > 4
    """
-   df = pantab.frame_from_hyper_query("example.hyper", query)
+   df = pt.frame_from_hyper_query("example.hyper", query)
    print(df)
 
    # Let Hyper do an aggregation for us - it could also do joins, window queries, ...
@@ -146,7 +146,7 @@ With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper fil
    FROM animals
    GROUP BY num_of_legs
    """
-   df = pantab.frame_from_hyper_query("example.hyper", query)
+   df = pt.frame_from_hyper_query("example.hyper", query)
    print(df)
 
 
@@ -170,7 +170,7 @@ By reusing the same ``HyperProcess`` for multiple operations, we also save a few
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
    from tableauhyperapi import HyperProcess, Telemetry
 
    df = pd.DataFrame([
@@ -181,11 +181,11 @@ By reusing the same ``HyperProcess`` for multiple operations, we also save a few
    parameters = {"log_config": "", "default_database_version": "1"}
    with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters) as hyper:
        # Insert some initial data
-       pantab.frame_to_hyper(df, "example.hyper", table="animals", hyper_process=hyper)
+       pt.frame_to_hyper(df, "example.hyper", table="animals", hyper_process=hyper)
 
        # Append additional data to the same table using `table_mode="a"`
        new_data = pd.DataFrame([["moose", 4]], columns=["animal", "num_of_legs"])
-       pantab.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a", hyper_process=hyper)
+       pt.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a", hyper_process=hyper)
 
 
 Providing your own Hyper Connection
@@ -201,7 +201,7 @@ Hence, pantab also allows you to pass in a HyperAPI connection instead of the na
 .. code-block:: python
 
    import pandas as pd
-   import pantab
+   import pantab as pt
    from tableauhyperapi import HyperProcess, Telemetry, Connection, CreateMode
 
    df = pd.DataFrame([
@@ -212,7 +212,7 @@ Hence, pantab also allows you to pass in a HyperAPI connection instead of the na
    path = "example.hyper"
 
    with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-       pantab.frames_to_hyper({"animals": df}, path, hyper_process=hyper)
+       pt.frames_to_hyper({"animals": df}, path, hyper_process=hyper)
 
        with Connection(hyper.endpoint, path, CreateMode.NONE) as connection:
             query = """
@@ -220,8 +220,8 @@ Hence, pantab also allows you to pass in a HyperAPI connection instead of the na
             FROM animals
             WHERE num_of_legs > 4
             """
-            many_legs_df = pantab.frame_from_hyper_query(connection, query)
+            many_legs_df = pt.frame_from_hyper_query(connection, query)
             print(many_legs_df)
 
-            all_animals = pantab.frame_from_hyper(connection, table="animals")
+            all_animals = pt.frame_from_hyper(connection, table="animals")
             print(all_animals)

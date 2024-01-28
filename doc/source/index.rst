@@ -41,7 +41,7 @@ This was generated from the output of the below code on Manjaro Linux with 4.6 G
 
    import numpy as np
    import pandas as pd
-   import pantab
+   import pantab as pt
    from tableauhyperapi import (
        Connection,
        CreateMode,
@@ -54,30 +54,30 @@ This was generated from the output of the below code on Manjaro Linux with 4.6 G
    )
 
 
-   def write_via_pantab(proc: HyperProcess, n: int):
+   def write_via_pantab(n: int):
        df = pd.DataFrame({"column": np.ones(n, dtype=np.int16)})
-       pantab.frame_to_hyper(df, "example.hyper", table="table", hyper_process=proc)
+       pantab.frame_to_hyper(df, "example.hyper", table="table")
 
 
-   def write_via_hyperapi(proc: HyperProcess, n: int):
+   def write_via_hyperapi(n: int):
        data_to_insert = np.ones(n, dtype=np.int16)
+       with HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
+           table = TableDefinition(
+               table_name=TableName("table"),
+               columns=[TableDefinition.Column(name="column", type=SqlType.int())],
+           )
 
-       table = TableDefinition(
-           table_name=TableName("table"),
-           columns=[TableDefinition.Column(name="column", type=SqlType.int())],
-       )
+           with Connection(
+               endpoint=hyper.endpoint,
+               database="example.hyper",
+               create_mode=CreateMode.CREATE_AND_REPLACE,
+           ) as conn:
+               conn.catalog.create_table(table)
 
-       with Connection(
-           endpoint=proc.endpoint,
-           database="example.hyper",
-           create_mode=CreateMode.CREATE_AND_REPLACE,
-       ) as conn:
-           conn.catalog.create_table(table)
-
-           with Inserter(conn, table) as inserter:
-               for data in data_to_insert:
-                   inserter.add_row([data])
-               inserter.execute()
+               with Inserter(conn, table) as inserter:
+                   for data in data_to_insert:
+                       inserter.add_row([data])
+                   inserter.execute()
 
 
    ns = (100_000, 1_000_000, 10_000_000, 100_000_000, 1_000_000_000)

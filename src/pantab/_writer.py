@@ -52,7 +52,7 @@ def frame_to_hyper(
     df,
     database: Union[str, pathlib.Path],
     *,
-    table: pantab_types.TableType,
+    table: pantab_types.TableNameType,
     table_mode: Literal["a", "w"] = "w",
     json_columns: list[str] = None,
     geo_columns: list[str] = None,
@@ -68,7 +68,7 @@ def frame_to_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: dict[pantab_types.TableType, Any],
+    dict_of_frames: dict[pantab_types.TableNameType, Any],
     database: Union[str, pathlib.Path],
     *,
     table_mode: Literal["a", "w"] = "w",
@@ -87,7 +87,7 @@ def frames_to_hyper(
     if table_mode == "a" and pathlib.Path(database).exists():
         shutil.copy(database, tmp_db)
 
-    def convert_to_table_name(table: pantab_types.TableType):
+    def convert_to_table_name(table: pantab_types.TableNameType):
         # nanobind expects a tuple of (schema, table) strings
         if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
             table = tab_api.TableName("public", table)
