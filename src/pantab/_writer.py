@@ -54,6 +54,7 @@ def frame_to_hyper(
     *,
     table: pantab_types.TableNameType,
     table_mode: Literal["a", "w"] = "w",
+    not_null_columns: Optional[set[str]] = None,
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
 ) -> None:
@@ -62,6 +63,7 @@ def frame_to_hyper(
         {table: df},
         database,
         table_mode=table_mode,
+        not_null_columns=not_null_columns,
         json_columns=json_columns,
         geo_columns=geo_columns,
     )
@@ -72,11 +74,15 @@ def frames_to_hyper(
     database: Union[str, pathlib.Path],
     *,
     table_mode: Literal["a", "w"] = "w",
+    not_null_columns: Optional[set[str]] = None,
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
+
+    if not_null_columns is None:
+        not_null_columns = set()
     if json_columns is None:
         json_columns = set()
     if geo_columns is None:
@@ -103,6 +109,7 @@ def frames_to_hyper(
         data,
         path=str(tmp_db),
         table_mode=table_mode,
+        not_null_columns=not_null_columns,
         json_columns=json_columns,
         geo_columns=geo_columns,
     )

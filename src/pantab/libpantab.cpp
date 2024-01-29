@@ -533,6 +533,7 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode,
+    const std::set<std::string> &not_null_columns,
     const std::set<std::string> &json_columns,
     const std::set<std::string> &geo_columns) {
   const std::unordered_map<std::string, std::string> params = {
@@ -570,10 +571,13 @@ void write_to_hyper(
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
     for (int64_t i = 0; i < schema.n_children; i++) {
       const auto col_name = std::string{schema.children[i]->name};
+      const auto nullability = not_null_columns.find(col_name) != not_null_columns.end()
+        ? hyperapi::Nullability::NotNullable : hyperapi::Nullability::Nullable;
+
       if (json_columns.find(col_name) != json_columns.end()) {
         const auto hypertype = hyperapi::SqlType::json();
         const hyperapi::TableDefinition::Column column{
-            col_name, hypertype, hyperapi::Nullability::Nullable};
+          col_name, hypertype, nullability};
 
         hyper_columns.emplace_back(column);
         inserter_defs.emplace_back(std::move(column));
@@ -586,13 +590,13 @@ void write_to_hyper(
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{
-              col_name, hypertype, hyperapi::Nullability::Nullable};
+              col_name, hypertype, nullability};
 
           hyper_columns.emplace_back(std::move(column));
           const auto insertertype = hyperapi::SqlType::text();
           const auto as_text_name = col_name + "_as_text";
           const hyperapi::TableDefinition::Column inserter_column{
-              as_text_name, insertertype, hyperapi::Nullability::Nullable};
+              as_text_name, insertertype, nullability};
           inserter_defs.emplace_back(std::move(inserter_column));
 
           const auto escaped = hyperapi::escapeName(as_text_name);
@@ -602,7 +606,7 @@ void write_to_hyper(
         } else if (detected_type == hyperapi::SqlType::bytes()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{
-              col_name, hypertype, hyperapi::Nullability::Nullable};
+              col_name, hypertype, nullability};
 
           hyper_columns.emplace_back(column);
           inserter_defs.emplace_back(std::move(column));
@@ -616,7 +620,7 @@ void write_to_hyper(
         const auto hypertype =
             hyperTypeFromArrowSchema(schema.children[i], &error);
         const hyperapi::TableDefinition::Column column{
-            col_name, hypertype, hyperapi::Nullability::Nullable};
+            col_name, hypertype, nullability};
 
         hyper_columns.emplace_back(column);
         inserter_defs.emplace_back(std::move(column));
@@ -1095,8 +1099,8 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
 
 NB_MODULE(libpantab, m) { // NOLINT
   m.def("write_to_hyper", &write_to_hyper, nb::arg("dict_of_capsules"),
-        nb::arg("path"), nb::arg("table_mode"), nb::arg("json_columns"),
-        nb::arg("geo_columns"))
+        nb::arg("path"), nb::arg("table_mode"), nb::arg("not_null_columns"),
+        nb::arg("json_columns"), nb::arg("geo_columns"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
            nb::arg("query"));
   PyDateTime_IMPORT;

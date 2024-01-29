@@ -46,10 +46,31 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
         pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
-@pytest.mark.skip("Hyper API calls abort() when this condition is not met")
-def test_writing_to_non_nullable_column_without_nulls(frame, tmp_hyper, compat):
-    # With arrow as our backend we define everything as nullable, but we should
-    # still be able to append to non-nullable columns
+def test_writer_creates_not_null_columns(tmp_hyper):
+    table_name = tab_api.TableName("test")
+    df = pd.DataFrame({"int32": [1, 2, 3]}, dtype="int32")
+    pantab.frame_to_hyper(
+        df,
+        tmp_hyper,
+        table=table_name,
+        table_mode="a",
+        not_null_columns={"int32"},
+    )
+
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(table_name)
+            col = table_def.get_column_by_name("int32")
+            assert col.nullability == tab_api.Nullability.NOT_NULLABLE
+
+
+def test_writing_to_non_nullable_column_without_nulls(tmp_hyper):
+    # With arrow as our backend we define everything as nullable, so it is up
+    # to the users to override this if they want
     column_name = "int32"
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
@@ -77,8 +98,14 @@ def test_writing_to_non_nullable_column_without_nulls(frame, tmp_hyper, compat):
                 inserter.add_rows([[1], [2]])
                 inserter.execute()
 
-    frame = compat.select_columns(frame, [column_name])
-    pantab.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+    df = pd.DataFrame({"int32": [1, 2, 3]}, dtype="int32")
+    pantab.frame_to_hyper(
+        df,
+        tmp_hyper,
+        table=table_name,
+        table_mode="a",
+        not_null_columns={"int32"},
+    )
 
 
 def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
