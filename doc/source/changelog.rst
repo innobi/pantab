@@ -115,7 +115,7 @@ Miscellaneous
 Backwards incompatible changes
 ------------------------------
 
-* The ability to provide your own existing Hyper connection to pantab has been removed. This was removed due to the perceived incompatability between the 3.X and 4.X designs, and the development effort would be rather large for what is believed to be a seldomly used feature
+* The ability to provide your own existing Hyper connection or process to pantab has been removed. This was removed due to the perceived incompatability between the 3.X and 4.X designs, and the development effort would be rather large for what is believed to be a seldomly used feature
 
 Bug Fixes
 ---------
