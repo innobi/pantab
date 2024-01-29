@@ -4,7 +4,7 @@ Changelog
 Pantab 4.0.0 (XXXX-XX-XX)
 =========================
 
-pantab 4.0 represents the most significant change to the library since its 5 years ago. Please note 4.0 introduces *breaking changes* to the API. When in doubt, users should pin pantab to the 3.x series in production and test before upgrading.
+pantab 4.0 represents the most significant change to the library since it began 6 years ago. Please note 4.0 introduces *breaking changes* to the API. When in doubt, users should pin pantab to the 3.x series in production and test before upgrading.
 
 New Features
 ------------
@@ -61,7 +61,7 @@ As far as reading is concerned, you can control the type of DataFrame you receiv
 
 .. note::
 
-   Any library that implements the `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>_` will be *writeable* via pantab; reading to such a library would require explicit development
+   Any library that implements the `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ will be *writeable* via pantab; reading to such a library would require explicit development
 
 Read any Hyper file
 ~~~~~~~~~~~~~~~~~~~
@@ -99,7 +99,7 @@ Arrow does not have a native JSON string type nor a geography type. To work arou
 
 .. note::
 
-   The Hyper API reads back geography types as a binary proprietary format. You can still _write_ this back via pantab, but note that you can not roundtrip a WKT like the above example
+   The Hyper API reads back geography types as a binary proprietary format. You can still *write* this back via pantab, but note that you can not roundtrip a WKT like the above example
 
 Better Performance
 ~~~~~~~~~~~~~~~~~~
