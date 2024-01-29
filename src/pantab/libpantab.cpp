@@ -1001,9 +1001,16 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   }
 
   const auto column_count = resultSchema.getColumnCount();
+  std::unordered_map<std::string, size_t> name_counter;
   for (size_t i = 0; i < column_count; i++) {
     const auto column = resultSchema.getColumn(i);
-    const auto name = column.getName().getUnescaped();
+    auto name = column.getName().getUnescaped();
+    const auto& [elem, did_insert] = name_counter.emplace(name, 0);
+    if (!did_insert) {
+      name = name + "_" + std::to_string(elem->second);
+    }
+    elem->second += 1;
+
     if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
       throw std::runtime_error("ArrowSchemaSetName failed");
     }

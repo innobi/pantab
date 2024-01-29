@@ -97,3 +97,34 @@ def test_read_varchar(tmp_hyper):
 
     result = pantab.frame_from_hyper(tmp_hyper, table=table_name)
     tm.assert_frame_equal(result, expected)
+
+
+def test_reader_handles_duplicate_columns(tmp_hyper):
+    column_name = "does_not_matter"
+    table_name = tab_api.TableName("public", "table")
+    table = tab_api.TableDefinition(
+        table_name=table_name,
+        columns=[
+            tab_api.TableDefinition.Column(
+                name=column_name,
+                type=tab_api.SqlType.varchar(42),
+                nullability=tab_api.NOT_NULLABLE,
+            )
+        ],
+    )
+    with tab_api.HyperProcess(
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            endpoint=hyper.endpoint,
+            database=tmp_hyper,
+            create_mode=tab_api.CreateMode.CREATE_AND_REPLACE,
+        ) as connection:
+            connection.catalog.create_table(table_definition=table)
+
+            with tab_api.Inserter(connection, table) as inserter:
+                inserter.add_rows([["foo"], ["bar"]])
+                inserter.execute()
+
+    df = pantab.frame_from_hyper_query(tmp_hyper, "SELECT 1 as col, 2 AS col")
+    assert df.columns.tolist() == ["col", "col_1"]
