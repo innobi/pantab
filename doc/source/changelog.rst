@@ -1,6 +1,129 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 4.0.0 (XXXX-XX-XX)
+=========================
+
+pantab 4.0 represents the most significant change to the library since its 5 years ago. Please note 4.0 introduces *breaking changes* to the API. When in doubt, users should pin pantab to the 3.x series in production and test before upgrading.
+
+New Features
+------------
+
+Support for pandas, pyarrow, polars and more!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The original design of pantab was heavily tied to the internals of pandas. Unfortunately, the type system pandas inherited from NumPy was not an ideal match for translating into Hyper types. Since that time, the `Arrow Columnar Format <https://arrow.apache.org/docs/format/Columnar.html>`_ has helped immensely to standardize the way libraries could efficiently exchange data. As a result, pantab can support exchanging information from pandas, pyarrow and polars dataframes with relative ease.
+
+All of the following solutions will work:
+
+.. code-block:: python
+
+   >>> import pantab as pt
+
+   >>> import pandas as pd
+   >>> df = pd.DataFrame({"col": [1, 2, 3]})
+   >>> pt.frame_to_hyper(df, "example.hyper", table="test")
+
+   >>> import pyarrow as pa
+   >>> tbl = pa.Table.from_arrays([pa.array([1, 2, 3])], names=["col"])
+   >>> pt.frame_to_hyper(tbl, "example.hyper", table="test")
+
+   >>> import polars as pl
+   >>> df = pl.DataFrame({"col": [1, 2, 3]})
+   >>> pt.frame_to_hyper(df, "example.hyper", table="test")
+
+
+As far as reading is concerned, you can control the type of DataFrame you receive back via the ``return_type`` keyword. pandas remains the default
+
+.. code-block:: python
+
+   >>> pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
+      col
+   0    1
+   1    2
+   2    3
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="pyarrow")
+   pyarrow.Table
+   col: int64
+   ----
+   col: [[1,2,3]]
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="polars")
+   shape: (3, 1)
+   ┌─────┐
+   │ col │
+   │ --- │
+   │ i64 │
+   ╞═════╡
+   │ 1   │
+   │ 2   │
+   │ 3   │
+   └─────┘
+
+.. note::
+
+   Any library that implements the `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>_` will be *writeable* via pantab; reading to such a library would require explicit development
+
+Read any Hyper file
+~~~~~~~~~~~~~~~~~~~
+
+Prior to the 4.0 release, pantab worked well as a "self-contained" system, i.e. it could roundtrip files that it itself created. However, pantab struggled to read in hyper files created from other sources given. With 4.0, pantab makes a promise to be able to read *any* hyper file regardless of the types therein.
+
+
+Native Date/Time Support
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas historically only had a timestamp type with nanosecond precision from the Unix epoch. Thanks to the arrow type system, users can now write dates and even times
+
+.. code-block:: python
+
+   >>> import pantab as pt
+   >>> import pyarrow as pa
+   >>> tbl = pa.Table.from_arrays([pa.array([datetime.date(2024, 1, 1)])], names=["col"])
+   >>> pt.frame_to_hyper(tbl, "example.hyper", table="test")  # this will now write dates!
+
+Write JSON / Geography
+~~~~~~~~~~~~~~~~~~~~~~
+
+Arrow does not have a native JSON string type nor a geography type. To work around this, you may still pass in either type as a string and use the ``json_columns`` and ``geo_columns`` arguments respectively, providing a ``set`` of column names that are applicable. pantab takes care of the rest!
+
+.. code-block:: python
+
+   >>> import pantab as pt
+   >>> import pandas as pd
+   >>> df = pd.DataFrame({"json_col": ['{"foo": 42}']})
+   >>> pt.frame_to_hyper(df, "example.hyper", table="test", json_columns={"json_col"})
+
+   >>> import polars as pl
+   >>> df = pl.DataFrame({"geo_col": ["point(-122.338083 47.647528)"]})
+   >>> pt.frame_to_hyper(df, "example.hyper", table="test", geo_columns={"geo_col"})
+
+.. note::
+
+   The Hyper API reads back geography types as a binary proprietary format. You can still _write_ this back via pantab, but note that you can not roundtrip a WKT like the above example
+
+Better Performance
+~~~~~~~~~~~~~~~~~~
+
+Reading in particular has much improved performance thanks to the new design. Compared to pantab 3.X, reads in pantab 4.0 are *at least* 5x faster and use only 20% of the memory
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+* By default all columns written via pantab are assumed to be nullable. You can override this behavior by passing a set of column names to the ``not_null_columns`` argument when writing
+* pantab will now handle duplicate column names during reads by appending ``_n`` to every duplicate, where n represents the 0-based counter of a given column name's occurrance
+
+Backwards incompatible changes
+------------------------------
+
+* The ability to provide your own existing Hyper connection to pantab has been removed. This was removed due to the perceived incompatability between the 3.X and 4.X designs, and the development effort would be rather large for what is believed to be a seldomly used feature
+
+Bug Fixes
+---------
+
+* Fixed a segmentation fault when writing certain frames (#240)
+* Fixed a memory error when writing empty frames (#172)
+
+
 Pantab 3.0.3 (2023-12-18)
 =========================
 
