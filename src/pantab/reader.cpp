@@ -95,7 +95,7 @@ class BytesReadHelper : public ReadHelper {
     // TODO: we can use the non-owning hyperapi::ByteSpan template type but
     // there is a bug in that header file that needs an upstream fix first
     const auto bytes = value.get<std::vector<uint8_t>>();
-    const ArrowBufferView arrow_buffer_view{bytes.data(),
+    const ArrowBufferView arrow_buffer_view{{bytes.data()},
                                             static_cast<int64_t>(bytes.size())};
 
     if (ArrowArrayAppendBytes(array_, arrow_buffer_view)) {

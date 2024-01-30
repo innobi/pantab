@@ -10,7 +10,8 @@
 namespace nb = nanobind;
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
-                                        ArrowError *error) -> hyperapi::SqlType {
+                                        ArrowError *error)
+    -> hyperapi::SqlType {
   struct ArrowSchemaView schema_view;
   if (ArrowSchemaViewInit(&schema_view, schema, error) != 0) {
     throw std::runtime_error("Issue converting to hyper type: " +
@@ -364,8 +365,8 @@ static auto MakeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     return std::make_unique<IntegralInsertHelper<int64_t>>(
         inserter, chunk, schema, error, column_position);
   case NANOARROW_TYPE_UINT32:
-    return std::make_unique<UInt32InsertHelper>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<UInt32InsertHelper>(inserter, chunk, schema, error,
+                                                column_position);
   case NANOARROW_TYPE_FLOAT:
     return std::make_unique<FloatingInsertHelper<float>>(
         inserter, chunk, schema, error, column_position);
@@ -373,74 +374,82 @@ static auto MakeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     return std::make_unique<FloatingInsertHelper<double>>(
         inserter, chunk, schema, error, column_position);
   case NANOARROW_TYPE_BOOL:
-    return std::make_unique<IntegralInsertHelper<bool>>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<IntegralInsertHelper<bool>>(inserter, chunk, schema,
+                                                        error, column_position);
   case NANOARROW_TYPE_BINARY:
   case NANOARROW_TYPE_LARGE_BINARY:
-    return std::make_unique<BinaryInsertHelper>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<BinaryInsertHelper>(inserter, chunk, schema, error,
+                                                column_position);
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
-    return std::make_unique<Utf8InsertHelper<int64_t>>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<Utf8InsertHelper<int64_t>>(inserter, chunk, schema,
+                                                       error, column_position);
   case NANOARROW_TYPE_DATE32:
-    return std::make_unique<Date32InsertHelper>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<Date32InsertHelper>(inserter, chunk, schema, error,
+                                                column_position);
   case NANOARROW_TYPE_TIMESTAMP:
     switch (schema_view.time_unit) {
     case NANOARROW_TIME_UNIT_SECOND:
       if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>>(
+            inserter, chunk, schema, error, column_position);
       } else {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>>(
+            inserter, chunk, schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MILLI:
       if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>>(
+            inserter, chunk, schema, error, column_position);
       } else {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>>(
+            inserter, chunk, schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MICRO:
       if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>>(
+            inserter, chunk, schema, error, column_position);
       } else {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>>(
+            inserter, chunk, schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_NANO:
       if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>>(
+            inserter, chunk, schema, error, column_position);
       } else {
-        return std::make_unique<TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>>(
-                inserter, chunk, schema, error, column_position);
+        return std::make_unique<
+            TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>>(
+            inserter, chunk, schema, error, column_position);
       }
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
-    return std::make_unique<IntervalInsertHelper>(
-        inserter, chunk, schema, error, column_position);
+    return std::make_unique<IntervalInsertHelper>(inserter, chunk, schema,
+                                                  error, column_position);
   case NANOARROW_TYPE_TIME64:
     switch (schema_view.time_unit) {
     // must be a smarter way to do this!
     case NANOARROW_TIME_UNIT_SECOND: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_SECOND>>(
-              inserter, chunk, schema, error, column_position);
+          inserter, chunk, schema, error, column_position);
     case NANOARROW_TIME_UNIT_MILLI: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MILLI>>(
-              inserter, chunk, schema, error, column_position);
+          inserter, chunk, schema, error, column_position);
     case NANOARROW_TIME_UNIT_MICRO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MICRO>>(
-              inserter, chunk, schema, error, column_position);
+          inserter, chunk, schema, error, column_position);
     case NANOARROW_TIME_UNIT_NANO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>>(
-              inserter, chunk, schema, error, column_position);
+          inserter, chunk, schema, error, column_position);
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
@@ -544,13 +553,15 @@ void write_to_hyper(
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
     for (int64_t i = 0; i < schema.n_children; i++) {
       const auto col_name = std::string{schema.children[i]->name};
-      const auto nullability = not_null_columns.find(col_name) != not_null_columns.end()
-        ? hyperapi::Nullability::NotNullable : hyperapi::Nullability::Nullable;
+      const auto nullability =
+          not_null_columns.find(col_name) != not_null_columns.end()
+              ? hyperapi::Nullability::NotNullable
+              : hyperapi::Nullability::Nullable;
 
       if (json_columns.find(col_name) != json_columns.end()) {
         const auto hypertype = hyperapi::SqlType::json();
-        const hyperapi::TableDefinition::Column column{
-          col_name, hypertype, nullability};
+        const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                       nullability};
 
         hyper_columns.emplace_back(column);
         inserter_defs.emplace_back(std::move(column));
@@ -562,8 +573,8 @@ void write_to_hyper(
             GetHyperTypeFromArrowSchema(schema.children[i], &error);
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
-          const hyperapi::TableDefinition::Column column{
-              col_name, hypertype, nullability};
+          const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                         nullability};
 
           hyper_columns.emplace_back(std::move(column));
           const auto insertertype = hyperapi::SqlType::text();
@@ -578,8 +589,8 @@ void write_to_hyper(
           column_mappings.emplace_back(mapping);
         } else if (detected_type == hyperapi::SqlType::bytes()) {
           const auto hypertype = hyperapi::SqlType::geography();
-          const hyperapi::TableDefinition::Column column{
-              col_name, hypertype, nullability};
+          const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                         nullability};
 
           hyper_columns.emplace_back(column);
           inserter_defs.emplace_back(std::move(column));
@@ -592,8 +603,8 @@ void write_to_hyper(
       } else {
         const auto hypertype =
             GetHyperTypeFromArrowSchema(schema.children[i], &error);
-        const hyperapi::TableDefinition::Column column{
-            col_name, hypertype, nullability};
+        const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                       nullability};
 
         hyper_columns.emplace_back(column);
         inserter_defs.emplace_back(std::move(column));
