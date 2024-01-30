@@ -1,4 +1,9 @@
-nanobind_add_module(libpantab NOMINSIZE libpantab.cpp numpy_datetime.cpp)
+nanobind_add_module(
+  libpantab
+  NOMINSIZE
+  libpantab.cpp
+  writer.cpp
+  numpy_datetime.cpp)
 target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
