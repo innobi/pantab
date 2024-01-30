@@ -22,4 +22,3 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=LLVM]
-        files: 'pantab/src/(.*)'
