@@ -126,5 +126,5 @@ def test_reader_handles_duplicate_columns(tmp_hyper):
                 inserter.add_rows([["foo"], ["bar"]])
                 inserter.execute()
 
-    df = pt.frame_from_hyper_query(tmp_hyper, "SELECT 1 as col, 2 AS col")
-    assert df.columns.tolist() == ["col", "col_1"]
+    df = pt.frame_from_hyper_query(tmp_hyper, "SELECT 1 as col, 2 AS col, 3 AS col")
+    assert df.columns.tolist() == ["col", "col_1", "col_2"]

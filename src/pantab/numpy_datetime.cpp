@@ -7,6 +7,8 @@
  * This file is derived from NumPy 1.20. See NUMPY_LICENSE.txt
  */
 
+#include "numpy_datetime.h"
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 

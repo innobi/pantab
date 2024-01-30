@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
 else()
-    add_compile_options(-Wall -Wextra)
+    add_compile_options(-Wall -Wextra -Werror)
 endif()
 
 find_package(Python COMPONENTS Interpreter Development.Module NumPy REQUIRED)
