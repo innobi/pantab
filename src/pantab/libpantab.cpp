@@ -4,25 +4,16 @@
 #include <vector>
 
 #include <hyperapi/hyperapi.hpp>
-#include <hyperapi/impl/Inserter.impl.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
 
 #include "datetime.h"
-#include "nanoarrow/array_inline.h"
-#include "nanoarrow/nanoarrow.h"
-#include "nanoarrow/nanoarrow_types.h"
 #include "numpy_datetime.h"
 
 namespace nb = nanobind;
-
-using Dtype = std::tuple<int, int, std::string, std::string>;
-
-enum TimeUnit { SECOND, MILLI, MICRO, NANO };
 
 static auto hyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                      ArrowError *error) -> hyperapi::SqlType {
@@ -262,7 +253,7 @@ public:
   }
 };
 
-template <enum TimeUnit TU, bool TZAware>
+template <enum ArrowTimeUnit TU, bool TZAware>
 class TimestampInsertHelper : public InsertHelper {
 public:
   using InsertHelper::InsertHelper;
@@ -288,13 +279,13 @@ public:
     // TODO: need overflow checks here
     npy_datetimestruct dts;
     PyArray_DatetimeMetaData meta;
-    if constexpr (TU == TimeUnit::SECOND) {
+    if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
       meta = {NPY_FR_s, 1};
-    } else if constexpr (TU == TimeUnit::MILLI) {
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
       meta = {NPY_FR_ms, 1};
-    } else if constexpr (TU == TimeUnit::MICRO) {
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
       meta = {NPY_FR_us, 1};
-    } else if constexpr (TU == TimeUnit::NANO) {
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
       // we assume pandas is ns here but should check format
       meta = {NPY_FR_ns, 1};
     }
@@ -406,41 +397,41 @@ static auto makeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     case NANOARROW_TIME_UNIT_SECOND:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::SECOND, true>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>(
                 inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::SECOND, false>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>(
                 inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_MILLI:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MILLI, true>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>(
                 inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MILLI, false>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>(
                 inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_MICRO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MICRO, true>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>(
                 inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::MICRO, false>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>(
                 inserter, chunk, schema, error, column_position));
       }
     case NANOARROW_TIME_UNIT_NANO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::NANO, true>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>(
                 inserter, chunk, schema, error, column_position));
       } else {
         return std::unique_ptr<InsertHelper>(
-            new TimestampInsertHelper<TimeUnit::NANO, false>(
+            new TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>(
                 inserter, chunk, schema, error, column_position));
       }
     }
