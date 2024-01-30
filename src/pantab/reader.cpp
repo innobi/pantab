@@ -246,7 +246,7 @@ class IntervalReadHelper : public ReadHelper {
   }
 };
 
-static auto makeReadHelper(const ArrowSchemaView *schema_view,
+static auto MakeReadHelper(const ArrowSchemaView *schema_view,
                            struct ArrowArray *array)
     -> std::unique_ptr<ReadHelper> {
   switch (schema_view->type) {
@@ -268,12 +268,13 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
     return std::unique_ptr<ReadHelper>(new BooleanReadHelper(array));
   case NANOARROW_TYPE_DATE32:
     return std::unique_ptr<ReadHelper>(new DateReadHelper(array));
-  case NANOARROW_TYPE_TIMESTAMP:
+  case NANOARROW_TYPE_TIMESTAMP: {
     if (strcmp("", schema_view->timezone)) {
       return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<true>(array));
     } else {
       return std::unique_ptr<ReadHelper>(new DatetimeReadHelper<false>(array));
     }
+  }
   case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
     return std::unique_ptr<ReadHelper>(new IntervalReadHelper(array));
   case NANOARROW_TYPE_TIME64:
@@ -283,7 +284,7 @@ static auto makeReadHelper(const ArrowSchemaView *schema_view,
   }
 }
 
-static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
+static auto GetArrowTypeFromHyper(const hyperapi::SqlType &sqltype)
     -> enum ArrowType {
       switch (sqltype.getTag()){
         case hyperapi::TypeTag::SmallInt : return NANOARROW_TYPE_INT16;
@@ -308,12 +309,46 @@ static auto arrowTypeFromHyper(const hyperapi::SqlType &sqltype)
       }
 }
 
-static auto releaseArrowStream(void *ptr) noexcept -> void {
+static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
+                                       const hyperapi::SqlType& sqltype) -> void {
+    switch (sqltype.getTag()) {
+    case hyperapi::TypeTag::TimestampTZ:
+      if (ArrowSchemaSetTypeDateTime(schema,
+                                     NANOARROW_TYPE_TIMESTAMP,
+                                     NANOARROW_TIME_UNIT_MICRO, "UTC")) {
+        throw std::runtime_error(
+            "ArrowSchemaSetDateTime failed for TimestampTZ type");
+      }
+      break;
+    case hyperapi::TypeTag::Timestamp:
+      if (ArrowSchemaSetTypeDateTime(schema,
+                                     NANOARROW_TYPE_TIMESTAMP,
+                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
+        throw std::runtime_error(
+            "ArrowSchemaSetDateTime failed for Timestamp type");
+      }
+      break;
+    case hyperapi::TypeTag::Time:
+      if (ArrowSchemaSetTypeDateTime(schema, NANOARROW_TYPE_TIME64,
+                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
+        throw std::runtime_error("ArrowSchemaSetDateTime failed for Time type");
+      }
+      break;
+    default:
+      const enum ArrowType arrow_type = GetArrowTypeFromHyper(sqltype);
+      if (ArrowSchemaSetType(schema, arrow_type)) {
+        throw std::runtime_error("ArrowSchemaSetType failed");
+      }
+    }
+}
+
+static auto ReleaseArrowStream(void *ptr) noexcept -> void {
   auto stream = static_cast<ArrowArrayStream *>(ptr);
   if (stream->release != nullptr) {
     ArrowArrayStreamRelease(stream);
   }
 }
+
 
 ///
 /// read_from_hyper_query is slightly different than read_from_hyper_table
@@ -331,8 +366,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   auto hyperResult = connection.executeQuery(query);
   const auto resultSchema = hyperResult.getSchema();
 
-  auto schema = std::unique_ptr<struct ArrowSchema>{new (struct ArrowSchema)};
-
+  auto schema = std::make_unique<struct ArrowSchema>();
   ArrowSchemaInit(schema.get());
   if (ArrowSchemaSetTypeStruct(schema.get(), resultSchema.getColumnCount())) {
     throw std::runtime_error("ArrowSchemaSetTypeStruct failed");
@@ -353,36 +387,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
       throw std::runtime_error("ArrowSchemaSetName failed");
     }
 
-    const auto sqltype = column.getType();
-    switch (sqltype.getTag()) {
-    case hyperapi::TypeTag::TimestampTZ:
-      if (ArrowSchemaSetTypeDateTime(schema->children[i],
-                                     NANOARROW_TYPE_TIMESTAMP,
-                                     NANOARROW_TIME_UNIT_MICRO, "UTC")) {
-        throw std::runtime_error(
-            "ArrowSchemaSetDateTime failed for TimestampTZ type");
-      }
-      break;
-    case hyperapi::TypeTag::Timestamp:
-      if (ArrowSchemaSetTypeDateTime(schema->children[i],
-                                     NANOARROW_TYPE_TIMESTAMP,
-                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
-        throw std::runtime_error(
-            "ArrowSchemaSetDateTime failed for Timestamp type");
-      }
-      break;
-    case hyperapi::TypeTag::Time:
-      if (ArrowSchemaSetTypeDateTime(schema->children[i], NANOARROW_TYPE_TIME64,
-                                     NANOARROW_TIME_UNIT_MICRO, nullptr)) {
-        throw std::runtime_error("ArrowSchemaSetDateTime failed for Time type");
-      }
-      break;
-    default:
-      const enum ArrowType arrow_type = arrowTypeFromHyper(sqltype);
-      if (ArrowSchemaSetType(schema->children[i], arrow_type)) {
-        throw std::runtime_error("ArrowSchemaSetType failed");
-      }
-    }
+    SetSchemaTypeFromHyperType(schema->children[i], column.getType());
   }
 
   const auto array =
@@ -397,7 +402,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
       throw std::runtime_error("ArrowSchemaViewInit failed");
     }
 
-    auto read_helper = makeReadHelper(&schema_view, array->children[i]);
+    auto read_helper = MakeReadHelper(&schema_view, array->children[i]);
     read_helpers[i] = std::move(read_helper);
   }
 
@@ -427,6 +432,6 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
   }
   ArrowBasicArrayStreamSetArray(stream, 0, array.get());
 
-  nb::capsule result{stream, "arrow_array_stream", &releaseArrowStream};
+  nb::capsule result{stream, "arrow_array_stream", &ReleaseArrowStream};
   return result;
 }
