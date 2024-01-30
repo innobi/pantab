@@ -2,6 +2,7 @@ nanobind_add_module(
   libpantab
   NOMINSIZE
   libpantab.cpp
+  reader.cpp
   writer.cpp
   numpy_datetime.cpp)
 target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
