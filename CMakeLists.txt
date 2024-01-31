@@ -31,12 +31,12 @@ include(FetchContent)
 FetchContent_Declare(
   tableauhyperapi-cxx
   URL "${TABLEAU_DOWNLOAD_URL}"
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
 FetchContent_MakeAvailable(tableauhyperapi-cxx)
 list(APPEND CMAKE_PREFIX_PATH "${tableauhyperapi-cxx_SOURCE_DIR}/share/cmake")
 find_package(tableauhyperapi-cxx CONFIG REQUIRED)
-
 
 FetchContent_Declare(nanoarrow-project
   GIT_REPOSITORY https://github.com/apache/arrow-nanoarrow.git
