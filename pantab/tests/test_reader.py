@@ -76,7 +76,7 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
 
     with pytest.raises(
         ValueError, match=r"Cannot read Intervals with month components\."
-    ), pytest.warns(DeprecationWarning, match=r"removed in pantab 4.0"):
+    ):
         pantab.frame_from_hyper(tmp_hyper, table="test")
 
 
