@@ -1,3 +1,4 @@
+import pathlib
 import re
 from datetime import datetime, timezone
 
@@ -170,3 +171,18 @@ def test_maybe_convert_utc(tmp_hyper):
     df = pantab._writer._maybe_convert_utctimestamp(df)
     assert df.select_dtypes("datetime64[ns, UTC]").empty
     assert not df.select_dtypes("datetime64[ns]").empty
+
+
+def test_write_with_external_hyper_process_warns(df, tmp_hyper):
+    default_log_path = pathlib.Path.cwd() / "hyperd.log"
+    if default_log_path.exists():
+        default_log_path.unlink()
+
+    # By passing in a pre-spawned HyperProcess, one can e.g. avoid creating a log file
+    parameters = {"log_config": ""}
+    with HyperProcess(
+        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters
+    ) as hyper:
+        # test frame_to_hyper/frame_from_hyper
+        with pytest.warns(DeprecationWarning, match=r"removed in pantab 4.0"):
+            pantab.frame_to_hyper(df, tmp_hyper, table="test", hyper_process=hyper)

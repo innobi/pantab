@@ -4,6 +4,7 @@ import pathlib
 import shutil
 import tempfile
 import uuid
+import warnings
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import libpantab  # type: ignore
@@ -96,6 +97,11 @@ def _maybe_convert_timedelta(df: pd.DataFrame) -> Tuple[pd.DataFrame, Tuple[str,
     if deltas.empty:
         pass
     else:
+        warnings.warn(
+            "'timedelta' support will be removed in pantab 4.0 - please use "
+            "pyarrow's mmonth_day_nano_interval instead",
+            DeprecationWarning,
+        )
         df = df.copy()
 
         for index, (_, content) in enumerate(df.items()):

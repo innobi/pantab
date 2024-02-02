@@ -1,6 +1,7 @@
 import pathlib
 import shutil
 import tempfile
+import warnings
 from typing import Dict, Optional, Union
 
 import libpantab  # type: ignore
@@ -26,9 +27,14 @@ def _read_query_result(
             nullability = tab_api.Nullability.NULLABLE
             column_type = pantab_types._ColumnType(column.type, nullability)
             try:
-                dtypes[column.name.unescaped] = pantab_types._get_pandas_type(
-                    column_type
-                )
+                pandas_type = pantab_types._get_pandas_type(column_type)
+                dtypes[column.name.unescaped] = pandas_type
+                if pandas_type == "timedelta64[ns]":
+                    warnings.warn(
+                        "'timedelta' support will be removed in pantab 4.0 - please use "
+                        "pyarrow's mmonth_day_nano_interval instead",
+                        DeprecationWarning,
+                    )
             except KeyError as e:
                 raise TypeError(
                     f"Column {column.name} has unsupported datatype {column.type} "
