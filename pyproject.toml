@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 
 [project]
 name = "pantab"
-version = "3.0.3"
+version = "3.0.4"
 description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
 license = {file = "LICENSE.txt"}
 readme = "README.md"

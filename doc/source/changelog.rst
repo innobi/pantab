@@ -1,6 +1,11 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 3.0.4 (2024-02-01)
+=========================
+
+This release of pantab adds ``DeprecationWarning`` for features that will be removed in pantab 4.0
+
 Pantab 3.0.3 (2023-12-18)
 =========================
 
