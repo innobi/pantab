@@ -29,6 +29,6 @@ jobs:
       - uses: actions/setup-python@v3
 
       - name: Build wheels for ${{ matrix.os }}
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.14"
