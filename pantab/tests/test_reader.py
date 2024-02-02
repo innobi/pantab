@@ -1,9 +1,10 @@
+import pathlib
 from sqlite3 import connect
 
 import pandas as pd
 import pandas.testing as tm
 import pytest
-from tableauhyperapi import TableName
+from tableauhyperapi import HyperProcess, TableName, Telemetry
 
 import pantab
 
@@ -70,11 +71,12 @@ def test_error_on_first_column(df, tmp_hyper, monkeypatch):
     df = pd.DataFrame(
         [[pd.Timedelta("1 days 2 hours 3 minutes 4 seconds")]], columns=["timedelta64"]
     ).astype({"timedelta64": "timedelta64[ns]"})
-    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+    with pytest.warns(DeprecationWarning, match=r"removed in pantab 4.0"):
+        pantab.frame_to_hyper(df, tmp_hyper, table="test")
 
     with pytest.raises(
         ValueError, match=r"Cannot read Intervals with month components\."
-    ):
+    ), pytest.warns(DeprecationWarning, match=r"removed in pantab 4.0"):
         pantab.frame_from_hyper(tmp_hyper, table="test")
 
 
@@ -130,3 +132,20 @@ def test_empty_read_query(df: pd.DataFrame, tmp_hyper):
     expected = pd.read_sql_query(query, conn)
     result = pantab.frame_from_hyper_query(tmp_hyper, query)
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_with_external_hyper_process_warns(df, tmp_hyper):
+    pantab.frame_to_hyper(df, tmp_hyper, table="test")
+
+    default_log_path = pathlib.Path.cwd() / "hyperd.log"
+    if default_log_path.exists():
+        default_log_path.unlink()
+
+    # By passing in a pre-spawned HyperProcess, one can e.g. avoid creating a log file
+    parameters = {"log_config": ""}
+    with HyperProcess(
+        Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters
+    ) as hyper:
+        # test frame_to_hyper/frame_from_hyper
+        with pytest.warns(DeprecationWarning, match=r"removed in pantab 4.0"):
+            pantab.frame_from_hyper(tmp_hyper, table="test", hyper_process=hyper)

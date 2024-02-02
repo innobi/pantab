@@ -1,15 +1,14 @@
 [build-system]
-build-backend="mesonpy"
-requires=["meson-python", "tableauhyperapi", "oldest-supported-numpy"]
+requires = ["setuptools", "wheel", "tableauhyperapi", "oldest-supported-numpy"]
 
 [project]
 name = "pantab"
-version = "3.0.3"
+version = "3.0.4"
 description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
 license = {file = "LICENSE.txt"}
 readme = "README.md"
 authors = [
-    { name = "Will Ayd", email = "will_ayd@innobi.io" },
+    { name = "Will Ayd", email = "william.ayd@icloud.com" },
 ]
 requires-python = ">=3.9"
 classifiers = [
