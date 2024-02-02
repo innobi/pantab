@@ -23,7 +23,7 @@ classifiers = [
 keywords = ["tableau", "visualization", "pandas", "dataframe"]
 
 dependencies = [
-    "pandas>=1.0.0",
+    "pandas>=1.0.0, <2.2.0",
     "tableauhyperapi>=0.0.14567",
     "numpy",
 ]
