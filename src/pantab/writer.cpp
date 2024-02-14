@@ -540,8 +540,8 @@ void write_to_hyper(
         PyCapsule_GetPointer(capsule.ptr(), "arrow_array_stream"));
     auto stream = nanoarrow::UniqueArrayStream{c_stream};
 
-    struct ArrowSchema schema;
-    if (stream->get_schema(stream.get(), &schema) != 0) {
+    nanoarrow::UniqueSchema schema{};
+    if (stream->get_schema(stream.get(), schema.get()) != 0) {
       std::string error_msg{stream->get_last_error(stream.get())};
       throw std::runtime_error("Could not read from arrow schema:" + error_msg);
     }
@@ -551,8 +551,8 @@ void write_to_hyper(
     std::vector<hyperapi::Inserter::ColumnMapping> column_mappings;
     // subtley different from hyper_columns with geo
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
-    for (int64_t i = 0; i < schema.n_children; i++) {
-      const auto col_name = std::string{schema.children[i]->name};
+    for (int64_t i = 0; i < schema->n_children; i++) {
+      const auto col_name = std::string{schema->children[i]->name};
       const auto nullability =
           not_null_columns.find(col_name) != not_null_columns.end()
               ? hyperapi::Nullability::NotNullable
@@ -570,7 +570,7 @@ void write_to_hyper(
       } else if (geo_columns.find(col_name) != geo_columns.end()) {
         // if binary just write as is; for text we provide conversion
         const auto detected_type =
-            GetHyperTypeFromArrowSchema(schema.children[i], &error);
+            GetHyperTypeFromArrowSchema(schema->children[i], &error);
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
@@ -602,7 +602,7 @@ void write_to_hyper(
         }
       } else {
         const auto hypertype =
-            GetHyperTypeFromArrowSchema(schema.children[i], &error);
+            GetHyperTypeFromArrowSchema(schema->children[i], &error);
         const hyperapi::TableDefinition::Column column{col_name, hypertype,
                                                        nullability};
 
@@ -626,21 +626,21 @@ void write_to_hyper(
     const auto inserter = std::make_shared<hyperapi::Inserter>(
         connection, table_def, column_mappings, inserter_defs);
 
-    struct ArrowArray chunk;
+    nanoarrow::UniqueArray chunk;
     int errcode;
-    while ((errcode = stream->get_next(stream.get(), &chunk) == 0) &&
-           chunk.release != nullptr) {
-      const int nrows = chunk.length;
+    while ((errcode = stream->get_next(stream.get(), chunk.get()) == 0) &&
+           chunk->release != nullptr) {
+      const int nrows = chunk->length;
       if (nrows < 0) {
         throw std::runtime_error("Unexpected array length < 0");
       }
 
       std::vector<std::unique_ptr<InsertHelper>> insert_helpers;
-      for (int64_t i = 0; i < schema.n_children; i++) {
+      for (int64_t i = 0; i < schema->n_children; i++) {
         // the lifetime of the inserthelper cannot exceed that of chunk or
         // schema this is implicit; we should make this explicit
         auto insert_helper =
-            MakeInsertHelper(inserter, &chunk, &schema, &error, i);
+            MakeInsertHelper(inserter, chunk.get(), schema.get(), &error, i);
 
         insert_helpers.push_back(std::move(insert_helper));
       }
