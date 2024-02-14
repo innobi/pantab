@@ -66,12 +66,14 @@ public:
     const struct ArrowSchema *child_schema =
         schema_->children[column_position_];
 
-    if (ArrowArrayViewInitFromSchema(&array_view_, child_schema, error_) != 0) {
+    if (ArrowArrayViewInitFromSchema(array_view_.get(), child_schema, error_) !=
+        0) {
       throw std::runtime_error("Could not construct insert helper: " +
                                std::string{error_->message});
     }
 
-    if (ArrowArrayViewSetArray(&array_view_, chunk_->children[column_position_],
+    if (ArrowArrayViewSetArray(array_view_.get(),
+                               chunk_->children[column_position_],
                                error_) != 0) {
       throw std::runtime_error("Could not set array view: " +
                                std::string{error_->message});
@@ -87,7 +89,7 @@ protected:
   const struct ArrowSchema *schema_;
   struct ArrowError *error_;
   const int64_t column_position_;
-  struct ArrowArrayView array_view_;
+  nanoarrow::UniqueArrayView array_view_;
 };
 
 template <typename T> class IntegralInsertHelper : public InsertHelper {
@@ -95,14 +97,14 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
 
-    const int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
+    const int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
     hyperapi::internal::ValueInserter{*inserter_}.addValue(
         static_cast<T>(value));
   }
@@ -113,14 +115,14 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
 
-    const uint64_t value = ArrowArrayViewGetUIntUnsafe(&array_view_, idx);
+    const uint64_t value = ArrowArrayViewGetUIntUnsafe(array_view_.get(), idx);
     hyperapi::internal::ValueInserter{*inserter_}.addValue(
         static_cast<uint32_t>(value));
   }
@@ -131,14 +133,14 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
 
-    const double value = ArrowArrayViewGetDoubleUnsafe(&array_view_, idx);
+    const double value = ArrowArrayViewGetDoubleUnsafe(array_view_.get(), idx);
     hyperapi::internal::ValueInserter{*inserter_}.addValue(
         static_cast<T>(value));
   }
@@ -149,7 +151,7 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<std:::string_view>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
@@ -157,7 +159,7 @@ public:
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
+        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
     const hyperapi::ByteSpan result{
         buffer_view.data.as_uint8, static_cast<size_t>(buffer_view.size_bytes)};
     hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
@@ -169,7 +171,7 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<std:::string_view>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
@@ -177,7 +179,7 @@ public:
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(&array_view_, idx);
+        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
 #if defined(_WIN32) && defined(_MSC_VER)
     const auto result = std::string{
         buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
@@ -195,7 +197,7 @@ public:
 
   void InsertValueAtIndex(size_t idx) override {
     constexpr size_t elem_size = sizeof(int32_t);
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
@@ -204,7 +206,7 @@ public:
 
     int32_t value;
     memcpy(&value,
-           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
+           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
     const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
@@ -228,14 +230,14 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
       return;
     }
 
-    int64_t value = ArrowArrayViewGetIntUnsafe(&array_view_, idx);
+    int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
     // TODO: check for overflow in these branches
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
       value *= 1'000'000;
@@ -255,7 +257,7 @@ public:
 
   void InsertValueAtIndex(size_t idx) override {
     constexpr size_t elem_size = sizeof(int64_t);
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
@@ -264,7 +266,7 @@ public:
 
     int64_t value;
     memcpy(&value,
-           array_view_.buffer_views[1].data.as_uint8 + (idx * elem_size),
+           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
     // using timestamp_t =
@@ -314,7 +316,7 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(&array_view_, idx)) {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
       hyperapi::internal::ValueInserter{*inserter_}.addNull();
@@ -323,7 +325,7 @@ public:
 
     struct ArrowInterval arrow_interval;
     ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
-    ArrowArrayViewGetIntervalUnsafe(&array_view_, idx, &arrow_interval);
+    ArrowArrayViewGetIntervalUnsafe(array_view_.get(), idx, &arrow_interval);
     const auto usec = static_cast<int32_t>(arrow_interval.ns / 1000);
 
     // Hyper has no template specialization to insert an interval; instead we
@@ -540,8 +542,8 @@ void write_to_hyper(
         PyCapsule_GetPointer(capsule.ptr(), "arrow_array_stream"));
     auto stream = nanoarrow::UniqueArrayStream{c_stream};
 
-    struct ArrowSchema schema;
-    if (stream->get_schema(stream.get(), &schema) != 0) {
+    nanoarrow::UniqueSchema schema{};
+    if (stream->get_schema(stream.get(), schema.get()) != 0) {
       std::string error_msg{stream->get_last_error(stream.get())};
       throw std::runtime_error("Could not read from arrow schema:" + error_msg);
     }
@@ -551,8 +553,8 @@ void write_to_hyper(
     std::vector<hyperapi::Inserter::ColumnMapping> column_mappings;
     // subtley different from hyper_columns with geo
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
-    for (int64_t i = 0; i < schema.n_children; i++) {
-      const auto col_name = std::string{schema.children[i]->name};
+    for (int64_t i = 0; i < schema->n_children; i++) {
+      const auto col_name = std::string{schema->children[i]->name};
       const auto nullability =
           not_null_columns.find(col_name) != not_null_columns.end()
               ? hyperapi::Nullability::NotNullable
@@ -570,7 +572,7 @@ void write_to_hyper(
       } else if (geo_columns.find(col_name) != geo_columns.end()) {
         // if binary just write as is; for text we provide conversion
         const auto detected_type =
-            GetHyperTypeFromArrowSchema(schema.children[i], &error);
+            GetHyperTypeFromArrowSchema(schema->children[i], &error);
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
@@ -602,7 +604,7 @@ void write_to_hyper(
         }
       } else {
         const auto hypertype =
-            GetHyperTypeFromArrowSchema(schema.children[i], &error);
+            GetHyperTypeFromArrowSchema(schema->children[i], &error);
         const hyperapi::TableDefinition::Column column{col_name, hypertype,
                                                        nullability};
 
@@ -626,21 +628,21 @@ void write_to_hyper(
     const auto inserter = std::make_shared<hyperapi::Inserter>(
         connection, table_def, column_mappings, inserter_defs);
 
-    struct ArrowArray chunk;
+    nanoarrow::UniqueArray chunk;
     int errcode;
-    while ((errcode = stream->get_next(stream.get(), &chunk) == 0) &&
-           chunk.release != nullptr) {
-      const int nrows = chunk.length;
+    while ((errcode = stream->get_next(stream.get(), chunk.get()) == 0) &&
+           chunk->release != nullptr) {
+      const int nrows = chunk->length;
       if (nrows < 0) {
         throw std::runtime_error("Unexpected array length < 0");
       }
 
       std::vector<std::unique_ptr<InsertHelper>> insert_helpers;
-      for (int64_t i = 0; i < schema.n_children; i++) {
+      for (int64_t i = 0; i < schema->n_children; i++) {
         // the lifetime of the inserthelper cannot exceed that of chunk or
         // schema this is implicit; we should make this explicit
         auto insert_helper =
-            MakeInsertHelper(inserter, &chunk, &schema, &error, i);
+            MakeInsertHelper(inserter, chunk.get(), schema.get(), &error, i);
 
         insert_helpers.push_back(std::move(insert_helper));
       }
