@@ -297,6 +297,22 @@ def frame(request):
     return request.param()
 
 
+def chunked_pyarrow_table():
+    arr = pa.chunked_array([[1, 2, 3], [4, 5, 6]])
+    table = pa.table([arr], names=["int"])
+    return table
+
+
+def chunked_polars_frame():
+    tbl = chunked_pyarrow_table()
+    return pl.from_arrow(tbl)
+
+
+@pytest.fixture(params=[chunked_pyarrow_table, chunked_polars_frame])
+def chunked_frame(request):
+    return request.param()
+
+
 def roundtripped_pyarrow():
     schema = pa.schema(
         [
