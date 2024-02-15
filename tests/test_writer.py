@@ -289,3 +289,16 @@ def test_can_write_wkt_as_geo(tmp_hyper):
     assert data[1][0] == (
         b"\x07\xaa\x02\x0c&n\x82\x01\x01\n\x00\xb0\xe2\xd4\xcc>\xd4\xbc\x97\x88\x0f"
     )
+
+
+def test_can_write_chunked_frames(chunked_frame, tmp_hyper):
+    pt.frame_to_hyper(chunked_frame, tmp_hyper, table="test")
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            data = connection.execute_list_query("select * from test")
+
+    assert data == [[1], [2], [3], [4], [5], [6]]
