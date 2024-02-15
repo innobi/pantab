@@ -628,10 +628,11 @@ void write_to_hyper(
     const auto inserter = std::make_shared<hyperapi::Inserter>(
         connection, table_def, column_mappings, inserter_defs);
 
-    nanoarrow::UniqueArray chunk;
+    struct ArrowArray c_chunk;
     int errcode;
-    while ((errcode = stream->get_next(stream.get(), chunk.get()) == 0) &&
-           chunk->release != nullptr) {
+    while ((errcode = stream->get_next(stream.get(), &c_chunk) == 0) &&
+           c_chunk.release != nullptr) {
+      nanoarrow::UniqueArray chunk{&c_chunk};
       const int nrows = chunk->length;
       if (nrows < 0) {
         throw std::runtime_error("Unexpected array length < 0");
