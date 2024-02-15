@@ -63,10 +63,10 @@ pytest tests
 For more advanced use cases where you may want to debug compiled extensions, you _may_ need to build the extension in the source tree and invoke pytest from the src folder. As an example:
 
 ```sh
-cmake -S . -B . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
-cmake --build .
-cd src
-python -m pytest ../tests
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+cd build/src
+python -m pytest ../../tests
 ```
 
 Will work as well. You may want to run ``git clean -xfd`` when done with the debugging to clean up the source tree.
