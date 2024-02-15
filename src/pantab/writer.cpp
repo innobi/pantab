@@ -540,6 +540,9 @@ void write_to_hyper(
 
     const auto c_stream = static_cast<struct ArrowArrayStream *>(
         PyCapsule_GetPointer(capsule.ptr(), "arrow_array_stream"));
+    if (c_stream == nullptr) {
+      throw std::invalid_argument("Invalid PyCapsule provided!");
+    }
     auto stream = nanoarrow::UniqueArrayStream{c_stream};
 
     nanoarrow::UniqueSchema schema{};
