@@ -18,7 +18,7 @@ What is it?
 How do I get it?
 ----------------
 
-``pantab`` requires Python 3.6+ and can run on any Python-supported OS. Installation is as easy as:
+Installation is as easy as:
 
 .. code-block:: bash
 
