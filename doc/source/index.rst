@@ -5,7 +5,6 @@ pantab
    :hidden:
 
    examples
-   caveats
    api
    changelog
    support
