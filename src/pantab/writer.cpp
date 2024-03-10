@@ -1,13 +1,12 @@
 #include "writer.hpp"
 
 #include <chrono>
+#include <set>
 
 #include <hyperapi/hyperapi.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 
 #include "numpy_datetime.h"
-
-namespace nb = nanobind;
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                         ArrowError *error)
@@ -517,9 +516,27 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode,
-    const std::set<std::string> &not_null_columns,
-    const std::set<std::string> &json_columns,
-    const std::set<std::string> &geo_columns) {
+    nb::iterable not_null_columns, nb::iterable json_columns,
+    nb::iterable geo_columns) {
+
+  std::set<std::string> not_null_set;
+  for (auto col : not_null_columns) {
+    const auto colstr = nb::cast<std::string>(col);
+    not_null_set.insert(colstr);
+  }
+
+  std::set<std::string> json_set;
+  for (auto col : json_columns) {
+    const auto colstr = nb::cast<std::string>(col);
+    json_set.insert(colstr);
+  }
+
+  std::set<std::string> geo_set;
+  for (auto col : geo_columns) {
+    const auto colstr = nb::cast<std::string>(col);
+    geo_set.insert(colstr);
+  }
+
   const std::unordered_map<std::string, std::string> params = {
       {"log_config", ""}};
   const hyperapi::HyperProcess hyper{
@@ -558,12 +575,11 @@ void write_to_hyper(
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
     for (int64_t i = 0; i < schema->n_children; i++) {
       const auto col_name = std::string{schema->children[i]->name};
-      const auto nullability =
-          not_null_columns.find(col_name) != not_null_columns.end()
-              ? hyperapi::Nullability::NotNullable
-              : hyperapi::Nullability::Nullable;
+      const auto nullability = not_null_set.find(col_name) != not_null_set.end()
+                                   ? hyperapi::Nullability::NotNullable
+                                   : hyperapi::Nullability::Nullable;
 
-      if (json_columns.find(col_name) != json_columns.end()) {
+      if (json_set.find(col_name) != json_set.end()) {
         const auto hypertype = hyperapi::SqlType::json();
         const hyperapi::TableDefinition::Column column{col_name, hypertype,
                                                        nullability};
@@ -572,7 +588,7 @@ void write_to_hyper(
         inserter_defs.emplace_back(std::move(column));
         const hyperapi::Inserter::ColumnMapping mapping{col_name};
         column_mappings.emplace_back(mapping);
-      } else if (geo_columns.find(col_name) != geo_columns.end()) {
+      } else if (geo_set.find(col_name) != geo_set.end()) {
         // if binary just write as is; for text we provide conversion
         const auto detected_type =
             GetHyperTypeFromArrowSchema(schema->children[i], &error);

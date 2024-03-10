@@ -388,8 +388,7 @@ auto read_from_hyper_query(const std::string &path, const std::string &query)
     SetSchemaTypeFromHyperType(schema->children[i], column.getType());
   }
 
-  const auto array =
-      std::unique_ptr<struct ArrowArray>{new (struct ArrowArray)};
+  nanoarrow::UniqueArray array{};
   if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
     throw std::runtime_error("ArrowSchemaInitFromSchema failed");
   }
