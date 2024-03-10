@@ -46,7 +46,8 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
         pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
-def test_writer_creates_not_null_columns(tmp_hyper):
+@pytest.mark.parametrize("container_t", [set, list, tuple])
+def test_writer_creates_not_null_columns(tmp_hyper, container_t):
     table_name = tab_api.TableName("test")
     df = pd.DataFrame({"int32": [1, 2, 3]}, dtype="int32")
     pt.frame_to_hyper(
@@ -54,7 +55,7 @@ def test_writer_creates_not_null_columns(tmp_hyper):
         tmp_hyper,
         table=table_name,
         table_mode="a",
-        not_null_columns={"int32"},
+        not_null_columns=container_t(("int32",)),
     )
 
     with tab_api.HyperProcess(
@@ -68,7 +69,8 @@ def test_writer_creates_not_null_columns(tmp_hyper):
             assert col.nullability == tab_api.Nullability.NOT_NULLABLE
 
 
-def test_writing_to_non_nullable_column_without_nulls(tmp_hyper):
+@pytest.mark.parametrize("container_t", [set, list, tuple])
+def test_writing_to_non_nullable_column_without_nulls(tmp_hyper, container_t):
     # With arrow as our backend we define everything as nullable, so it is up
     # to the users to override this if they want
     column_name = "int32"
@@ -104,7 +106,7 @@ def test_writing_to_non_nullable_column_without_nulls(tmp_hyper):
         tmp_hyper,
         table=table_name,
         table_mode="a",
-        not_null_columns={"int32"},
+        not_null_columns=container_t(("int32",)),
     )
 
 
@@ -220,7 +222,8 @@ def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
             assert oid_col.type == tab_api.SqlType.oid()
 
 
-def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
+@pytest.mark.parametrize("container_t", [set, list, tuple])
+def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
     with tab_api.HyperProcess(
@@ -241,8 +244,8 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame):
         frame,
         tmp_hyper,
         table="test",
-        json_columns={"json"},
-        geo_columns={"geography"},
+        json_columns=container_t(("json",)),
+        geo_columns=container_t(("geography",)),
     )
 
     with tab_api.HyperProcess(
