@@ -1,7 +1,7 @@
 API Reference
 =============
 
-.. py:function:: frame_to_hyper(df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], table_mode: str = "w", not_null_columns: Optional[set[str]] = None, json_columns: Optional[set[str]] = None, geo_columns: Optional[set[str]] = None) -> None:
+.. py:function:: frame_to_hyper(df: pd.DataFrame, database: Union[str, pathlib.Path], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], table_mode: str = "w", not_null_columns: Optional[Iterable[str]] = None, json_columns: Optional[Iterable[str]] = None, geo_columns: Optional[Iterable[str]] = None) -> None:
 
    Convert a DataFrame to a .hyper extract.
 
@@ -22,7 +22,7 @@ API Reference
    :param return_type: The type of DataFrame to be returned
 
 
-.. py:function:: frames_to_hyper(dict_of_frames: Dict[Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], pd.DataFrame], database: Union[str, pathlib.Path], *, table_mode: str = "w", not_null_columns: Optional[set[str]] = None, json_columns: Optional[set[str]] = None, geo_columns: Optional[set[str]] = None,) -> None:
+.. py:function:: frames_to_hyper(dict_of_frames: Dict[Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], pd.DataFrame], database: Union[str, pathlib.Path], *, table_mode: str = "w", not_null_columns: Optional[Iterable[str]] = None, json_columns: Optional[Iterable[str]] = None, geo_columns: Optional[Iterable[str]] = None,) -> None:
 
    Writes multiple DataFrames to a .hyper extract.
 
