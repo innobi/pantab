@@ -113,8 +113,6 @@ Please note that ``table_mode="a"`` will create the table(s) if they do not alre
 Issuing SQL queries
 -------------------
 
-.. versionadded:: 2.0
-
 With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper file and retrieve the resulting data as a DataFrame. This can be used, e.g. to retrieve only a part of the data (using a ``WHERE`` clause) or to offload computations to Hyper.
 
 .. code-block:: python
@@ -150,78 +148,55 @@ With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper fil
    print(df)
 
 
-Providing your own HyperProcess
--------------------------------
+Bring your own DataFrame
+------------------------
 
-.. versionadded:: 2.0
+.. versionadded:: 4.0
 
-For convenience, pantab's functions internally spawn a `HyperProcess <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process>`_. In case you prefer to spawn your own ``HyperProcess``, you can supply it to pantab through the ``hyper_process`` keyword argument.
-
-By using your own ``HyperProcess``, you have full control over all its startup paramters.
-In the following example we use that flexibility to:
-
-- enable telemetry, thereby making sure the Hyper team at Tableau knows about our use case and potential issues we might be facing
-- `disable log files <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process#log_config>`_, as we operate in some environment with really tight disk space
-- opt-in to the `new Hyper file format <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process#default_database_version>`_
-
-By reusing the same ``HyperProcess`` for multiple operations, we also save a few milliseconds. While not noteworthy in this simple example, this might be a good optimization in case you call ``frame_to_hyper`` repeatedly in a loop.
-
+When pantab was first created, pandas was the dominant DataFrame library. In the years since then, many competing libraries have cropped up which all provide different advantages. To give users the most flexibility, pantab provides first class support for exchanging `pandas <https://pandas.pydata.org/>`_, `polars <https://pola.rs/>`_ and `pyarrow <https://arrow.apache.org/docs/python/index.html>`_ DataFrames. To wit, all of the following code samples will produce an equivalent Hyper file:
 
 .. code-block:: python
 
-   import pandas as pd
    import pantab as pt
-   from tableauhyperapi import HyperProcess, Telemetry
 
-   df = pd.DataFrame([
-       ["dog", 4],
-       ["cat", 4],
-   ], columns=["animal", "num_of_legs"])
+   import pandas as pd
+   df = pd.DataFrame({"col": [1, 2, 3]})
+   pt.frame_to_hyper(df, "example.hyper", table="test")
 
-   parameters = {"log_config": "", "default_database_version": "1"}
-   with HyperProcess(Telemetry.SEND_USAGE_DATA_TO_TABLEAU, parameters=parameters) as hyper:
-       # Insert some initial data
-       pt.frame_to_hyper(df, "example.hyper", table="animals", hyper_process=hyper)
+   import pyarrow as pa
+   tbl = pa.Table.from_arrays([pa.array([1, 2, 3])], names=["col"])
+   pt.frame_to_hyper(tbl, "example.hyper", table="test")
 
-       # Append additional data to the same table using `table_mode="a"`
-       new_data = pd.DataFrame([["moose", 4]], columns=["animal", "num_of_legs"])
-       pt.frame_to_hyper(df, "example.hyper", table="animals", table_mode="a", hyper_process=hyper)
+   import polars as pl
+   df = pl.DataFrame({"col": [1, 2, 3]})
+   pt.frame_to_hyper(df, "example.hyper", table="test")
 
-
-Providing your own Hyper Connection
------------------------------------
-
-.. versionadded:: 2.0
-
-In order to interface with Hyper, pantab functions need a HyperAPI `Connection <https://tableau.github.io/hyper-db/docs/hyper-api/connection>`_ to interface with Hyper.
-For convenience, pantab creates those connections implicitly for you.
-However, establishing a connection is not for free, and by reusing the same ``Connection`` for multiple operations, we can save time.
-Hence, pantab also allows you to pass in a HyperAPI connection instead of the name / location of your Hyper file.
+As far as reading is concerned, you can control the type of DataFrame you receive back via the ``return_type`` keyword. pandas remains the default
 
 .. code-block:: python
 
-   import pandas as pd
-   import pantab as pt
-   from tableauhyperapi import HyperProcess, Telemetry, Connection, CreateMode
+   >>> pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
+      col
+   0    1
+   1    2
+   2    3
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="pyarrow")
+   pyarrow.Table
+   col: int64
+   ----
+   col: [[1,2,3]]
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="polars")
+   shape: (3, 1)
+   ┌─────┐
+   │ col │
+   │ --- │
+   │ i64 │
+   ╞═════╡
+   │ 1   │
+   │ 2   │
+   │ 3   │
+   └─────┘
 
-   df = pd.DataFrame([
-       ["dog", 4],
-       ["cat", 4],
-       ["centipede", 100],
-   ], columns=["animal", "num_of_legs"])
-   path = "example.hyper"
+.. note::
 
-   with HyperProcess(Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU) as hyper:
-       pt.frames_to_hyper({"animals": df}, path, hyper_process=hyper)
-
-       with Connection(hyper.endpoint, path, CreateMode.NONE) as connection:
-            query = """
-            SELECT animal
-            FROM animals
-            WHERE num_of_legs > 4
-            """
-            many_legs_df = pt.frame_from_hyper_query(connection, query)
-            print(many_legs_df)
-
-            all_animals = pt.frame_from_hyper(connection, table="animals")
-            print(all_animals)
+   Technically pantab is able to *write* any DataFrame library that implements the `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_

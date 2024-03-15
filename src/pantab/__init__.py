@@ -1,4 +1,4 @@
-__version__ = "4.0.0rc2"
+__version__ = "4.0.0"
 
 
 from pantab._reader import frame_from_hyper, frame_from_hyper_query, frames_from_hyper
