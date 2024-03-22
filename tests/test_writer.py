@@ -321,17 +321,11 @@ def test_write_date_bug(tmp_hyper):
         [
             pa.array(
                 [
-                    datetime.date(
-                        2024, 2, 1
-                    ),  # TRIGGERS ISSUE: (writes 2024-03-03 instead)
-                    datetime.date(
-                        2024, 3, 16
-                    ),  # TRIGGERS ISSUE: (writes 2024-05-15 instead)
-                    datetime.date(
-                        2024, 3, 1
-                    ),  # TRIGGERS ISSUE: (writes 2024-04-30 instead)
-                    datetime.date(2024, 1, 1),  # DOES NOT TRIGGER ISSUE
-                    datetime.date(2024, 1, 31),  # DOES NOT TRIGGER ISSUE
+                    datetime.date(2024, 2, 1),
+                    datetime.date(2024, 3, 16),
+                    datetime.date(2024, 3, 1),
+                    datetime.date(2024, 1, 1),
+                    datetime.date(2024, 1, 31),
                 ]
             )
         ],
