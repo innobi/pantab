@@ -1,7 +1,15 @@
 Changelog
 ^^^^^^^^^
 
-Pantab 4.0.0 (XXXX-XX-XX)
+Pantab 4.0.1 (2024-03-21)
+=========================
+
+Bugfixes
+--------
+
+- Fixed issue where dates were not properly written to Hyper (#282)
+
+Pantab 4.0.0 (2024-03-15)
 =========================
 
 pantab 4.0 represents the most significant change to the library since it began 6 years ago. Please note 4.0 introduces *breaking changes* to the API. When in doubt, users should pin pantab to the 3.x series in production and test before upgrading.

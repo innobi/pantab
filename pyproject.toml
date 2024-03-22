@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pantab"
-version = "4.0.0"
+version = "4.0.1"
 description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
 license = {file = "LICENSE.txt"}
 readme = "README.md"
