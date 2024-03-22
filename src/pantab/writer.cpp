@@ -218,7 +218,7 @@ public:
     const struct tm utc_tm = *std::gmtime(&tt);
     const hyperapi::Date dt{1900 + utc_tm.tm_year,
                             static_cast<int16_t>(1 + utc_tm.tm_mon),
-                            static_cast<int16_t>(1 + utc_tm.tm_yday)};
+                            static_cast<int16_t>(utc_tm.tm_mday)};
 
     hyperapi::internal::ValueInserter{*inserter_}.addValue(dt);
   }

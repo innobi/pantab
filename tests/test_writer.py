@@ -1,7 +1,8 @@
+import datetime
 import re
-from datetime import datetime, timezone
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 import tableauhyperapi as tab_api
 
@@ -186,7 +187,12 @@ def test_utc_bug(tmp_hyper):
     Red-Green for UTC bug
     """
     frame = pd.DataFrame(
-        {"utc_time": [datetime.now(timezone.utc), pd.Timestamp("today", tz="UTC")]}
+        {
+            "utc_time": [
+                datetime.datetime.now(datetime.timezone.utc),
+                pd.Timestamp("today", tz="UTC"),
+            ]
+        }
     )
     pt.frame_to_hyper(frame, tmp_hyper, table="exp")
     with tab_api.HyperProcess(
@@ -305,3 +311,40 @@ def test_can_write_chunked_frames(chunked_frame, tmp_hyper):
             data = connection.execute_list_query("select * from test")
 
     assert data == [[1], [2], [3], [4], [5], [6]]
+
+
+def test_write_date_bug(tmp_hyper):
+    # GH282
+    schema = pa.schema([("date32_test_col", pa.date32())])
+
+    tbl = pa.Table.from_arrays(
+        [
+            pa.array(
+                [
+                    datetime.date(2024, 2, 1),
+                    datetime.date(2024, 3, 16),
+                    datetime.date(2024, 3, 1),
+                    datetime.date(2024, 1, 1),
+                    datetime.date(2024, 1, 31),
+                ]
+            )
+        ],
+        schema=schema,
+    )
+
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            data = connection.execute_list_query("select * from test")
+
+    assert data == [
+        [tab_api.Date(2024, 2, 1)],
+        [tab_api.Date(2024, 3, 16)],
+        [tab_api.Date(2024, 3, 1)],
+        [tab_api.Date(2024, 1, 1)],
+        [tab_api.Date(2024, 1, 31)],
+    ]

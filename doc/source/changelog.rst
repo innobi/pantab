@@ -1,6 +1,14 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 4.0.1 (2024-03-21)
+=========================
+
+Bugfixes
+--------
+
+- Fixed issue where dates were not properly written to Hyper (#282)
+
 Pantab 4.0.0 (2024-03-15)
 =========================
 
