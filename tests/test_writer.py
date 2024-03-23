@@ -348,3 +348,9 @@ def test_write_date_bug(tmp_hyper):
         [tab_api.Date(2024, 1, 1)],
         [tab_api.Date(2024, 1, 31)],
     ]
+
+
+def test_eight_bit_int(tmp_hyper):
+    frame = pd.DataFrame(list(range(10))).astype("int8")
+
+    pt.frame_to_hyper(frame, tmp_hyper, table="test")

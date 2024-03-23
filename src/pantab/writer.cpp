@@ -18,6 +18,7 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   }
 
   switch (schema_view.type) {
+  case NANOARROW_TYPE_INT8:
   case NANOARROW_TYPE_INT16:
     return hyperapi::SqlType::smallInt();
   case NANOARROW_TYPE_INT32:
