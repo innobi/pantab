@@ -351,6 +351,19 @@ def test_write_date_bug(tmp_hyper):
 
 
 def test_eight_bit_int(tmp_hyper):
-    frame = pd.DataFrame(list(range(10))).astype("int8")
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
 
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
+
+    with tab_api.HyperProcess(
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+    ) as hyper:
+        with tab_api.Connection(
+            hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
+        ) as connection:
+            table_def = connection.catalog.get_table_definition(
+                tab_api.TableName("test")
+            )
+            num_col = table_def.get_column_by_name("nums")
+            assert num_col is not None
+            assert num_col.type == tab_api.SqlType.small_int()
