@@ -18,6 +18,7 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   }
 
   switch (schema_view.type) {
+  case NANOARROW_TYPE_INT8:
   case NANOARROW_TYPE_INT16:
     return hyperapi::SqlType::smallInt();
   case NANOARROW_TYPE_INT32:
@@ -356,6 +357,7 @@ static auto MakeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
   }
 
   switch (schema_view.type) {
+  case NANOARROW_TYPE_INT8:
   case NANOARROW_TYPE_INT16:
     return std::make_unique<IntegralInsertHelper<int16_t>>(
         inserter, chunk, schema, error, column_position);
