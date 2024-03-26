@@ -7,7 +7,7 @@ pantab
    examples
    api
    changelog
-   support
+   common_issues
 
 
 What is it?
