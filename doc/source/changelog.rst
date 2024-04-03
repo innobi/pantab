@@ -1,5 +1,16 @@
 Changelog
 ^^^^^^^^^
+Pantab 4.1.0 (2024-04-02)
+=========================
+
+New Features
+------------
+Add support for dataframes that have 8 bit integers. When written to Hyper, these will be stored as 16 bit integers. (#280)
+
+Bugfixes
+--------
+
+- Bumped the minimum version of the `tableauhyperapi` to 0.0.18618 to fix a bug where reading from Hyper files would throw a `RuntimeError` (#283)
 
 Pantab 4.0.1 (2024-03-21)
 =========================
