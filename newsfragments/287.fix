@@ -1,0 +1,2 @@
+pantab could fail to import if tableauhyperapi is below the recommended
+version.
