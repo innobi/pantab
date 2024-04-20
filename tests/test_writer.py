@@ -177,7 +177,7 @@ def test_duplicate_columns_raises(tmp_hyper):
 def test_unsupported_dtype_raises(tmp_hyper):
     frame = pd.DataFrame([[pd.Timedelta("1D")]])
 
-    msg = re.escape("Unsupported Arrow type")
+    msg = re.escape("Unsupported Arrow type: duration")
     with pytest.raises(ValueError, match=msg):
         pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
