@@ -519,7 +519,8 @@ void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode,
     nb::iterable not_null_columns, nb::iterable json_columns,
-    nb::iterable geo_columns) {
+    nb::iterable geo_columns,
+    const std::int8_t version) {
 
   std::set<std::string> not_null_set;
   for (auto col : not_null_columns) {
@@ -539,8 +540,12 @@ void write_to_hyper(
     geo_set.insert(colstr);
   }
 
+  std::set<std::int8_t> version_set;
+  version_set.insert(version);
+
   const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}};
+      {"log_config", ""}, {"default_database_version", std::to_string(version)}};
+      
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
 

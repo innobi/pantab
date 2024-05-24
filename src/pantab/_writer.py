@@ -57,6 +57,7 @@ def frame_to_hyper(
     not_null_columns: Optional[set[str]] = None,
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
+    version: Optional[int] = None,
 ) -> None:
     """See api.rst for documentation"""
     frames_to_hyper(
@@ -66,6 +67,7 @@ def frame_to_hyper(
         not_null_columns=not_null_columns,
         json_columns=json_columns,
         geo_columns=geo_columns,
+        version=version,
     )
 
 
@@ -77,6 +79,7 @@ def frames_to_hyper(
     not_null_columns: Optional[set[str]] = None,
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
+    version: Optional[int] = None,
 ) -> None:
     """See api.rst for documentation."""
     _validate_table_mode(table_mode)
@@ -87,6 +90,9 @@ def frames_to_hyper(
         json_columns = set()
     if geo_columns is None:
         geo_columns = set()
+
+    if version is not None:
+        version = 0
 
     tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
 
@@ -112,6 +118,7 @@ def frames_to_hyper(
         not_null_columns=not_null_columns,
         json_columns=json_columns,
         geo_columns=geo_columns,
+        version=version,
     )
 
     # In Python 3.9+ we can just pass the path object, but due to bpo 32689

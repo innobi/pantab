@@ -7,5 +7,6 @@ def write_to_hyper(
     not_null_columns: set[str],
     json_columns: set[str],
     geo_columns: set[str],
+    version: int,
 ) -> None: ...
 def read_from_hyper_query(path: str, query: str): ...
