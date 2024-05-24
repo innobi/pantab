@@ -91,7 +91,7 @@ def frames_to_hyper(
     if geo_columns is None:
         geo_columns = set()
 
-    if version is not None:
+    if version is None:
         version = 0
 
     tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
