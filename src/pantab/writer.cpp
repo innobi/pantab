@@ -540,9 +540,6 @@ void write_to_hyper(
     geo_set.insert(colstr);
   }
 
-  std::set<std::int8_t> version_set;
-  version_set.insert(version);
-
   const std::unordered_map<std::string, std::string> params = {
       {"log_config", ""}, {"default_database_version", std::to_string(version)}};
       
