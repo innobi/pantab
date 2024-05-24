@@ -520,7 +520,7 @@ void write_to_hyper(
     const std::string &path, const std::string &table_mode,
     nb::iterable not_null_columns, nb::iterable json_columns,
     nb::iterable geo_columns,
-    int8_t version) {
+    const int8_t version) {
 
   std::set<std::string> not_null_set;
   for (auto col : not_null_columns) {

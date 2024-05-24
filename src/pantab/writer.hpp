@@ -14,4 +14,4 @@ void write_to_hyper(
     const std::string &path, const std::string &table_mode,
     const nb::iterable not_null_columns, const nb::iterable json_columns,
     const nb::iterable geo_columns, 
-    int8_t version);
+    const int8_t version);
