@@ -36,7 +36,7 @@ def test_reads_nullable_columns(tmp_hyper, compat):
 
     with tab_api.HyperProcess(
         telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
-        log_config=None,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             endpoint=hyper.endpoint,
@@ -82,7 +82,7 @@ def test_read_varchar(tmp_hyper):
 
     with tab_api.HyperProcess(
         telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
-        log_config=None,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             endpoint=hyper.endpoint,
@@ -118,7 +118,7 @@ def test_reader_handles_duplicate_columns(tmp_hyper):
     )
     with tab_api.HyperProcess(
         telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
-        log_config=None,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             endpoint=hyper.endpoint,
