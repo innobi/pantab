@@ -31,7 +31,7 @@ dependencies = [
     # in the future we need not require pyarrow as pandas implements the
     # PyCapsule interface. See pandas PR #56587
     "pyarrow>=14.0.0",
-    "tableauhyperapi>=0.0.19484",
+    "tableauhyperapi==0.0.18618",
 ]
 
 [project.urls]
