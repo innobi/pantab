@@ -484,7 +484,7 @@ class Compat:
         elif isinstance(frame, pa.Table):
             return frame.drop_columns(columns)
         elif isinstance(frame, pl.DataFrame):
-            return frame.drop(columns=columns)
+            return frame.drop(columns, strict=False)
         else:
             raise NotImplementedError("drop_columns not implemented for type")
 
