@@ -10,7 +10,11 @@ target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
-set_target_properties(libpantab PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+set_target_properties(
+  libpantab
+  PROPERTIES
+  INSTALL_RPATH "$ORIGIN"
+)
 set_target_properties(nanoarrow
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
