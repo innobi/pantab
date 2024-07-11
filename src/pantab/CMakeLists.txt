@@ -5,7 +5,11 @@ set(PANTAB_SOURCES
   numpy_datetime.cpp
 )
 if(WIN32)
+  # Required so local installation of pantab can resolve to bundled
+  # tableauhyperapi.dll and not any other on system
+  # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
   list(APPEND PANTAB_SOURCES pantab.manifest)
+  install(FILES pantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
 endif()
 
 nanobind_add_module(
