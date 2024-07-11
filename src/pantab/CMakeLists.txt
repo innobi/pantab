@@ -1,10 +1,18 @@
-nanobind_add_module(
-  libpantab
-  NOMINSIZE
+set(PANTAB_SOURCES
   libpantab.cpp
   reader.cpp
   writer.cpp
-  numpy_datetime.cpp)
+  numpy_datetime.cpp
+)
+if(WIN32)
+  list(APPEND PANTAB_SOURCES pantab.manifest)
+endif()
+
+nanobind_add_module(
+  libpantab
+  NOMINSIZE
+  ${PANTAB_SOURCES}
+)
 target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
