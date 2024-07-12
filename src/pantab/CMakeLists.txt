@@ -22,17 +22,9 @@ target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
-set_target_properties(
-  libpantab
-  PROPERTIES
-  INSTALL_RPATH "$ORIGIN"
-)
 set_target_properties(nanoarrow
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
-
-install(TARGETS libpantab
-  LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/)
 
 if(WIN32)
   set(HYPERAPI_LIB_DIR "bin")
@@ -42,11 +34,24 @@ elseif(APPLE)
   set(HYPERAPI_LIB_DIR "lib")
   set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
   set(HYPERAPI_BIN_LOC "lib/hyper")
+set_target_properties(
+  libpantab
+  PROPERTIES
+  INSTALL_RPATH "@loader_path"
+)
 else()
   set(HYPERAPI_LIB_DIR "lib")
   set(HYPERAPI_LIB_NAME "libtableauhyperapi.so")
   set(HYPERAPI_BIN_LOC "lib/hyper")
+set_target_properties(
+  libpantab
+  PROPERTIES
+  INSTALL_RPATH "$ORIGIN"
+)
 endif()
+
+install(TARGETS libpantab
+  LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/)
 
 # Auditwheel doesn't know how to handle the cmake dependencies
 # so we manually install here and exclude from auditwheel
