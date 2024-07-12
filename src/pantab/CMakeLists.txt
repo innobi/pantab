@@ -30,6 +30,9 @@ if(WIN32)
   set(HYPERAPI_LIB_DIR "bin")
   set(HYPERAPI_LIB_NAME "tableauhyperapi.dll")
   set(HYPERAPI_BIN_LOC "bin/hyper")
+  # https://learn.microsoft.com/en-us/cpp/build/understanding-manifest-generation-for-c-cpp-programs?view=msvc-170#two-approaches
+  add_custom_command(TARGET libpantab POST_BUILD
+    COMMAND mt -manifest libpantab.dll.manifest -outputresource:$<TARGET_FILE:libpantab>;2)
 elseif(APPLE)
   set(HYPERAPI_LIB_DIR "lib")
   set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
