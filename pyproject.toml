@@ -80,9 +80,9 @@ auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
 """
 
 [tool.cibuildwheel.macos]
-# --ignore-missing-dependencies is risky but didnt see a good way of convincing
-# delocate-wheel otherwise that it is OK to not see the libtableauhyperli
-# version 0.10.6 has an exclude option that *may* be helpful
+# we do not want delocate to relocate the tableauhyperapi.lib as our CMake
+# config already handles that, and the tableauhyperapi.lib necessicates
+# the hyper bin being relative to it, which delocate does not know about
 repair-wheel-command = """
-delocate-listdeps {wheel} && delocate-wheel --ignore-missing-dependencies --require-archs {delocate_archs} -w {dest_dir} {wheel}
+delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib --require-archs {delocate_archs} -w {dest_dir} {wheel}
 """
