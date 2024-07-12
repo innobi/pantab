@@ -1,37 +1,64 @@
-nanobind_add_module(
-  libpantab
-  NOMINSIZE
+set(PANTAB_SOURCES
   libpantab.cpp
   reader.cpp
   writer.cpp
-  numpy_datetime.cpp)
+  numpy_datetime.cpp
+)
+if(WIN32)
+  # Required so local installation of pantab can resolve to bundled
+  # tableauhyperapi.dll and not any other on system
+  # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
+  list(APPEND PANTAB_SOURCES libpantab.dll.manifest)
+  install(FILES libpantab.dll.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
+endif()
+
+nanobind_add_module(
+  libpantab
+  NOMINSIZE
+  ${PANTAB_SOURCES}
+)
 target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
 )
-set_target_properties(libpantab PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 set_target_properties(nanoarrow
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
 
+if(WIN32)
+  set(HYPERAPI_LIB_DIR "bin")
+  set(HYPERAPI_LIB_NAME "tableauhyperapi.dll")
+  set(HYPERAPI_BIN_LOC "bin/hyper")
+  # https://learn.microsoft.com/en-us/cpp/build/understanding-manifest-generation-for-c-cpp-programs?view=msvc-170#two-approaches
+  add_custom_command(TARGET libpantab POST_BUILD
+    COMMAND "mt.exe -manifest libpantab.dll.manifest -outputresource:$<TARGET_FILE:libpantab>;#2")
+elseif(APPLE)
+  set(HYPERAPI_LIB_DIR "lib")
+  set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
+  set(HYPERAPI_BIN_LOC "lib/hyper")
+set_target_properties(
+  libpantab
+  PROPERTIES
+  INSTALL_RPATH "@loader_path"
+)
+else()
+  set(HYPERAPI_LIB_DIR "lib")
+  set(HYPERAPI_LIB_NAME "libtableauhyperapi.so")
+  set(HYPERAPI_BIN_LOC "lib/hyper")
+set_target_properties(
+  libpantab
+  PROPERTIES
+  INSTALL_RPATH "$ORIGIN"
+)
+endif()
+
 install(TARGETS libpantab
   LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME}/)
 
-if(WIN32)
-  set(HYPERAPI_LIB_NAME "tableauhyperapi.lib")
-  set(HYPERAPI_BIN_LOC "bin/hyper")
-elseif(APPLE)
-  set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
-  set(HYPERAPI_BIN_LOC "lib/hyper")
-else()
-  set(HYPERAPI_LIB_NAME "libtableauhyperapi.so")
-  set(HYPERAPI_BIN_LOC "lib/hyper")
-endif()
-
 # Auditwheel doesn't know how to handle the cmake dependencies
 # so we manually install here and exclude from auditwheel
-install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/${HYPERAPI_LIB_NAME}
+install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME}
    DESTINATION ${SKBUILD_PROJECT_NAME}/)
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
   DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)

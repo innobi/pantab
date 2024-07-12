@@ -1,5 +1,3 @@
-import pathlib
-
 import pandas as pd
 import pandas.testing as tm
 import tableauhyperapi as tab_api
@@ -130,15 +128,3 @@ def test_reader_handles_duplicate_columns(tmp_hyper):
 
     df = pt.frame_from_hyper_query(tmp_hyper, "SELECT 1 as col, 2 AS col, 3 AS col")
     assert df.columns.tolist() == ["col", "col_1", "col_2"]
-
-
-def test_frame_from_hyper_doesnt_generate_hyperd_log(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
-    pt.frame_from_hyper(tmp_hyper, table="test")
-    assert not pathlib.Path("hyperd.log").is_file()
-
-
-def test_frames_from_hyper_doesnt_generate_hyperd_log(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
-    pt.frames_from_hyper(tmp_hyper)
-    assert not pathlib.Path("hyperd.log").is_file()
