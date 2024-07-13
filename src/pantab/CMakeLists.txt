@@ -32,7 +32,7 @@ if(WIN32)
   set(HYPERAPI_BIN_LOC "bin/hyper")
   # https://learn.microsoft.com/en-us/cpp/build/understanding-manifest-generation-for-c-cpp-programs?view=msvc-170#two-approaches
   add_custom_command(TARGET libpantab POST_BUILD
-    COMMAND "mt.exe -manifest libpantab.dll.manifest -outputresource:$<TARGET_FILE:libpantab>;#2")
+    COMMAND "mt.exe -manifest libpantab.dll.manifest -outputresource:$<TARGET_FILE:libpantab>;2")
   install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/tableauhyperapi.lib
     DESTINATION ${SKBUILD_PROJECT_NAME}/)
 elseif(APPLE)
