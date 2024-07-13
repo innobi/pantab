@@ -3,7 +3,7 @@
   <dependency>
     <dependentAssembly>
       <assemblyIdentity type="win32" name="libpantab" version="1.0.0.0"/>
-      <codeBase href="."/>
+      <file name="tableauhyperapi.dll" />
     </dependentAssembly>
   </dependency>
 </assembly>
