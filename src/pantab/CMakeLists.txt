@@ -8,8 +8,9 @@ if(WIN32)
   # Required so local installation of pantab can resolve to bundled
   # tableauhyperapi.dll and not any other on system
   # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
-  list(APPEND PANTAB_SOURCES libpantab.dll.manifest)
-  install(FILES libpantab.dll.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
+  list(APPEND PANTAB_SOURCES libpantab.manifest)
+  install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
+  install(FILES tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
 endif()
 
 nanobind_add_module(
