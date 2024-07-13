@@ -1,22 +1,10 @@
-set(PANTAB_SOURCES
+nanobind_add_module(
+  libpantab
+  NOMINSIZE
   libpantab.cpp
   reader.cpp
   writer.cpp
   numpy_datetime.cpp
-)
-if(WIN32)
-  # Required so local installation of pantab can resolve to bundled
-  # tableauhyperapi.dll and not any other on system
-  # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
-  list(APPEND PANTAB_SOURCES libpantab.manifest)
-  install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-  install(FILES tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-endif()
-
-nanobind_add_module(
-  libpantab
-  NOMINSIZE
-  ${PANTAB_SOURCES}
 )
 target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(libpantab
