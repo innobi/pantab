@@ -51,8 +51,8 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   case NANOARROW_TYPE_TIME64:
     return hyperapi::SqlType::time();
   default:
-    throw std::invalid_argument("Unsupported Arrow type: " +
-                                std::to_string(schema_view.type));
+    throw std::invalid_argument(std::string("Unsupported Arrow type: ") +
+                                ArrowTypeString(schema_view.type));
   }
 }
 
@@ -457,8 +457,9 @@ static auto MakeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   default:
-    throw std::invalid_argument("MakeInsertHelper: Unsupported Arrow type: " +
-                                std::to_string(schema_view.type));
+    throw std::invalid_argument(
+        std::string("MakeInsertHelper: Unsupported Arrow type: ") +
+        ArrowTypeString(schema_view.type));
   }
 }
 
