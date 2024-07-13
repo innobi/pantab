@@ -60,7 +60,8 @@ def test_writer_creates_not_null_columns(tmp_hyper, container_t):
     )
 
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -88,7 +89,8 @@ def test_writing_to_non_nullable_column_without_nulls(tmp_hyper, container_t):
     )
 
     with tab_api.HyperProcess(
-        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             endpoint=hyper.endpoint,
@@ -126,7 +128,8 @@ def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
     )
 
     with tab_api.HyperProcess(
-        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        telemetry=tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             endpoint=hyper.endpoint,
@@ -196,7 +199,8 @@ def test_utc_bug(tmp_hyper):
     )
     pt.frame_to_hyper(frame, tmp_hyper, table="exp")
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -216,7 +220,8 @@ def test_utc_bug(tmp_hyper):
 def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -233,7 +238,8 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -255,7 +261,8 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
     )
 
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -303,7 +310,8 @@ def test_can_write_wkt_as_geo(tmp_hyper):
 def test_can_write_chunked_frames(chunked_frame, tmp_hyper):
     pt.frame_to_hyper(chunked_frame, tmp_hyper, table="test")
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -334,7 +342,8 @@ def test_write_date_bug(tmp_hyper):
 
     pt.frame_to_hyper(tbl, tmp_hyper, table="test")
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
@@ -356,7 +365,8 @@ def test_eight_bit_int(tmp_hyper):
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
