@@ -5,4 +5,5 @@
       <assemblyIdentity type="win32" name="libpantab" version="1.0.0.0"/>
       <codeBase href="."/>
     </dependentAssembly>
+  </dependency>
 </assembly>
