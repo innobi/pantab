@@ -22,11 +22,6 @@ if(WIN32)
   set(HYPERAPI_BIN_LOC "bin/hyper")
   install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/lib/tableauhyperapi.lib
     DESTINATION ${SKBUILD_PROJECT_NAME}/)
-  add_custom_command(
-      TARGET libpantab
-      POST_BUILD
-      COMMAND mt.exe -manifest "${CMAKE_CURRENT_SOURCE_DIR}\\libpantab.manifest" "-outputresource:$<TARGET_FILE:libpantab>;2"
-  )
 elseif(APPLE)
   set(HYPERAPI_LIB_DIR "lib")
   set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
