@@ -49,7 +49,6 @@ if(WIN32)
   # tableauhyperapi.dll and not any other on system
   # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
   install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-  install (SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/PostInstall.cmake")
 endif()
 
 # Auditwheel doesn't know how to handle the cmake dependencies
