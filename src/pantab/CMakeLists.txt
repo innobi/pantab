@@ -48,9 +48,6 @@ if(WIN32)
   # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
   install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
   install(FILES tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-  # the tableauhyperapi.dll comes with its own application manifest that we have to
-  # override, otherwise the SxS assembly will complain
-  install(SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/PostInstall.cmake")
 endif()
 
 # Auditwheel doesn't know how to handle the cmake dependencies
@@ -59,6 +56,16 @@ install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_L
    DESTINATION ${SKBUILD_PROJECT_NAME}/)
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
   DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)
+
+if(WIN32)
+  # the tableauhyperapi.dll comes with its own application manifest that we have to
+  # override, otherwise the SxS assembly will complain
+  # TODO: can we replace the tableau path with a generator expression?
+  add_custom_command(
+    TARGET Tableau::tableauhyperapi-cxx
+    POST_BUILD
+    COMMAND mt.exe -manifest ${CMAKE_CURRENT_SOURCE_DIR}\\tableauhyperapi.manifest -outputresource:${tableauhyperapi-cxx_SOURCE_DIR}\\${HYPERAPI_LIB_DIR}\\${HYPERAPI_LIB_NAME};1
+endif()
 
 # Support out of source builds
 set(SRC_FILES
