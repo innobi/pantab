@@ -10,7 +10,7 @@
     <dependentAssembly>
       <assemblyIdentity
           type="win32"
-          name="pt_tableauhyperapi"
+          name="tableauhyperapi"
           version="4.1.0.0"
           processorArchitecture="amd64"
           />
