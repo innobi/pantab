@@ -64,7 +64,8 @@ if(WIN32)
   add_custom_command(
     TARGET Tableau::tableauhyperapi-cxx
     POST_BUILD
-    COMMAND mt.exe -manifest ${CMAKE_CURRENT_SOURCE_DIR}\\tableauhyperapi.manifest -outputresource:${tableauhyperapi-cxx_SOURCE_DIR}\\${HYPERAPI_LIB_DIR}\\${HYPERAPI_LIB_NAME};1
+    COMMAND mt.exe -manifest ${CMAKE_CURRENT_SOURCE_DIR}/tableauhyperapi.manifest -outputresource:${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME};1
+  )
 endif()
 
 # Support out of source builds
