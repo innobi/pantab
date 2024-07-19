@@ -48,6 +48,9 @@ if(WIN32)
   # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
   install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
   install(FILES tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
+  # the tableauhyperapi.dll comes with its own application manifest that we have to
+  # override, otherwise the SxS assembly will complain
+  install(SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/PostInstall.cmake")
 endif()
 
 # Auditwheel doesn't know how to handle the cmake dependencies
