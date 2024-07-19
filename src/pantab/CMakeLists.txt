@@ -57,19 +57,6 @@ install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_L
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
   DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)
 
-if(WIN32)
-  # the tableauhyperapi.dll comes with its own application manifest that we have to
-  # override, otherwise the SxS assembly will complain
-  # TODO: can we replace the tableau path with a generator expression?
-  # Maybe we shouldn't patch the source at all? But couldn't get PostInstall
-  # script to work
-  install(CODE "
-    execute_process(
-      COMMAND mt.exe -manifest ${SKBUILD_PROJECT_NAME}/tableauhyperapi.manifest -outputresource:${SKBUILD_PROJECT_NAME}/tableauhyperapi.dll\;1
-    )
-  ")
-endif()
-
 # Support out of source builds
 set(SRC_FILES
   __init__.py
