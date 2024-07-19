@@ -61,8 +61,10 @@ if(WIN32)
   # the tableauhyperapi.dll comes with its own application manifest that we have to
   # override, otherwise the SxS assembly will complain
   # TODO: can we replace the tableau path with a generator expression?
+  # Maybe we shouldn't patch the source at all? But couldn't get PostInstall
+  # script to work
   add_custom_command(
-    TARGET Tableau::tableauhyperapi-cxx
+    TARGET libpantab
     POST_BUILD
     COMMAND mt.exe -manifest ${CMAKE_CURRENT_SOURCE_DIR}/tableauhyperapi.manifest -outputresource:${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME};1
   )
