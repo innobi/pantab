@@ -47,7 +47,7 @@ if(WIN32)
   # tableauhyperapi.dll and not any other on system
   # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
   install(FILES libpantab.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-  install(FILES pt_tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
+  install(FILES tableauhyperapi.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
 endif()
 
 # Auditwheel doesn't know how to handle the cmake dependencies
@@ -63,11 +63,11 @@ if(WIN32)
   # TODO: can we replace the tableau path with a generator expression?
   # Maybe we shouldn't patch the source at all? But couldn't get PostInstall
   # script to work
-  add_custom_command(
-    TARGET libpantab
-    POST_BUILD
-    COMMAND mt.exe -manifest ${CMAKE_CURRENT_SOURCE_DIR}/tableauhyperapi.manifest -outputresource:${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME}\;1
-  )
+  install(CODE "
+    execute_process(
+      COMMAND mt.exe -manifest ${SKBUILD_PROJECT_NAME}/tableauhyperapi.manifest -outputresource:${SKBUILD_PROJECT_NAME}/tableauhyperapi.dll\;1
+    )
+  ")
 endif()
 
 # Support out of source builds
