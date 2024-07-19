@@ -4,7 +4,7 @@
       type="win32"
       name="tableauhyperapi"
       version="4.1.0.0"
-      processorArchitecture="amd64"
+      processorArchitecture="*"
   />
   <file name="tableauhyperapi.dll"/>
 </assembly>
