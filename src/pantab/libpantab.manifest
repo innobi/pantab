@@ -4,7 +4,7 @@
       type="win32"
       name="libpantab"
       version="4.1.0.0"
-      processorArchitecture="*"
+      processorArchitecture="amd64"
   />
   <dependency>
     <dependentAssembly>
@@ -12,7 +12,7 @@
           type="win32"
           name="tableauhyperapi"
           version="4.1.0.0"
-          processorArchitecture="*"
+          processorArchitecture="amd64"
           />
     </dependentAssembly>
   </dependency>
