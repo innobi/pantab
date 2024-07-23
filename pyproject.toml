@@ -86,3 +86,12 @@ auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
 repair-wheel-command = """
 delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib --require-archs {delocate_archs} -w {dest_dir} {wheel}
 """
+
+[tool.cibuildwheel.windows]
+repair-wheel-command = [
+    "mkdir subdir",
+    "tar -xf {wheel} -C subdir",
+    "cd subdir",
+    "mt.exe -manifest pantab\\libpantab.manifest -outputresource:pantab\\libpantab.dll;2",
+    "tar -czf {dest_dir}\\pantab-4.1.0-cp39-cp39-win_amd64.whl .",
+]
