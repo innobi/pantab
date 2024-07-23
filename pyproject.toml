@@ -86,3 +86,13 @@ auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
 repair-wheel-command = """
 delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib --require-archs {delocate_archs} -w {dest_dir} {wheel}
 """
+
+[tool.cibuildwheel.windows]
+# https://github.com/actions/runner-images/issues/4711
+repair-wheel-command = [
+    "mkdir subdir",
+    "tar -xf {wheel} -C subdir",
+    "cd subdir",
+    "\"C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.20348.0\\x86\\mt.exe\" -manifest pantab\\libpantab.manifest -outputresource:pantab\\libpantab.cp39-win_amd64.pyd;2",
+    "python -m wheel pack --dest-dir {dest_dir} .",
+]

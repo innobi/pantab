@@ -20,7 +20,18 @@ list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
 if(WIN32)
-  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-windows-x86_64-release-main.0.0.18618.r6580261c.zip")
+  # The tableauhyperapi.dll on windows needs to be patched to be used in a SxS application
+  # to change the manifest and make it an assembly, rather than an application
+  # without this, Windows can easily mistake the vendored tableauhyperapi for
+  # another on the system, and since they are not binary compatible that leads easily
+  # to segmentation faults
+  # to fix on windows, you must download the hyper api, unpack it, then run
+  # mt.exe -manifest <PANTAB_ROOT>\src\pantab\tableauhyperapi.manifest -outputresource:<HYPER_ROOT>\bin\tableauhyperapi.dll;1
+  # before repackaging
+  # note that
+  # mt -inputresource:tableauhyperapi.dll;1 -out:extracted.manifest
+  # may be helpful to ensure the proper manifest was embedded into tableauhyperapi.dll
+  set(TABLEAU_DOWNLOAD_URL "https://www.dropbox.com/scl/fi/kjjxrgnhfczzkanv3kaf1/tableauhyperapi-cxx-windows-x86_64-release-main.0.0.18618.r6580261c.zip?rlkey=c1iy6lrixes2vtwbrhxzclboz&st=y1om0fky&dl=1")
 elseif(APPLE)
   set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.0.0.18618.r6580261c.zip")
 else()
