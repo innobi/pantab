@@ -23,6 +23,7 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
         pt.frames_to_hyper({"a": frame}, tmp_hyper, table_mode="x")
 
 
+@pytest.mark.fails_asan
 @pytest.mark.parametrize(
     "new_dtype,hyper_type_name", [("int64", "BIGINT"), ("float", "DOUBLE PRECISION")]
 )
@@ -38,6 +39,7 @@ def test_append_mode_raises_column_dtype_mismatch(
         pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+@pytest.mark.fails_asan
 def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, compat):
     pt.frame_to_hyper(frame, tmp_hyper, table=table_name)
 
@@ -146,6 +148,7 @@ def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
     pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+@pytest.mark.fails_asan
 def test_failed_write_doesnt_overwrite_file(
     frame, tmp_hyper, monkeypatch, table_mode, compat
 ):
@@ -177,6 +180,7 @@ def test_duplicate_columns_raises(tmp_hyper):
         pt.frames_to_hyper({"test": frame}, tmp_hyper)
 
 
+@pytest.mark.fails_asan
 def test_unsupported_dtype_raises(tmp_hyper):
     frame = pd.DataFrame([[pd.Timedelta("1D")]])
 
