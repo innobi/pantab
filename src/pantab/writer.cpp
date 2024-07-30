@@ -273,38 +273,50 @@ public:
     //    typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
     //                              hyperapi::Timestamp>::type;
 
-    // TODO: need overflow checks here
-    npy_datetimestruct dts;
-    PyArray_DatetimeMetaData meta;
-    if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
-      meta = {NPY_FR_s, 1};
-    } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
-      meta = {NPY_FR_ms, 1};
-    } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
-      meta = {NPY_FR_us, 1};
-    } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
-      // we assume pandas is ns here but should check format
-      meta = {NPY_FR_ns, 1};
-    }
+    if constexpr (TZAware) { // OffsetTimestamp does not yet accept epoch arg
+      // TODO: need overflow checks here
+      npy_datetimestruct dts;
+      PyArray_DatetimeMetaData meta;
+      if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
+        meta = {NPY_FR_s, 1};
+      } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
+        meta = {NPY_FR_ms, 1};
+      } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
+        meta = {NPY_FR_us, 1};
+      } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
+        // we assume pandas is ns here but should check format
+        meta = {NPY_FR_ns, 1};
+      }
 
-    int ret = convert_datetime_to_datetimestruct(&meta, value, &dts);
-    if (ret != 0) {
-      throw std::invalid_argument("could not convert datetime value ");
-    }
-    const hyperapi::Date dt{static_cast<int32_t>(dts.year),
-                            static_cast<int16_t>(dts.month),
-                            static_cast<int16_t>(dts.day)};
-    const hyperapi::Time time{static_cast<int8_t>(dts.hour),
-                              static_cast<int8_t>(dts.min),
-                              static_cast<int8_t>(dts.sec), dts.us};
+      int ret = convert_datetime_to_datetimestruct(&meta, value, &dts);
+      if (ret != 0) {
+        throw std::invalid_argument("could not convert datetime value ");
+      }
+      const hyperapi::Date dt{static_cast<int32_t>(dts.year),
+                              static_cast<int16_t>(dts.month),
+                              static_cast<int16_t>(dts.day)};
+      const hyperapi::Time time{static_cast<int8_t>(dts.hour),
+                                static_cast<int8_t>(dts.min),
+                                static_cast<int8_t>(dts.sec), dts.us};
 
-    if constexpr (TZAware) {
       const hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
       hyperapi::internal::ValueInserter{*inserter_}.addValue(
           static_cast<hyperapi::OffsetTimestamp>(ts));
 
     } else {
-      const hyperapi::Timestamp ts{dt, time};
+      // TODO: overflow checks
+      if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
+        value /= 1000000;
+      } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
+        value /= 1000;
+      } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
+        value *= 1000;
+      }
+
+      constexpr int64_t USEC_TABLEAU_TO_UNIX_EPOCH = 210895056000000000LL;
+      hyper_timestamp_t raw_timestamp =
+          static_cast<hyper_timestamp_t>(value + USEC_TABLEAU_TO_UNIX_EPOCH);
+      const hyperapi::Timestamp ts{raw_timestamp, {}};
       hyperapi::internal::ValueInserter{*inserter_}.addValue(
           static_cast<hyperapi::Timestamp>(ts));
     }
