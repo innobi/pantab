@@ -541,7 +541,7 @@ void write_to_hyper(
   }
 
   const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}};
+      {"log_config", "cout,json.all"}};
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
 
