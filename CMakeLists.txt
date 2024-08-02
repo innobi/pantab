@@ -24,7 +24,7 @@ if(WIN32)
 elseif(APPLE)
   set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
 else()
-  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.0.0.18618.r6580261c.zip")
+  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
 endif()
 
 include(FetchContent)
