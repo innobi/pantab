@@ -6,8 +6,10 @@ import pantab as pt
 
 def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
     return_type, expected = roundtripped
-    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
+    if isinstance(frame, pa.Table) and return_type != "pyarrow":
         frame = compat.drop_columns(frame, ["interval"])
+
+    if return_type == "pyarrow" and not isinstance(frame, pa.Table):
         expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
@@ -40,8 +42,10 @@ def test_multiple_tables(
     frame, roundtripped, tmp_hyper, table_name, table_mode, compat
 ):
     return_type, expected = roundtripped
-    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
+    if isinstance(frame, pa.Table) and return_type != "pyarrow":
         frame = compat.drop_columns(frame, ["interval"])
+
+    if return_type == "pyarrow" and not isinstance(frame, pa.Table):
         expected = compat.drop_columns(expected, ["interval"])
 
     # Write twice; depending on mode this should either overwrite or duplicate entries
@@ -78,8 +82,10 @@ def test_empty_roundtrip(
     frame, roundtripped, tmp_hyper, table_name, table_mode, compat
 ):
     return_type, expected = roundtripped
-    if not (isinstance(frame, pa.Table) and return_type == "pyarrow"):
+    if isinstance(frame, pa.Table) and return_type != "pyarrow":
         frame = compat.drop_columns(frame, ["interval"])
+
+    if return_type == "pyarrow" and not isinstance(frame, pa.Table):
         expected = compat.drop_columns(expected, ["interval"])
 
     # object case is by definition vague, so lets punt that for now

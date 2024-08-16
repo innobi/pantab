@@ -1,6 +1,7 @@
 import datetime
 import re
 
+import narwhals as nw
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -24,7 +25,8 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
 
 
 @pytest.mark.parametrize(
-    "new_dtype,hyper_type_name", [("int64", "BIGINT"), ("double", "DOUBLE PRECISION")]
+    "new_dtype,hyper_type_name",
+    [(nw.Int64, "BIGINT"), (nw.Float64, "DOUBLE PRECISION")],
 )
 def test_append_mode_raises_column_dtype_mismatch(
     new_dtype, hyper_type_name, frame, tmp_hyper, table_name, compat

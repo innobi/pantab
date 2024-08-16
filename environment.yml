@@ -7,6 +7,7 @@ dependencies:
   - isort
   - mypy
   - nanobind
+  - narwhals
   - pandas
   - pandas-stubs
   - pip

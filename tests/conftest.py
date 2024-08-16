@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 
+import narwhals as nw
 import numpy as np
 import pandas as pd
 import pandas.testing as tm
@@ -478,15 +479,9 @@ class Compat:
             raise NotImplementedError("empty_like not implemented for type")
 
     @staticmethod
+    @nw.narwhalify
     def drop_columns(frame, columns):
-        if isinstance(frame, pd.DataFrame):
-            return frame.drop(columns=columns, errors="ignore")
-        elif isinstance(frame, pa.Table):
-            return frame.drop_columns(columns)
-        elif isinstance(frame, pl.DataFrame):
-            return frame.drop(columns, strict=False)
-        else:
-            raise NotImplementedError("drop_columns not implemented for type")
+        return frame.drop(columns)
 
     @staticmethod
     def select_columns(frame, columns):
@@ -500,22 +495,9 @@ class Compat:
             raise NotImplementedError("select_columns not implemented for type")
 
     @staticmethod
+    @nw.narwhalify
     def cast_column_to_type(frame, column, type_):
-        if isinstance(frame, pd.DataFrame):
-            frame[column] = frame[column].astype(type_)
-            return frame
-        elif isinstance(frame, pa.Table):
-            schema = pa.schema([pa.field(column, type_)])
-            return frame.cast(schema)
-        elif isinstance(frame, pl.DataFrame):
-            # hacky :-(
-            if type_ == "int64":
-                frame = frame.cast({column: pl.Int64()})
-            elif type_ == "float":
-                frame = frame.cast({column: pl.Float64()})
-            return frame
-        else:
-            raise NotImplementedError("cast_column_to_type not implemented for type")
+        return frame.with_columns(nw.col(column).cast(type_))
 
     @staticmethod
     def add_non_writeable_column(frame):
