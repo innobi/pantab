@@ -89,4 +89,4 @@ delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib -
 
 [tool.cibuildwheel.windows]
 before-build = "python -m pip install delvewheel"
-repair-wheel-command = "python -m delvewheel repair -v --ignore-in-wheel -w {dest_dir} {wheel}"
+repair-wheel-command = "python -m delvewheel repair -v --ignore-in-wheel --add-path C:/Windows/System32 -w {dest_dir} {wheel}"
