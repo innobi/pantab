@@ -69,7 +69,7 @@ build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
 test-command = "pytest {project}/tests"
-test-requires = ["pytest", "pandas>=2.0.0", "polars", "numpy"]
+test-requires = ["pytest", "pandas>=2.0.0", "polars<1.3.0", "numpy"]
 
 [tool.ruff]
 line-length = 88
