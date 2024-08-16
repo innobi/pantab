@@ -28,6 +28,7 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   case NANOARROW_TYPE_UINT32:
     return hyperapi::SqlType::oid();
   case NANOARROW_TYPE_FLOAT:
+    return hyperapi::SqlType::real();
   case NANOARROW_TYPE_DOUBLE:
     return hyperapi::SqlType::doublePrecision();
   case NANOARROW_TYPE_BOOL:
@@ -541,7 +542,7 @@ void write_to_hyper(
   }
 
   const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}};
+      {"log_config", ""}, {"default_database_version", "4"}};
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
 
