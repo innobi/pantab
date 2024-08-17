@@ -10,7 +10,7 @@ else()
     add_compile_options(-Wall -Wextra -Werror)
 endif()
 
-find_package(Python COMPONENTS Interpreter Development.Module NumPy REQUIRED)
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 # Detect the installed nanobind package and import it into CMake
 execute_process(
