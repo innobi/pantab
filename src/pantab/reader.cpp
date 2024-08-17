@@ -1,5 +1,7 @@
 #include "reader.hpp"
+#include "nanoarrow/nanoarrow_types.h"
 
+#include <hyperapi/SqlType.hpp>
 #include <vector>
 
 #include <hyperapi/hyperapi.hpp>
@@ -246,6 +248,42 @@ class IntervalReadHelper : public ReadHelper {
   }
 };
 
+class DecimalReadHelper : public ReadHelper {
+  using ReadHelper::ReadHelper;
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+
+    // TODO: Tableau wants these at compile time but we only have at runtime
+    // how do we best solve that?
+    constexpr int16_t precision = 38;
+    constexpr int16_t scale = 0;
+
+    struct ArrowDecimal decimal;
+    ArrowDecimalInit(&decimal, 128, precision, scale);
+
+    const auto decimal_value = value.get<hyperapi::Numeric<precision, scale>>();
+    const auto decimal_string = decimal_value.toString();
+    const struct ArrowStringView sv {
+      decimal_string.data(), static_cast<int64_t>(decimal_string.size())
+    };
+
+    if (ArrowDecimalSetDigits(&decimal, sv)) {
+      throw std::runtime_error(
+          "Unable to convert tableau numeric to arrow decimal");
+    }
+
+    if (ArrowArrayAppendDecimal(array_, &decimal)) {
+      throw std::runtime_error("Failed to append decimal value");
+    }
+  }
+};
+
 static auto MakeReadHelper(const ArrowSchemaView *schema_view,
                            struct ArrowArray *array)
     -> std::unique_ptr<ReadHelper> {
@@ -281,6 +319,8 @@ static auto MakeReadHelper(const ArrowSchemaView *schema_view,
     return std::unique_ptr<ReadHelper>(new IntervalReadHelper(array));
   case NANOARROW_TYPE_TIME64:
     return std::unique_ptr<ReadHelper>(new TimeReadHelper(array));
+  case NANOARROW_TYPE_DECIMAL128:
+    return std::unique_ptr<ReadHelper>(new DecimalReadHelper(array));
   default:
     throw nb::type_error("unknownn arrow type provided");
   }
@@ -307,6 +347,7 @@ static auto GetArrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::
         Interval : return NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO;
         case hyperapi::TypeTag::Time : return NANOARROW_TYPE_TIME64;
+        case hyperapi::TypeTag::Numeric : return NANOARROW_TYPE_DECIMAL128;
         default : throw nb::type_error(
             ("Reader not implemented for type: " + sqltype.toString()).c_str());
       }
@@ -336,6 +377,17 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
       throw std::runtime_error("ArrowSchemaSetDateTime failed for Time type");
     }
     break;
+  case hyperapi::TypeTag::Numeric: {
+    // TODO: Tableau wants these at compile time but we only have at runtime
+    // how do we best solve that?
+    constexpr int16_t precision = 38;
+    constexpr int16_t scale = 0;
+    if (ArrowSchemaSetTypeDecimal(schema, NANOARROW_TYPE_DECIMAL128, precision,
+                                  scale)) {
+      throw std::runtime_error("ArrowSchemaSetTypeDecimal failed");
+    }
+    break;
+  }
   default:
     const enum ArrowType arrow_type = GetArrowTypeFromHyper(sqltype);
     if (ArrowSchemaSetType(schema, arrow_type)) {

@@ -43,6 +43,7 @@ def basic_arrow_table():
             ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
             ("geography", pa.large_binary()),
+            ("decimal", pa.decimal128(38, 0)),
         ]
     )
     tbl = pa.Table.from_arrays(
@@ -104,6 +105,7 @@ def basic_arrow_table():
                     None,
                 ]
             ),
+            pa.array(["1234567890123456789", "-99876543210987654321", None]),
         ],
         schema=schema,
     )
@@ -280,6 +282,11 @@ def basic_dataframe():
     )
     df["geography"] = df["geography"].astype("large_binary[pyarrow]")
 
+    df["decimal"] = pd.Series(
+        ["1234567890123456789", "-99876543210987654321", None],
+        dtype=pd.ArrowDtype(pa.decimal128(38, 0)),
+    )
+
     return df
 
 
@@ -346,6 +353,7 @@ def roundtripped_pyarrow():
             ("interval", pa.month_day_nano_interval()),
             ("time64us", pa.time64("us")),
             ("geography", pa.large_binary()),
+            ("decimal", pa.decimal128(38, 0)),
         ]
     )
     tbl = basic_arrow_table()

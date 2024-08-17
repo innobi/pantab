@@ -1,6 +1,9 @@
 #include "writer.hpp"
+#include "nanoarrow/nanoarrow.h"
+#include "nanoarrow/nanoarrow_types.h"
 
 #include <chrono>
+#include <hyperapi/string_view.hpp>
 #include <set>
 
 #include <hyperapi/hyperapi.hpp>
@@ -49,6 +52,12 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
     return hyperapi::SqlType::interval();
   case NANOARROW_TYPE_TIME64:
     return hyperapi::SqlType::time();
+  case NANOARROW_TYPE_DECIMAL128: {
+    // TODO: don't hardcode precision and scale
+    constexpr int16_t precision = 38;
+    constexpr int16_t scale = 0;
+    return hyperapi::SqlType::numeric(precision, scale);
+  }
   default:
     throw std::invalid_argument(std::string("Unsupported Arrow type: ") +
                                 ArrowTypeString(schema_view.type));
@@ -317,6 +326,44 @@ public:
   }
 };
 
+class DecimalInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void InsertValueAtIndex(size_t idx) override {
+    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
+      // MSVC on cibuildwheel doesn't like this templated optional
+      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
+      return;
+    }
+
+    // TODO: Tableau wants these at compile time but we only have at runtime
+    // how do we best solve that?
+    constexpr int16_t precision = 38;
+    constexpr int16_t scale = 0;
+
+    struct ArrowDecimal decimal;
+    ArrowDecimalInit(&decimal, 128, precision, scale);
+    ArrowArrayViewGetDecimalUnsafe(array_view_.get(), idx, &decimal);
+
+    struct ArrowBuffer buffer;
+    ArrowBufferInit(&buffer);
+    if (ArrowDecimalAppendDigitsToBuffer(&decimal, &buffer)) {
+      throw std::runtime_error("could not create buffer from decmial value");
+    }
+
+    std::string_view sv{reinterpret_cast<char *>(buffer.data),
+                        static_cast<size_t>(buffer.size_bytes)};
+
+    // TODO: we shouldn't hardcode this
+    hyperapi::Numeric<precision, scale> value{sv};
+    inserter_.add(value);
+
+    ArrowBufferReset(&buffer);
+  }
+};
+
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
                              struct ArrowSchema *schema,
@@ -435,6 +482,9 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
+  case NANOARROW_TYPE_DECIMAL128:
+    return std::make_unique<DecimalInsertHelper>(inserter, chunk, schema, error,
+                                                 column_position);
   default:
     throw std::invalid_argument(
         std::string("MakeInsertHelper: Unsupported Arrow type: ") +
