@@ -484,15 +484,9 @@ class Compat:
         return frame.drop(columns)
 
     @staticmethod
+    @nw.narwhalify
     def select_columns(frame, columns):
-        if isinstance(frame, pd.DataFrame):
-            return frame[columns]
-        elif isinstance(frame, pa.Table):
-            return frame.select(columns)
-        elif isinstance(frame, pl.DataFrame):
-            return frame.select(columns)
-        else:
-            raise NotImplementedError("select_columns not implemented for type")
+        frame.select(columns)
 
     @staticmethod
     @nw.narwhalify
