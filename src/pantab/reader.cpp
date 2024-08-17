@@ -49,7 +49,7 @@ class OidReadHelper : public ReadHelper {
   }
 };
 
-class FloatReadHelper : public ReadHelper {
+template <typename T> class FloatReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
   auto Read(const hyperapi::Value &value) -> void override {
@@ -59,7 +59,7 @@ class FloatReadHelper : public ReadHelper {
       }
       return;
     }
-    if (ArrowArrayAppendDouble(array_, value.get<double>())) {
+    if (ArrowArrayAppendDouble(array_, value.get<T>())) {
       throw std::runtime_error("ArrowAppendDouble failed");
     };
   }
@@ -258,8 +258,10 @@ static auto MakeReadHelper(const ArrowSchemaView *schema_view,
     return std::unique_ptr<ReadHelper>(new IntegralReadHelper<int64_t>(array));
   case NANOARROW_TYPE_UINT32:
     return std::unique_ptr<ReadHelper>(new OidReadHelper(array));
+  case NANOARROW_TYPE_FLOAT:
+    return std::unique_ptr<ReadHelper>(new FloatReadHelper<float>(array));
   case NANOARROW_TYPE_DOUBLE:
-    return std::unique_ptr<ReadHelper>(new FloatReadHelper(array));
+    return std::unique_ptr<ReadHelper>(new FloatReadHelper<double>(array));
   case NANOARROW_TYPE_LARGE_BINARY:
     return std::unique_ptr<ReadHelper>(new BytesReadHelper(array));
   case NANOARROW_TYPE_LARGE_STRING:
@@ -291,6 +293,7 @@ static auto GetArrowTypeFromHyper(const hyperapi::SqlType &sqltype)
         case hyperapi::TypeTag::Int : return NANOARROW_TYPE_INT32;
         case hyperapi::TypeTag::BigInt : return NANOARROW_TYPE_INT64;
         case hyperapi::TypeTag::Oid : return NANOARROW_TYPE_UINT32;
+        case hyperapi::TypeTag::Float : return NANOARROW_TYPE_FLOAT;
         case hyperapi::TypeTag::Double : return NANOARROW_TYPE_DOUBLE;
         case hyperapi::TypeTag::Geography : case hyperapi::TypeTag::
         Bytes : return NANOARROW_TYPE_LARGE_BINARY;

@@ -28,6 +28,7 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   case NANOARROW_TYPE_UINT32:
     return hyperapi::SqlType::oid();
   case NANOARROW_TYPE_FLOAT:
+    return hyperapi::SqlType::real();
   case NANOARROW_TYPE_DOUBLE:
     return hyperapi::SqlType::doublePrecision();
   case NANOARROW_TYPE_BOOL:
@@ -58,11 +59,11 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
 
 class InsertHelper {
 public:
-  InsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
-               const struct ArrowArray *chunk, const struct ArrowSchema *schema,
-               struct ArrowError *error, int64_t column_position)
-      : inserter_(std::move(inserter)), chunk_(chunk), schema_(schema),
-        error_(error), column_position_(column_position) {
+  InsertHelper(hyperapi::Inserter &inserter, const struct ArrowArray *chunk,
+               const struct ArrowSchema *schema, struct ArrowError *error,
+               int64_t column_position)
+      : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
+        column_position_(column_position) {
     const struct ArrowSchema *child_schema =
         schema_->children[column_position_];
 
@@ -84,7 +85,7 @@ public:
   virtual void InsertValueAtIndex(size_t) {}
 
 protected:
-  std::shared_ptr<hyperapi::Inserter> inserter_;
+  hyperapi::Inserter &inserter_;
   const struct ArrowArray *chunk_;
   const struct ArrowSchema *schema_;
   struct ArrowError *error_;
@@ -100,12 +101,12 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
     const int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+    hyperapi::internal::ValueInserter{inserter_}.addValue(
         static_cast<T>(value));
   }
 };
@@ -118,12 +119,12 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
     const uint64_t value = ArrowArrayViewGetUIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+    hyperapi::internal::ValueInserter{inserter_}.addValue(
         static_cast<uint32_t>(value));
   }
 };
@@ -136,12 +137,12 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
     const double value = ArrowArrayViewGetDoubleUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(
+    hyperapi::internal::ValueInserter{inserter_}.addValue(
         static_cast<T>(value));
   }
 };
@@ -154,7 +155,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -162,7 +163,7 @@ public:
         ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
     const hyperapi::ByteSpan result{
         buffer_view.data.as_uint8, static_cast<size_t>(buffer_view.size_bytes)};
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
+    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
   }
 };
 
@@ -174,7 +175,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -187,7 +188,7 @@ public:
     const auto result = std::string_view{
         buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
 #endif
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(result);
+    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
   }
 };
 
@@ -200,7 +201,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -221,7 +222,7 @@ public:
                             static_cast<int16_t>(1 + utc_tm.tm_mon),
                             static_cast<int16_t>(utc_tm.tm_mday)};
 
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(dt);
+    hyperapi::internal::ValueInserter{inserter_}.addValue(dt);
   }
 };
 
@@ -233,7 +234,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -246,7 +247,7 @@ public:
     } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
       value /= 1000;
     }
-    hyperapi::internal::ValueInserter{*inserter_}.addValue(value);
+    hyperapi::internal::ValueInserter{inserter_}.addValue(value);
   }
 };
 
@@ -260,7 +261,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -300,24 +301,12 @@ public:
                                 static_cast<int8_t>(dts.sec), dts.us};
 
       const hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
-      hyperapi::internal::ValueInserter{*inserter_}.addValue(
+      hyperapi::internal::ValueInserter{inserter_}.addValue(
           static_cast<hyperapi::OffsetTimestamp>(ts));
 
     } else {
-      // TODO: overflow checks
-      if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
-        value /= 1000000;
-      } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
-        value /= 1000;
-      } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
-        value *= 1000;
-      }
-
-      constexpr int64_t USEC_TABLEAU_TO_UNIX_EPOCH = 210895056000000000LL;
-      hyper_timestamp_t raw_timestamp =
-          static_cast<hyper_timestamp_t>(value + USEC_TABLEAU_TO_UNIX_EPOCH);
-      const hyperapi::Timestamp ts{raw_timestamp, {}};
-      hyperapi::internal::ValueInserter{*inserter_}.addValue(
+      const hyperapi::Timestamp ts{dt, time};
+      hyperapi::internal::ValueInserter{inserter_}.addValue(
           static_cast<hyperapi::Timestamp>(ts));
     }
   }
@@ -331,7 +320,7 @@ public:
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
       // MSVC on cibuildwheel doesn't like this templated optional
       // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{*inserter_}.addNull();
+      hyperapi::internal::ValueInserter{inserter_}.addNull();
       return;
     }
 
@@ -346,11 +335,11 @@ public:
                                 0, 0, 0, usec);
     // hyperapi::Interval interval{0, arrow_interval.months,
     // arrow_interval.days, 0, 0, 0, usec};
-    inserter_->add(interval);
+    inserter_.add(interval);
   }
 };
 
-static auto MakeInsertHelper(std::shared_ptr<hyperapi::Inserter> inserter,
+static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
                              struct ArrowSchema *schema,
                              struct ArrowError *error, int64_t column_position)
@@ -553,7 +542,7 @@ void write_to_hyper(
   }
 
   const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}};
+      {"log_config", ""}, {"default_database_version", "4"}};
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
 
@@ -659,8 +648,8 @@ void write_to_hyper(
     } else {
       catalog.createTable(table_def);
     }
-    const auto inserter = std::make_shared<hyperapi::Inserter>(
-        connection, table_def, column_mappings, inserter_defs);
+    auto inserter = hyperapi::Inserter(connection, table_def, column_mappings,
+                                       inserter_defs);
 
     struct ArrowArray c_chunk;
     int errcode;
@@ -686,10 +675,10 @@ void write_to_hyper(
         for (const auto &insert_helper : insert_helpers) {
           insert_helper->InsertValueAtIndex(row_idx);
         }
-        inserter->endRow();
+        inserter.endRow();
       }
     }
 
-    inserter->execute();
+    inserter.execute();
   }
 }

@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 
+import narwhals as nw
 import numpy as np
 import pandas as pd
 import pandas.testing as tm
@@ -246,7 +247,7 @@ def basic_dataframe():
             "int16_limits": np.int16,
             "int32_limits": np.int32,
             "int64_limits": np.int64,
-            "float32_limits": np.float64,
+            "float32_limits": np.float32,
             "float64_limits": np.float64,
             "oid": "UInt32",
             "non-ascii": "string",
@@ -322,9 +323,9 @@ def roundtripped_pyarrow():
             ("Int16", pa.int16()),
             ("Int32", pa.int32()),
             ("Int64", pa.int64()),
-            ("float32", pa.float64()),
+            ("float32", pa.float32()),
             ("float64", pa.float64()),
-            ("Float32", pa.float64()),
+            ("Float32", pa.float32()),
             ("Float64", pa.float64()),
             ("bool", pa.bool_()),
             ("boolean", pa.bool_()),
@@ -336,7 +337,7 @@ def roundtripped_pyarrow():
             ("int16_limits", pa.int16()),
             ("int32_limits", pa.int32()),
             ("int64_limits", pa.int64()),
-            ("float32_limits", pa.float64()),
+            ("float32_limits", pa.float32()),
             ("float64_limits", pa.float64()),
             ("oid", pa.uint32()),
             ("non-ascii", pa.large_string()),
@@ -363,9 +364,9 @@ def roundtripped_pandas():
             "Int16": "int16[pyarrow]",
             "Int32": "int32[pyarrow]",
             "Int64": "int64[pyarrow]",
-            "float32": "double[pyarrow]",
+            "float32": "float[pyarrow]",
             "float64": "double[pyarrow]",
-            "Float32": "double[pyarrow]",
+            "Float32": "float[pyarrow]",
             "Float64": "double[pyarrow]",
             "bool": "boolean[pyarrow]",
             "boolean": "boolean[pyarrow]",
@@ -375,7 +376,7 @@ def roundtripped_pandas():
             "int16_limits": "int16[pyarrow]",
             "int32_limits": "int32[pyarrow]",
             "int64_limits": "int64[pyarrow]",
-            "float32_limits": "double[pyarrow]",
+            "float32_limits": "float[pyarrow]",
             "float64_limits": "double[pyarrow]",
             "oid": "uint32[pyarrow]",
             "non-ascii": "large_string[pyarrow]",
@@ -478,15 +479,9 @@ class Compat:
             raise NotImplementedError("empty_like not implemented for type")
 
     @staticmethod
+    @nw.narwhalify
     def drop_columns(frame, columns):
-        if isinstance(frame, pd.DataFrame):
-            return frame.drop(columns=columns, errors="ignore")
-        elif isinstance(frame, pa.Table):
-            return frame.drop_columns(columns)
-        elif isinstance(frame, pl.DataFrame):
-            return frame.drop(columns, strict=False)
-        else:
-            raise NotImplementedError("drop_columns not implemented for type")
+        return frame.drop(columns)
 
     @staticmethod
     def select_columns(frame, columns):
@@ -500,22 +495,9 @@ class Compat:
             raise NotImplementedError("select_columns not implemented for type")
 
     @staticmethod
+    @nw.narwhalify
     def cast_column_to_type(frame, column, type_):
-        if isinstance(frame, pd.DataFrame):
-            frame[column] = frame[column].astype(type_)
-            return frame
-        elif isinstance(frame, pa.Table):
-            schema = pa.schema([pa.field(column, type_)])
-            return frame.cast(schema)
-        elif isinstance(frame, pl.DataFrame):
-            # hacky :-(
-            if type_ == "int64":
-                frame = frame.cast({column: pl.Int64()})
-            elif type_ == "float":
-                frame = frame.cast({column: pl.Float64()})
-            return frame
-        else:
-            raise NotImplementedError("cast_column_to_type not implemented for type")
+        return frame.with_columns(nw.col(column).cast(type_))
 
     @staticmethod
     def add_non_writeable_column(frame):
