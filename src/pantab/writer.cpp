@@ -274,32 +274,32 @@ public:
     //    typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
     //                              hyperapi::Timestamp>::type;
 
-    if constexpr (TZAware) { // OffsetTimestamp does not yet accept epoch arg
-      // TODO: need overflow checks here
-      npy_datetimestruct dts;
-      PyArray_DatetimeMetaData meta;
-      if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
-        meta = {NPY_FR_s, 1};
-      } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
-        meta = {NPY_FR_ms, 1};
-      } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
-        meta = {NPY_FR_us, 1};
-      } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
-        // we assume pandas is ns here but should check format
-        meta = {NPY_FR_ns, 1};
-      }
+    // TODO: need overflow checks here
+    npy_datetimestruct dts;
+    PyArray_DatetimeMetaData meta;
+    if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
+      meta = {NPY_FR_s, 1};
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
+      meta = {NPY_FR_ms, 1};
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
+      meta = {NPY_FR_us, 1};
+    } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
+      // we assume pandas is ns here but should check format
+      meta = {NPY_FR_ns, 1};
+    }
 
-      int ret = convert_datetime_to_datetimestruct(&meta, value, &dts);
-      if (ret != 0) {
-        throw std::invalid_argument("could not convert datetime value ");
-      }
-      const hyperapi::Date dt{static_cast<int32_t>(dts.year),
-                              static_cast<int16_t>(dts.month),
-                              static_cast<int16_t>(dts.day)};
-      const hyperapi::Time time{static_cast<int8_t>(dts.hour),
-                                static_cast<int8_t>(dts.min),
-                                static_cast<int8_t>(dts.sec), dts.us};
+    int ret = convert_datetime_to_datetimestruct(&meta, value, &dts);
+    if (ret != 0) {
+      throw std::invalid_argument("could not convert datetime value ");
+    }
+    const hyperapi::Date dt{static_cast<int32_t>(dts.year),
+                            static_cast<int16_t>(dts.month),
+                            static_cast<int16_t>(dts.day)};
+    const hyperapi::Time time{static_cast<int8_t>(dts.hour),
+                              static_cast<int8_t>(dts.min),
+                              static_cast<int8_t>(dts.sec), dts.us};
 
+    if constexpr (TZAware) {
       const hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
       hyperapi::internal::ValueInserter{inserter_}.addValue(
           static_cast<hyperapi::OffsetTimestamp>(ts));
