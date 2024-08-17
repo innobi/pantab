@@ -6,8 +6,6 @@
 #include <hyperapi/hyperapi.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 
-#include "numpy_datetime.h"
-
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                         ArrowError *error)
     -> hyperapi::SqlType {
@@ -270,45 +268,25 @@ public:
            array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
-    // using timestamp_t =
-    //    typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
-    //                              hyperapi::Timestamp>::type;
-
     // TODO: need overflow checks here
-    npy_datetimestruct dts;
-    PyArray_DatetimeMetaData meta;
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
-      meta = {NPY_FR_s, 1};
+      value *= 1000000;
     } else if constexpr (TU == NANOARROW_TIME_UNIT_MILLI) {
-      meta = {NPY_FR_ms, 1};
-    } else if constexpr (TU == NANOARROW_TIME_UNIT_MICRO) {
-      meta = {NPY_FR_us, 1};
+      value *= 1000;
     } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
-      // we assume pandas is ns here but should check format
-      meta = {NPY_FR_ns, 1};
+      value /= 1000;
     }
 
-    int ret = convert_datetime_to_datetimestruct(&meta, value, &dts);
-    if (ret != 0) {
-      throw std::invalid_argument("could not convert datetime value ");
-    }
-    const hyperapi::Date dt{static_cast<int32_t>(dts.year),
-                            static_cast<int16_t>(dts.month),
-                            static_cast<int16_t>(dts.day)};
-    const hyperapi::Time time{static_cast<int8_t>(dts.hour),
-                              static_cast<int8_t>(dts.min),
-                              static_cast<int8_t>(dts.sec), dts.us};
+    constexpr int64_t USEC_TABLEAU_TO_UNIX_EPOCH = 210866803200000000LL;
+    hyper_timestamp_t raw_timestamp =
+        static_cast<hyper_timestamp_t>(value + USEC_TABLEAU_TO_UNIX_EPOCH);
 
-    if constexpr (TZAware) {
-      const hyperapi::OffsetTimestamp ts{dt, time, std::chrono::minutes{0}};
-      hyperapi::internal::ValueInserter{inserter_}.addValue(
-          static_cast<hyperapi::OffsetTimestamp>(ts));
-
-    } else {
-      const hyperapi::Timestamp ts{dt, time};
-      hyperapi::internal::ValueInserter{inserter_}.addValue(
-          static_cast<hyperapi::Timestamp>(ts));
-    }
+    using timestamp_t =
+        typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
+                                  hyperapi::Timestamp>::type;
+    const timestamp_t ts{raw_timestamp, {}};
+    hyperapi::internal::ValueInserter{inserter_}.addValue(
+        static_cast<timestamp_t>(ts));
   }
 };
 
