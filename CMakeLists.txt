@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.20)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES C CXX)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -10,7 +10,7 @@ else()
     add_compile_options(-Wall -Wextra -Werror)
 endif()
 
-find_package(Python COMPONENTS Interpreter Development.Module NumPy REQUIRED)
+find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 # Detect the installed nanobind package and import it into CMake
 execute_process(
@@ -22,7 +22,11 @@ find_package(nanobind CONFIG REQUIRED)
 if(WIN32)
   set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-windows-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
 elseif(APPLE)
-  set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
+  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-arm64-release-main.0.0.19691.r2d7e5bc8.zip")
+  else()
+    set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-macos-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
+  endif()
 else()
   set(TABLEAU_DOWNLOAD_URL "https://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.0.0.19691.r2d7e5bc8.zip")
 endif()

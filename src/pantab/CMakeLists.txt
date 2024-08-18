@@ -2,7 +2,6 @@ set(PANTAB_SOURCES
   libpantab.cpp
   reader.cpp
   writer.cpp
-  numpy_datetime.cpp
 )
 
 nanobind_add_module(
@@ -10,7 +9,6 @@ nanobind_add_module(
   NOMINSIZE
   ${PANTAB_SOURCES}
 )
-target_include_directories(libpantab PUBLIC ${Python_NumPy_INCLUDE_DIRS})
 target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
   PRIVATE nanoarrow
