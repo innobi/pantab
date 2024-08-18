@@ -434,8 +434,6 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
     }
     break;
   case hyperapi::TypeTag::Numeric: {
-    // TODO: Tableau wants these at compile time but we only have at runtime
-    // how do we best solve that?
     const auto precision = sqltype.getPrecision();
     const auto scale = sqltype.getScale();
     if (ArrowSchemaSetTypeDecimal(schema, NANOARROW_TYPE_DECIMAL128, precision,

@@ -406,9 +406,15 @@ public:
     std::string_view sv{reinterpret_cast<char *>(buffer.data),
                         static_cast<size_t>(buffer.size_bytes)};
 
+    // The Hyper API wants the string to include the decimal place, which
+    // nanoarrow does not provide
+    auto str_with_decimal = std::string(sv.substr(0, sv.size() - scale_)) +
+                            "." +
+                            std::string(sv.substr(sv.size() - scale_, scale_));
+
     const auto insertFunc =
         numeric_function_mapper_.at(std::make_pair(precision_, scale_));
-    insertFunc(inserter_, sv);
+    insertFunc(inserter_, str_with_decimal);
 
     ArrowBufferReset(&buffer);
   }
