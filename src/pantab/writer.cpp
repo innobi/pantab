@@ -334,16 +334,9 @@ using funcMapType =
     std::map<std::pair<int, int>,
              std::function<void(hyperapi::Inserter &, std::string_view)>>;
 
-template <int N, int... Rest> struct NumericCreatorInserter {
+template <int P, int S, int... Rest> struct NumericCreatorInserter {
   static void insert(funcMapType &func_map) {
-    NumericCreatorInserter<N, N, Rest...>::insert(func_map);
-    NumericCreatorInserter<Rest...>::insert(func_map);
-  }
-};
-
-template <int P, int S, int... Rest>
-struct NumericCreatorInserter<P, S, Rest...> {
-  static void insert(funcMapType &func_map) {
+    NumericCreatorInserter<P, P>::insert(func_map);
     NumericCreatorInserter<P, S>::insert(func_map);
     NumericCreatorInserter<P, Rest...>::insert(func_map);
   }
@@ -403,14 +396,11 @@ public:
       throw std::runtime_error("could not create buffer from decmial value");
     }
 
-    std::string_view sv{reinterpret_cast<char *>(buffer.data),
-                        static_cast<size_t>(buffer.size_bytes)};
-
+    std::string str{reinterpret_cast<char *>(buffer.data),
+                    static_cast<size_t>(buffer.size_bytes)};
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide
-    auto str_with_decimal = std::string(sv.substr(0, sv.size() - scale_)) +
-                            "." +
-                            std::string(sv.substr(sv.size() - scale_, scale_));
+    const auto str_with_decimal = str.insert(str.size() - scale_, 1, '.');
 
     const auto insertFunc =
         numeric_function_mapper_.at(std::make_pair(precision_, scale_));

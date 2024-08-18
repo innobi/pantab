@@ -256,15 +256,9 @@ using funcMapType =
     std::map<std::pair<int, int>,
              std::function<std::string(const hyperapi::Value &value)>>;
 
-template <int N, int... Rest> struct NumericReader {
+template <int P, int S, int... Rest> struct NumericReader {
   static void read(funcMapType &func_map) {
-    NumericReader<N, N, Rest...>::read(func_map);
-    NumericReader<Rest...>::read(func_map);
-  }
-};
-
-template <int P, int S, int... Rest> struct NumericReader<P, S, Rest...> {
-  static void read(funcMapType &func_map) {
+    NumericReader<P, P>::read(func_map);
     NumericReader<P, S>::read(func_map);
     NumericReader<P, Rest...>::read(func_map);
   }
