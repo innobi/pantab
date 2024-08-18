@@ -347,8 +347,8 @@ struct NumericCreatorInserter<Precision, Scale> {
   static void insert(funcMapType &func_map) {
     func_map.emplace(std::make_pair(Precision, Scale),
                      [](hyperapi::Inserter &inserter, std::string_view sv) {
-                       // TODO: separate Precision and Scale
-                       hyperapi::Numeric<Precision, Scale> value{sv};
+                       hyperapi::string_view hsv(sv); // for MSVC
+                       hyperapi::Numeric<Precision, Scale> value(hsv);
                        inserter.add(value);
                      });
   }
