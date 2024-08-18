@@ -67,8 +67,8 @@ known_first_party = "pantab"
 build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
-test-command = "pytest {project}/tests"
-test-requires = ["pytest", "pandas>=2.0.0", "polars<1.3.0", "narwhals"]
+test-command = "python -m pytest {project}/tests"
+test-requires = ["pytest", "pandas>=2.0.0", "polars~=1.2.0", "narwhals"]
 
 [tool.ruff]
 line-length = 88
@@ -85,3 +85,7 @@ auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
 repair-wheel-command = """
 delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib --require-archs {delocate_archs} -w {dest_dir} {wheel}
 """
+
+[tool.cibuildwheel.windows]
+before-build = "python -m pip install delvewheel"
+repair-wheel-command = "python -m delvewheel repair -v --ignore-in-wheel --add-path C:/Windows/System32 -w {dest_dir} {wheel}"

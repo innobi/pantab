@@ -3,13 +3,6 @@ set(PANTAB_SOURCES
   reader.cpp
   writer.cpp
 )
-if(WIN32)
-  # Required so local installation of pantab can resolve to bundled
-  # tableauhyperapi.dll and not any other on system
-  # https://devblogs.microsoft.com/oldnewthing/20171011-00/?p=97195
-  list(APPEND PANTAB_SOURCES libpantab.dll.manifest)
-  install(FILES libpantab.dll.manifest DESTINATION ${SKBUILD_PROJECT_NAME}/)
-endif()
 
 nanobind_add_module(
   libpantab
@@ -28,9 +21,6 @@ if(WIN32)
   set(HYPERAPI_LIB_DIR "bin")
   set(HYPERAPI_LIB_NAME "tableauhyperapi.dll")
   set(HYPERAPI_BIN_LOC "bin/hyper")
-  # https://learn.microsoft.com/en-us/cpp/build/understanding-manifest-generation-for-c-cpp-programs?view=msvc-170#two-approaches
-  add_custom_command(TARGET libpantab POST_BUILD
-    COMMAND "mt.exe -manifest libpantab.dll.manifest -outputresource:$<TARGET_FILE:libpantab>;#2")
 elseif(APPLE)
   set(HYPERAPI_LIB_DIR "lib")
   set(HYPERAPI_LIB_NAME "libtableauhyperapi.dylib")
