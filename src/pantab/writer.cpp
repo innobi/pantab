@@ -332,7 +332,7 @@ public:
 // range of 0..38
 using funcMapType =
     std::map<std::pair<int, int>,
-             std::function<void(hyperapi::Inserter &, std::string_view)>>;
+             std::function<void(hyperapi::Inserter &, const std::string &)>>;
 
 template <int P, int S, int... Rest> struct NumericCreatorInserter {
   static void insert(funcMapType &func_map) {
@@ -346,8 +346,8 @@ template <int Precision, int Scale>
 struct NumericCreatorInserter<Precision, Scale> {
   static void insert(funcMapType &func_map) {
     func_map.emplace(std::make_pair(Precision, Scale),
-                     [](hyperapi::Inserter &inserter, std::string_view sv) {
-                       hyperapi::string_view hsv(sv); // for MSVC
+                     [](hyperapi::Inserter &inserter, const std::string &str) {
+                       hyperapi::string_view hsv(str); // for MSVC
                        hyperapi::Numeric<Precision, Scale> value(hsv);
                        inserter.add(value);
                      });
