@@ -1,13 +1,12 @@
 #include "writer.hpp"
+
 #include "nanoarrow/nanoarrow.h"
-#include "nanoarrow/nanoarrow_types.h"
-
-#include <chrono>
-#include <hyperapi/string_view.hpp>
-#include <set>
-
 #include <hyperapi/hyperapi.hpp>
 #include <nanoarrow/nanoarrow.hpp>
+
+#include <chrono>
+#include <set>
+#include <utility>
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                         ArrowError *error)
@@ -326,9 +325,62 @@ public:
   }
 };
 
+// The Tableau Hyper API requires Numeric to be templated at compile time
+// but the values are only known at runtime. To work around this limitation
+// we generate a map of functions using precision and scale values in the
+// range of 0..38
+using funcMapType =
+    std::map<std::pair<int, int>,
+             std::function<void(hyperapi::Inserter &, std::string_view)>>;
+
+template <int N, int... Rest> struct NumericCreatorInserter {
+  static void insert(funcMapType &func_map) {
+    NumericCreatorInserter<N, N>::insert(func_map);
+    NumericCreatorInserter<N, N, Rest...>::insert(func_map);
+    NumericCreatorInserter<Rest...>::insert(func_map);
+  }
+};
+
+template <int P, int S, int... Rest>
+struct NumericCreatorInserter<P, S, Rest...> {
+  static void insert(funcMapType &func_map) {
+    NumericCreatorInserter<P, S>::insert(func_map);
+    NumericCreatorInserter<P, Rest...>::insert(func_map);
+  }
+};
+
+template <int Precision, int Scale>
+struct NumericCreatorInserter<Precision, Scale> {
+  static void insert(funcMapType &func_map) {
+    func_map.emplace(std::make_pair(Precision, Scale),
+                     [](hyperapi::Inserter &inserter, std::string_view sv) {
+                       // TODO: separate Precision and Scale
+                       hyperapi::Numeric<Precision, Scale> value{sv};
+                       inserter.add(value);
+                     });
+  }
+};
+
+static funcMapType initializeNumericCreatorMap() {
+  funcMapType numeric_creators;
+  NumericCreatorInserter<38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25,
+                         24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
+                         10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+                         0>::insert(numeric_creators);
+  return numeric_creators;
+};
+
 class DecimalInsertHelper : public InsertHelper {
 public:
-  using InsertHelper::InsertHelper;
+  DecimalInsertHelper(hyperapi::Inserter &inserter,
+                      const struct ArrowArray *chunk,
+                      const struct ArrowSchema *schema,
+                      struct ArrowError *error, int64_t column_position)
+      : InsertHelper(inserter, chunk, schema, error, column_position) {
+    // Technically would be faster to only initialize this once per the module
+    // and use as a global
+    numeric_function_mapper_ = initializeNumericCreatorMap();
+  }
 
   void InsertValueAtIndex(size_t idx) override {
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
@@ -340,8 +392,8 @@ public:
 
     // TODO: Tableau wants these at compile time but we only have at runtime
     // how do we best solve that?
-    constexpr int16_t precision = 38;
-    constexpr int16_t scale = 0;
+    constexpr int precision = 38;
+    constexpr int scale = 0;
 
     struct ArrowDecimal decimal;
     ArrowDecimalInit(&decimal, 128, precision, scale);
@@ -356,12 +408,15 @@ public:
     std::string_view sv{reinterpret_cast<char *>(buffer.data),
                         static_cast<size_t>(buffer.size_bytes)};
 
-    // TODO: we shouldn't hardcode this
-    hyperapi::Numeric<precision, scale> value{sv};
-    inserter_.add(value);
+    const auto insertFunc =
+        numeric_function_mapper_.at(std::make_pair(precision, scale));
+    insertFunc(inserter_, sv);
 
     ArrowBufferReset(&buffer);
   }
+
+private:
+  funcMapType numeric_function_mapper_;
 };
 
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
