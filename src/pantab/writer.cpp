@@ -1,6 +1,7 @@
 #include "writer.hpp"
 
 #include "nanoarrow/nanoarrow.h"
+#include "nanoarrow/nanoarrow_types.h"
 #include <hyperapi/hyperapi.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 
@@ -335,7 +336,6 @@ using funcMapType =
 
 template <int N, int... Rest> struct NumericCreatorInserter {
   static void insert(funcMapType &func_map) {
-    NumericCreatorInserter<N, N>::insert(func_map);
     NumericCreatorInserter<N, N, Rest...>::insert(func_map);
     NumericCreatorInserter<Rest...>::insert(func_map);
   }
@@ -375,8 +375,10 @@ public:
   DecimalInsertHelper(hyperapi::Inserter &inserter,
                       const struct ArrowArray *chunk,
                       const struct ArrowSchema *schema,
-                      struct ArrowError *error, int64_t column_position)
-      : InsertHelper(inserter, chunk, schema, error, column_position) {
+                      struct ArrowError *error, int64_t column_position,
+                      int32_t precision, int32_t scale)
+      : InsertHelper(inserter, chunk, schema, error, column_position),
+        precision_(precision), scale_(scale) {
     // Technically would be faster to only initialize this once per the module
     // and use as a global
     numeric_function_mapper_ = initializeNumericCreatorMap();
@@ -390,13 +392,9 @@ public:
       return;
     }
 
-    // TODO: Tableau wants these at compile time but we only have at runtime
-    // how do we best solve that?
-    constexpr int precision = 38;
-    constexpr int scale = 0;
-
+    constexpr int32_t bitwidth = 128;
     struct ArrowDecimal decimal;
-    ArrowDecimalInit(&decimal, 128, precision, scale);
+    ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
     ArrowArrayViewGetDecimalUnsafe(array_view_.get(), idx, &decimal);
 
     struct ArrowBuffer buffer;
@@ -409,7 +407,7 @@ public:
                         static_cast<size_t>(buffer.size_bytes)};
 
     const auto insertFunc =
-        numeric_function_mapper_.at(std::make_pair(precision, scale));
+        numeric_function_mapper_.at(std::make_pair(precision_, scale_));
     insertFunc(inserter_, sv);
 
     ArrowBufferReset(&buffer);
@@ -417,6 +415,8 @@ public:
 
 private:
   funcMapType numeric_function_mapper_;
+  int32_t precision_;
+  int32_t scale_;
 };
 
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
@@ -537,9 +537,12 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
-  case NANOARROW_TYPE_DECIMAL128:
-    return std::make_unique<DecimalInsertHelper>(inserter, chunk, schema, error,
-                                                 column_position);
+  case NANOARROW_TYPE_DECIMAL128: {
+    const auto precision = schema_view.decimal_precision;
+    const auto scale = schema_view.decimal_scale;
+    return std::make_unique<DecimalInsertHelper>(
+        inserter, chunk, schema, error, column_position, precision, scale);
+  }
   default:
     throw std::invalid_argument(
         std::string("MakeInsertHelper: Unsupported Arrow type: ") +
@@ -709,15 +712,35 @@ void write_to_hyper(
               "Unexpected code path hit - contact a developer");
         }
       } else {
-        const auto hypertype =
-            GetHyperTypeFromArrowSchema(schema->children[i], &error);
-        const hyperapi::TableDefinition::Column column{col_name, hypertype,
-                                                       nullability};
+        struct ArrowSchemaView schema_view;
+        if (ArrowSchemaViewInit(&schema_view, schema->children[i], &error)) {
+          throw std::runtime_error(
+              "Could not init schema view from child schema " +
+              std::to_string(i) + ": " + std::string(error.message));
+        }
 
-        hyper_columns.emplace_back(column);
-        inserter_defs.emplace_back(std::move(column));
-        const hyperapi::Inserter::ColumnMapping mapping{col_name};
-        column_mappings.emplace_back(mapping);
+        if (schema_view.type == NANOARROW_TYPE_DECIMAL128) {
+          const auto precision = schema_view.decimal_precision;
+          const auto scale = schema_view.decimal_scale;
+          const auto hypertype = hyperapi::SqlType::numeric(precision, scale);
+          const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                         nullability};
+
+          hyper_columns.emplace_back(column);
+          inserter_defs.emplace_back(std::move(column));
+          const hyperapi::Inserter::ColumnMapping mapping{col_name};
+          column_mappings.emplace_back(mapping);
+        } else {
+          const auto hypertype =
+              GetHyperTypeFromArrowSchema(schema->children[i], &error);
+          const hyperapi::TableDefinition::Column column{col_name, hypertype,
+                                                         nullability};
+
+          hyper_columns.emplace_back(column);
+          inserter_defs.emplace_back(std::move(column));
+          const hyperapi::Inserter::ColumnMapping mapping{col_name};
+          column_mappings.emplace_back(mapping);
+        }
       }
     }
 
