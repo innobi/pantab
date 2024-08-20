@@ -4,6 +4,7 @@
 #include <nanoarrow/nanoarrow.hpp>
 
 #include <chrono>
+#include <iostream>
 #include <set>
 #include <utility>
 #include <variant>
@@ -373,6 +374,8 @@ public:
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide
     const auto str_with_decimal = str.insert(str.size() - scale_, 1, '.');
+    std::cout << std::endl
+              << "str_with_decimal is: " << str_with_decimal << std::endl;
 
     constexpr auto MaxPrecision = 39; // of-by-one error in solution?
     if (precision_ >= MaxPrecision) {

@@ -1,5 +1,6 @@
 #include "reader.hpp"
 
+#include <iostream>
 #include <variant>
 #include <vector>
 
@@ -289,10 +290,10 @@ public:
           if constexpr (S() <= P()) {
             const auto decimal_value = value.get<hyperapi::Numeric<P(), S()>>();
             auto value_string = decimal_value.toString();
-            // C++20 std::erase would really simplify this!
-            value_string.erase(
-                std::remove(value_string.begin(), value_string.end(), '.'),
-                value_string.end());
+            std::cout << std::endl
+                      << "Original value string is: " << value_string
+                      << std::endl;
+            std::erase(value_string, '.');
             return value_string;
           }
           throw "unreachable";
