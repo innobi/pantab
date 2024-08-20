@@ -4,6 +4,7 @@
 #include <nanoarrow/nanoarrow.hpp>
 
 #include <chrono>
+#include <iostream>
 #include <set>
 #include <utility>
 #include <variant>
@@ -374,6 +375,8 @@ public:
     // nanoarrow does not provide
     if (scale_ > 0)
       str = str.insert(str.size() - scale_, 1, '.');
+
+    std::cout << std::endl << "str is: " << str << std::endl;
 
     constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
     if (precision_ >= PrecisionLimit) {
