@@ -1,6 +1,5 @@
 #include "reader.hpp"
 
-#include <iostream>
 #include <variant>
 #include <vector>
 
@@ -277,11 +276,11 @@ public:
     struct ArrowDecimal decimal;
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
 
-    constexpr auto MaxPrecision = 39; // of-by-one error in solution?
-    if (precision_ >= MaxPrecision) {
+    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
+    if (precision_ >= PrecisionLimit) {
       throw nb::value_error("Numeric precision may not exceed 38!");
     }
-    if (scale_ >= MaxPrecision) {
+    if (scale_ >= PrecisionLimit) {
       throw nb::value_error("Numeric scale may not exceed 38!");
     }
 
@@ -298,8 +297,8 @@ public:
           }
           throw "unreachable";
         },
-        to_integral_variant<MaxPrecision>(precision_),
-        to_integral_variant<MaxPrecision>(scale_));
+        to_integral_variant<PrecisionLimit>(precision_),
+        to_integral_variant<PrecisionLimit>(scale_));
 
     const struct ArrowStringView sv {
       decimal_string.data(), static_cast<int64_t>(decimal_string.size())

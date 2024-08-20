@@ -4,7 +4,6 @@
 #include <nanoarrow/nanoarrow.hpp>
 
 #include <chrono>
-#include <iostream>
 #include <set>
 #include <utility>
 #include <variant>
@@ -373,32 +372,29 @@ public:
                     static_cast<size_t>(buffer.size_bytes)};
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide
-    const auto needs_decimal_point = scale_ > 0 && precision_ != scale_;
-    const auto str_with_decimal =
-        needs_decimal_point ? str.insert(str.size() - scale_, 1, '.') : str;
-    std::cout << std::endl
-              << "str_with_decimal is: " << str_with_decimal << std::endl;
+    if (scale_ > 0)
+      str = str.insert(str.size() - scale_, 1, '.');
 
-    constexpr auto MaxPrecision = 39; // of-by-one error in solution?
-    if (precision_ >= MaxPrecision) {
+    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
+    if (precision_ >= PrecisionLimit) {
       throw nb::value_error("Numeric precision may not exceed 38!");
     }
-    if (scale_ >= MaxPrecision) {
+    if (scale_ >= PrecisionLimit) {
       throw nb::value_error("Numeric scale may not exceed 38!");
     }
 
     std::visit(
         [&](auto P, auto S) {
           if constexpr (S() <= P()) {
-            const auto value = hyperapi::Numeric<P(), S()>{str_with_decimal};
+            const auto value = hyperapi::Numeric<P(), S()>{str};
             inserter_.add(value);
             return;
           } else {
             throw "unreachable";
           }
         },
-        to_integral_variant<MaxPrecision>(precision_),
-        to_integral_variant<MaxPrecision>(scale_));
+        to_integral_variant<PrecisionLimit>(precision_),
+        to_integral_variant<PrecisionLimit>(scale_));
 
     ArrowBufferReset(&buffer);
   }
