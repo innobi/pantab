@@ -1,13 +1,12 @@
 #include "writer.hpp"
 
-#include "nanoarrow/nanoarrow.h"
-#include "nanoarrow/nanoarrow_types.h"
 #include <hyperapi/hyperapi.hpp>
 #include <nanoarrow/nanoarrow.hpp>
 
 #include <chrono>
 #include <set>
 #include <utility>
+#include <variant>
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                         ArrowError *error)
@@ -53,7 +52,10 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
   case NANOARROW_TYPE_TIME64:
     return hyperapi::SqlType::time();
   case NANOARROW_TYPE_DECIMAL128: {
-    // TODO: don't hardcode precision and scale
+    // TODO: here we have hardcoded the precision and scale
+    // because the Tableau SqlType constructor requires it...
+    // but it doesn't appear like these are actually used?
+    // We still always get the values from the SchemaView at runtime
     constexpr int16_t precision = 38;
     constexpr int16_t scale = 0;
     return hyperapi::SqlType::numeric(precision, scale);
@@ -327,41 +329,15 @@ public:
 };
 
 // The Tableau Hyper API requires Numeric to be templated at compile time
-// but the values are only known at runtime. To work around this limitation
-// we generate a map of functions using precision and scale values in the
-// range of 0..38
-using funcMapType =
-    std::map<std::pair<int, int>,
-             std::function<void(hyperapi::Inserter &, const std::string &)>>;
-
-template <int P, int S, int... Rest> struct NumericCreatorInserter {
-  static void insert(funcMapType &func_map) {
-    NumericCreatorInserter<P, P>::insert(func_map);
-    NumericCreatorInserter<P, S>::insert(func_map);
-    NumericCreatorInserter<P, Rest...>::insert(func_map);
-  }
-};
-
-template <int Precision, int Scale>
-struct NumericCreatorInserter<Precision, Scale> {
-  static void insert(funcMapType &func_map) {
-    func_map.emplace(std::make_pair(Precision, Scale),
-                     [](hyperapi::Inserter &inserter, const std::string &str) {
-                       hyperapi::string_view hsv(str); // for MSVC
-                       hyperapi::Numeric<Precision, Scale> value(hsv);
-                       inserter.add(value);
-                     });
-  }
-};
-
-static funcMapType initializeNumericCreatorMap() {
-  funcMapType numeric_creators;
-  NumericCreatorInserter<38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25,
-                         24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11,
-                         10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
-                         0>::insert(numeric_creators);
-  return numeric_creators;
-};
+// but the values are only known at runtime. This solution is adopted from
+// https://stackoverflow.com/questions/78888913/creating-cartesian-product-from-integer-range-template-argument/78889229?noredirect=1#comment139097273_78889229
+template <std::size_t N> constexpr auto to_integral_variant(std::size_t n) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    using ResType = std::variant<std::integral_constant<std::size_t, Is>...>;
+    ResType all[] = {ResType{std::integral_constant<std::size_t, Is>{}}...};
+    return all[n];
+  }(std::make_index_sequence<N>());
+}
 
 class DecimalInsertHelper : public InsertHelper {
 public:
@@ -371,11 +347,7 @@ public:
                       struct ArrowError *error, int64_t column_position,
                       int32_t precision, int32_t scale)
       : InsertHelper(inserter, chunk, schema, error, column_position),
-        precision_(precision), scale_(scale) {
-    // Technically would be faster to only initialize this once per the module
-    // and use as a global
-    numeric_function_mapper_ = initializeNumericCreatorMap();
-  }
+        precision_(precision), scale_(scale) {}
 
   void InsertValueAtIndex(size_t idx) override {
     if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
@@ -402,15 +374,31 @@ public:
     // nanoarrow does not provide
     const auto str_with_decimal = str.insert(str.size() - scale_, 1, '.');
 
-    const auto insertFunc =
-        numeric_function_mapper_.at(std::make_pair(precision_, scale_));
-    insertFunc(inserter_, str_with_decimal);
+    constexpr auto MaxPrecision = 39; // of-by-one error in solution?
+    if (precision_ >= MaxPrecision) {
+      throw nb::value_error("Numeric precision may not exceed 38!");
+    }
+    if (scale_ >= MaxPrecision) {
+      throw nb::value_error("Numeric scale may not exceed 38!");
+    }
+
+    std::visit(
+        [&](auto P, auto S) {
+          if constexpr (S() <= P()) {
+            const auto value = hyperapi::Numeric<P(), S()>{str_with_decimal};
+            inserter_.add(value);
+            return;
+          } else {
+            throw "unreachable";
+          }
+        },
+        to_integral_variant<MaxPrecision>(precision_),
+        to_integral_variant<MaxPrecision>(scale_));
 
     ArrowBufferReset(&buffer);
   }
 
 private:
-  funcMapType numeric_function_mapper_;
   int32_t precision_;
   int32_t scale_;
 };

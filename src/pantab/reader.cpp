@@ -1,7 +1,6 @@
 #include "reader.hpp"
 
-#include <algorithm>
-#include <map>
+#include <variant>
 #include <vector>
 
 #include <hyperapi/hyperapi.hpp>
@@ -249,52 +248,21 @@ class IntervalReadHelper : public ReadHelper {
 };
 
 // The Tableau Hyper API requires Numeric to be templated at compile time
-// but the values are only known at runtime. To work around this limitation
-// we generate a map of functions using precision and scale values in the
-// range of 0..38
-using funcMapType =
-    std::map<std::pair<int, int>,
-             std::function<std::string(const hyperapi::Value &value)>>;
-
-template <int P, int S, int... Rest> struct NumericReader {
-  static void read(funcMapType &func_map) {
-    NumericReader<P, P>::read(func_map);
-    NumericReader<P, S>::read(func_map);
-    NumericReader<P, Rest...>::read(func_map);
-  }
-};
-
-template <int Precision, int Scale> struct NumericReader<Precision, Scale> {
-  static void read(funcMapType &func_map) {
-    func_map.emplace(
-        std::make_pair(Precision, Scale), [](const hyperapi::Value &value) {
-          const auto decimal_value =
-              value.get<hyperapi::Numeric<Precision, Scale>>();
-          auto decimal_string = decimal_value.toString();
-          // C++20 std::erase would really simplify this!
-          decimal_string.erase(
-              std::remove(decimal_string.begin(), decimal_string.end(), '.'),
-              decimal_string.end());
-          return decimal_string;
-        });
-  }
-};
-
-static funcMapType initializeNumericReaderMap() {
-  funcMapType numeric_creators;
-  NumericReader<38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23,
-                22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6,
-                5, 4, 3, 2, 1, 0>::read(numeric_creators);
-  return numeric_creators;
-};
+// but the values are only known at runtime. This solution is adopted from
+// https://stackoverflow.com/questions/78888913/creating-cartesian-product-from-integer-range-template-argument/78889229?noredirect=1#comment139097273_78889229
+template <std::size_t N> constexpr auto to_integral_variant(std::size_t n) {
+  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    using ResType = std::variant<std::integral_constant<std::size_t, Is>...>;
+    ResType all[] = {ResType{std::integral_constant<std::size_t, Is>{}}...};
+    return all[n];
+  }(std::make_index_sequence<N>());
+}
 
 class DecimalReadHelper : public ReadHelper {
 public:
   explicit DecimalReadHelper(struct ArrowArray *array, int32_t precision,
                              int32_t scale)
-      : ReadHelper(array), precision_(precision), scale_(scale) {
-    numeric_read_mapper_ = initializeNumericReaderMap();
-  }
+      : ReadHelper(array), precision_(precision), scale_(scale) {}
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
@@ -308,9 +276,30 @@ public:
     struct ArrowDecimal decimal;
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
 
-    const auto readFunc =
-        numeric_read_mapper_.at(std::make_pair(precision_, scale_));
-    const auto decimal_string = readFunc(value);
+    constexpr auto MaxPrecision = 39; // of-by-one error in solution?
+    if (precision_ >= MaxPrecision) {
+      throw nb::value_error("Numeric precision may not exceed 38!");
+    }
+    if (scale_ >= MaxPrecision) {
+      throw nb::value_error("Numeric scale may not exceed 38!");
+    }
+
+    const auto decimal_string = std::visit(
+        [&value](auto P, auto S) -> std::string {
+          if constexpr (S() <= P()) {
+            const auto decimal_value = value.get<hyperapi::Numeric<P(), S()>>();
+            auto value_string = decimal_value.toString();
+            // C++20 std::erase would really simplify this!
+            value_string.erase(
+                std::remove(value_string.begin(), value_string.end(), '.'),
+                value_string.end());
+            return value_string;
+          }
+          throw "unreachable";
+        },
+        to_integral_variant<MaxPrecision>(precision_),
+        to_integral_variant<MaxPrecision>(scale_));
+
     const struct ArrowStringView sv {
       decimal_string.data(), static_cast<int64_t>(decimal_string.size())
     };
@@ -326,7 +315,6 @@ public:
   }
 
 private:
-  funcMapType numeric_read_mapper_;
   int32_t precision_;
   int32_t scale_;
 };
