@@ -373,7 +373,9 @@ public:
                     static_cast<size_t>(buffer.size_bytes)};
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide
-    const auto str_with_decimal = str.insert(str.size() - scale_, 1, '.');
+    const auto needs_decimal_point = scale_ > 0 && precision_ != scale_;
+    const auto str_with_decimal =
+        needs_decimal_point ? str.insert(str.size() - scale_, 1, '.') : str;
     std::cout << std::endl
               << "str_with_decimal is: " << str_with_decimal << std::endl;
 
