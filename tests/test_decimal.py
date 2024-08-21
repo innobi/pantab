@@ -8,6 +8,7 @@ def test_decimal_roundtrip(tmp_hyper, compat):
         [
             ("no_fractional", pa.decimal128(38, 0)),
             ("mixed_decimal", pa.decimal128(38, 10)),
+            ("not_using_entire_precision", pa.decimal128(38, 10)),
             ("only_fractional", pa.decimal128(38, 38)),
             ("five_two", pa.decimal128(5, 2)),
         ]
@@ -26,6 +27,13 @@ def test_decimal_roundtrip(tmp_hyper, compat):
                 [
                     "1234567890123456789012345678.9012345678",
                     "-9876543210987654321098765432.1098765432",
+                    None,
+                ]
+            ),
+            pa.array(
+                [
+                    "123.45",
+                    "-543.21",
                     None,
                 ]
             ),

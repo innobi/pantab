@@ -369,7 +369,13 @@ public:
       throw std::runtime_error("could not create buffer from decmial value");
     }
 
-    std::string str{reinterpret_cast<char *>(buffer.data),
+    printf("\n");
+    for (auto i = 0; i < buffer.size_bytes; ++i) {
+      printf("%02X", buffer.data[i]);
+    }
+    printf("\n");
+
+    std::string str{reinterpret_cast<const char *>(buffer.data),
                     static_cast<size_t>(buffer.size_bytes)};
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide
