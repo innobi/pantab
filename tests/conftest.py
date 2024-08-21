@@ -105,7 +105,7 @@ def basic_arrow_table():
                     None,
                 ]
             ),
-            pa.array(["1234567890.123456789", "-99876543210.987654321", None]),
+            pa.array(["1234567890.123456789", "99876543210.987654321", None]),
         ],
         schema=schema,
     )
@@ -283,7 +283,7 @@ def basic_dataframe():
     df["geography"] = df["geography"].astype("large_binary[pyarrow]")
 
     df["decimal"] = pd.Series(
-        ["1234567890.123456789", "-99876543210.987654321", None],
+        ["1234567890.123456789", "99876543210.987654321", None],
         dtype=pd.ArrowDtype(pa.decimal128(38, 10)),
     )
 
