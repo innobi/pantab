@@ -1,5 +1,42 @@
 Changelog
 ^^^^^^^^^
+
+Pantab 5.0.0 (2024-08-21)
+=========================
+
+New Features
+------------
+
+Support for Apple Silicon
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As one of our most requested features, we are happy to announce that pantab now runs natively on Apple Silicon processors without having to use Rosetta 2. This provides significant performance and usability improvements to macOS users with M1 chips or newer. For users of Intel chips, pantab still distributes an x86 wheel.
+
+New Data Type Support
+~~~~~~~~~~~~~~~~~~~~~
+
+With the 5.0.0 release, pantab now supports writing decimal data types, akin to those offered by the `decimal <https://docs.python.org/3/library/decimal.html>`_ module built into Python. For users that need precise calculations, these are highly encouraged over floating point data types.
+
+Speaking of floating point...pantab now also offers support for single point precision types. Previously, single point precision values were cast to double point precision when being written to Hyper; now the types can be fully roundtripped.
+
+Faster Datetime Writes
+~~~~~~~~~~~~~~~~~~~~~~
+
+In the 5.0.0 release, the performance when writing datetime types (both timezone-aware and timezone-naive) has been improved by about 20%.
+
+Other Features
+--------------
+
+- pantab no longer generates a hyperd.log file (#292)
+- pantab now defaults to producing Hyper files using database version 4 (#313)
+- Improved error message when trying to write an unsupported data type to hyper (#293)
+- NumPy is no longer required when building pantab (#315)
+
+Bugfixes
+--------
+
+- Fixed issue on Unix systems where an incompatible binary installed via the tableauhyperapi package could interfere with the version bundled into pantab (#302). In theory, this issue may still affect Windows users (see #318)
+
 Pantab 4.1.0 (2024-04-02)
 =========================
 

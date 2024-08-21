@@ -1,3 +1,0 @@
-Adds support for writing DataFrames/Tables that have 8 bit integers. Hyper does
-not have an 8 bit integer data type, so it will be converted to a 16 bit integer
-upon writing.
