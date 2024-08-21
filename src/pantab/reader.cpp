@@ -1,5 +1,7 @@
 #include "reader.hpp"
+#include "numeric_gen.hpp"
 
+#include <variant>
 #include <vector>
 
 #include <hyperapi/hyperapi.hpp>
@@ -246,6 +248,67 @@ class IntervalReadHelper : public ReadHelper {
   }
 };
 
+class DecimalReadHelper : public ReadHelper {
+public:
+  explicit DecimalReadHelper(struct ArrowArray *array, int32_t precision,
+                             int32_t scale)
+      : ReadHelper(array), precision_(precision), scale_(scale) {}
+
+  auto Read(const hyperapi::Value &value) -> void override {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(array_, 1)) {
+        throw std::runtime_error("ArrowAppendNull failed");
+      }
+      return;
+    }
+
+    constexpr int32_t bitwidth = 128;
+    struct ArrowDecimal decimal;
+    ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
+
+    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
+    if (precision_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric precision may not exceed 38!");
+    }
+    if (scale_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric scale may not exceed 38!");
+    }
+
+    const auto decimal_string = std::visit(
+        [&value](auto P, auto S) -> std::string {
+          if constexpr (S() <= P()) {
+            const auto decimal_value = value.get<hyperapi::Numeric<P(), S()>>();
+            auto value_string = decimal_value.toString();
+            std::cout << std::endl
+                      << "Original value string is: " << value_string
+                      << std::endl;
+            std::erase(value_string, '.');
+            return value_string;
+          }
+          throw "unreachable";
+        },
+        to_integral_variant<PrecisionLimit>(precision_),
+        to_integral_variant<PrecisionLimit>(scale_));
+
+    const struct ArrowStringView sv {
+      decimal_string.data(), static_cast<int64_t>(decimal_string.size())
+    };
+
+    if (ArrowDecimalSetDigits(&decimal, sv)) {
+      throw std::runtime_error(
+          "Unable to convert tableau numeric to arrow decimal");
+    }
+
+    if (ArrowArrayAppendDecimal(array_, &decimal)) {
+      throw std::runtime_error("Failed to append decimal value");
+    }
+  }
+
+private:
+  int32_t precision_;
+  int32_t scale_;
+};
+
 static auto MakeReadHelper(const ArrowSchemaView *schema_view,
                            struct ArrowArray *array)
     -> std::unique_ptr<ReadHelper> {
@@ -281,6 +344,12 @@ static auto MakeReadHelper(const ArrowSchemaView *schema_view,
     return std::unique_ptr<ReadHelper>(new IntervalReadHelper(array));
   case NANOARROW_TYPE_TIME64:
     return std::unique_ptr<ReadHelper>(new TimeReadHelper(array));
+  case NANOARROW_TYPE_DECIMAL128: {
+    const auto precision = schema_view->decimal_precision;
+    const auto scale = schema_view->decimal_scale;
+    return std::unique_ptr<ReadHelper>(
+        new DecimalReadHelper(array, precision, scale));
+  }
   default:
     throw nb::type_error("unknownn arrow type provided");
   }
@@ -336,6 +405,15 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
       throw std::runtime_error("ArrowSchemaSetDateTime failed for Time type");
     }
     break;
+  case hyperapi::TypeTag::Numeric: {
+    const auto precision = sqltype.getPrecision();
+    const auto scale = sqltype.getScale();
+    if (ArrowSchemaSetTypeDecimal(schema, NANOARROW_TYPE_DECIMAL128, precision,
+                                  scale)) {
+      throw std::runtime_error("ArrowSchemaSetTypeDecimal failed");
+    }
+    break;
+  }
   default:
     const enum ArrowType arrow_type = GetArrowTypeFromHyper(sqltype);
     if (ArrowSchemaSetType(schema, arrow_type)) {
