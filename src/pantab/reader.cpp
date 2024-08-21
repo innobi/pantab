@@ -434,7 +434,7 @@ static auto ReleaseArrowStream(void *ptr) noexcept -> void {
 auto read_from_hyper_query(const std::string &path, const std::string &query)
     -> nb::capsule {
   const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}};
+      {"log_config", ""}, {"default_database_version", "4"}};
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
   hyperapi::Connection connection(hyper.getEndpoint(), path);

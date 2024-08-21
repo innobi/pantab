@@ -289,7 +289,8 @@ def test_can_write_wkt_as_geo(tmp_hyper):
 
     pt.frame_to_hyper(df, tmp_hyper, table="test", geo_columns=["geography"])
     with tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hyper:
         with tab_api.Connection(
             hyper.endpoint, tmp_hyper, tab_api.CreateMode.CREATE_IF_NOT_EXISTS
