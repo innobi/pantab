@@ -59,7 +59,8 @@ def frames_from_hyper(
 
     table_names = []
     with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU
+        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
+        parameters={"log_config": ""},
     ) as hpe:
         tmp_db = shutil.copy(source, tmp_dir)
         with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
