@@ -14,4 +14,4 @@ If you'd like to chat with the developer(s) or other users in the community, fre
 
 ## Licensing
 
-pantab is distributed under the 3-Clause BSD license, but includes vendored pieces of numpy (see numpy_datetime.* files). Binary distributions of pantab include the Tableau Hyper shared library and executable. See LICENSE.txt, NUMPY_LICENSE.txt and TABLEAU_HYPER_LICENSE.txt respectively.
+pantab is distributed under the 3-Clause BSD license. Binary distributions of pantab include the Tableau Hyper shared library and executable, which are licensed under the terms of the Apache 2.0 license.
