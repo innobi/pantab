@@ -279,9 +279,6 @@ public:
           if constexpr (S() <= P()) {
             const auto decimal_value = value.get<hyperapi::Numeric<P(), S()>>();
             auto value_string = decimal_value.toString();
-            std::cout << std::endl
-                      << "Original value string is: " << value_string
-                      << std::endl;
             std::erase(value_string, '.');
             return value_string;
           }
