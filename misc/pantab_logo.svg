@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="240mm"
-   height="100mm"
-   viewBox="0 0 240 100"
+   width="180mm"
+   height="60mm"
+   viewBox="0 0 180 60"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
@@ -25,30 +25,40 @@
      showgrid="false"
      inkscape:snap-global="true"
      inkscape:zoom="1"
-     inkscape:cx="650.5"
-     inkscape:cy="378"
+     inkscape:cx="493"
+     inkscape:cy="377"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
-     inkscape:window-y="32"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     width="180mm" />
   <defs
      id="defs2" />
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
+    <rect
+       style="fill:#ffffff;stroke-width:0.178032"
+       id="rect185"
+       width="180"
+       height="60"
+       x="-2.7755576e-17"
+       y="-5.5511151e-17" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:50.8px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="29.648924"
-       y="64.014648"
+       x="-0.35107613"
+       y="44.014648"
        id="text1551"><tspan
          sodipodi:role="line"
          id="tspan1549"
          style="font-size:50.8px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
-         x="29.648924"
-         y="64.014648">pantab</tspan></text>
+         x="-0.35107613"
+         y="44.014648">pan<tspan
+   style="fill:#e86321;fill-opacity:1"
+   id="tspan2639">tab</tspan></tspan></text>
   </g>
 </svg>

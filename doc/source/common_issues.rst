@@ -12,7 +12,7 @@ Technically, the way in which pandas types are mapped to Arrow types to fit the 
 Object Types
 ~~~~~~~~~~~~
 
-Generally you should avoid having columns that have ``dtype=object`` in your pandas DataFrame. For more information see :ref:`Strings`
+Generally you should avoid having columns that have ``dtype=object`` in your pandas DataFrame. For more information see `Strings`_
 
 Integral Types
 ~~~~~~~~~~~~~~
