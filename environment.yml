@@ -19,5 +19,6 @@ dependencies:
   - sphinx
   - pre-commit
   - sphinx_rtd_theme
+  - sphinxext-opengraph
   - pip:
     - asv
