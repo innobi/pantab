@@ -9,6 +9,9 @@
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="pantab_logo.svg"
+   inkscape:export-filename="/home/willayd/clones/pantab/misc/pantab_logo.png"
+   inkscape:export-xdpi="25.4"
+   inkscape:export-ydpi="25.4"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -26,7 +29,7 @@
      inkscape:snap-global="true"
      inkscape:zoom="0.11784603"
      inkscape:cx="3674.2858"
-     inkscape:cy="1451.0459"
+     inkscape:cy="2460.8381"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -56,16 +59,17 @@
        y="-5.5511151e-17" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:352.778px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="-27.438444"
-       y="412.32401"
+       style="font-style:normal;font-weight:normal;font-size:299.861px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="66.677917"
+       y="397.72531"
        id="text1551"><tspan
          sodipodi:role="line"
          id="tspan1549"
-         style="font-size:352.778px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
-         x="-27.438444"
-         y="412.32401">pan<tspan
-   style="font-size:352.778px;fill:#e86321;fill-opacity:1"
+         style="font-size:299.861px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
+         x="66.677917"
+         y="397.72531"
+         dy="0">pan<tspan
+   style="font-size:299.861px;fill:#e86321;fill-opacity:1"
    id="tspan2639">tab</tspan></tspan></text>
     <text
        xml:space="preserve"

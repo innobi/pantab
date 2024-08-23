@@ -33,4 +33,5 @@ html_static_path = ["_static"]
 # -- Options for opengraph output --------------------------------------------
 
 ogp_site_url = "https://pantab.readthedocs.io/"
+ogp_use_first_image = False
 ogp_image = "https://pantab.readthedocs.io/en/latest/_static/pantab_logo.png"
