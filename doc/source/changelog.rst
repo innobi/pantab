@@ -1,6 +1,8 @@
 Changelog
 ^^^^^^^^^
 
+.. image:: _static/pantab_logo.png
+
 Pantab 5.0.0 (2024-08-21)
 =========================
 
