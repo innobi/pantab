@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="180mm"
-   height="60mm"
-   viewBox="0 0 180 60"
+   width="1200mm"
+   height="630mm"
+   viewBox="0 0 1200 630"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
@@ -24,9 +24,9 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:snap-global="true"
-     inkscape:zoom="1"
-     inkscape:cx="493"
-     inkscape:cy="377"
+     inkscape:zoom="0.11784603"
+     inkscape:cx="3674.2858"
+     inkscape:cy="1451.0459"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
@@ -35,30 +35,42 @@
      inkscape:current-layer="layer1"
      width="180mm" />
   <defs
-     id="defs2" />
+     id="defs2">
+    <rect
+       x="-765.36572"
+       y="-939.08948"
+       width="11232.877"
+       height="4940.2716"
+       id="rect13250" />
+  </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="fill:#ffffff;stroke-width:0.178032"
+       style="fill:#ffffff;stroke-width:1.48952"
        id="rect185"
-       width="180"
-       height="60"
+       width="1200"
+       height="630"
        x="-2.7755576e-17"
        y="-5.5511151e-17" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:50.8px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="-0.35107613"
-       y="44.014648"
+       style="font-style:normal;font-weight:normal;font-size:352.778px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="-27.438444"
+       y="412.32401"
        id="text1551"><tspan
          sodipodi:role="line"
          id="tspan1549"
-         style="font-size:50.8px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
-         x="-0.35107613"
-         y="44.014648">pan<tspan
-   style="fill:#e86321;fill-opacity:1"
+         style="font-size:352.778px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
+         x="-27.438444"
+         y="412.32401">pan<tspan
+   style="font-size:352.778px;fill:#e86321;fill-opacity:1"
    id="tspan2639">tab</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       transform="scale(0.26458333)"
+       id="text13248"
+       style="fill:black;fill-opacity:1;line-height:1.25;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:40px;white-space:pre;shape-inside:url(#rect13250)" />
   </g>
 </svg>

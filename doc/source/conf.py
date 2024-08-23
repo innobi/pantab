@@ -12,6 +12,7 @@ release = "5.0.0"
 
 extensions = [
     "sphinx_rtd_theme",
+    "sphinxext.opengraph",
 ]
 
 templates_path = ["_templates"]
@@ -21,10 +22,14 @@ exclude_patterns: List[str] = []
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
-html_logo = "../../misc/pantab_logo.svg"
+html_logo = "../../misc/pantab_logo.png"
 master_doc = "index"  # see RTD GH issue 2569
 html_context = {
     "display_github": True,
 }
 
 html_static_path = ["_static"]
+
+# -- Options for opengraph output --------------------------------------------
+
+ogp_site_url = "https://pantab.readthedocs.io/"
