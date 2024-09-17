@@ -1,7 +1,7 @@
 import pathlib
 import shutil
 import tempfile
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 import pyarrow as pa
 import tableauhyperapi as tab_api
@@ -15,10 +15,14 @@ def frame_from_hyper_query(
     query: str,
     *,
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
+    process_params: Optional[dict[str, str]] = None,
 ):
     """See api.rst for documentation."""
+    if process_params is None:
+        process_params = {}
+
     # Call native library to read tuples from result set
-    capsule = libpantab.read_from_hyper_query(str(source), query)
+    capsule = libpantab.read_from_hyper_query(str(source), query, process_params)
     stream = pa.RecordBatchReader._import_from_c_capsule(capsule)
     tbl = stream.read_all()
 
@@ -41,18 +45,22 @@ def frame_from_hyper(
     *,
     table: pantab_types.TableNameType,
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
+    process_params: Optional[dict[str, str]] = None,
 ):
     """See api.rst for documentation"""
     if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
         table = tab_api.TableName("public", table)
 
     query = f"SELECT * FROM {table}"
-    return frame_from_hyper_query(source, query, return_type=return_type)
+    return frame_from_hyper_query(
+        source, query, return_type=return_type, process_params=process_params
+    )
 
 
 def frames_from_hyper(
     source: Union[str, pathlib.Path],
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
+    process_params: Optional[dict[str, str]] = None,
 ):
     """See api.rst for documentation."""
     result = {}
@@ -73,6 +81,7 @@ def frames_from_hyper(
             source=source,
             table=table,
             return_type=return_type,
+            process_params=process_params,
         )
 
     return result

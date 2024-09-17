@@ -431,12 +431,19 @@ static auto ReleaseArrowStream(void *ptr) noexcept -> void {
 /// because the former detects a schema from the hyper Result object
 /// which does not hold nullability information
 ///
-auto read_from_hyper_query(const std::string &path, const std::string &query)
+auto read_from_hyper_query(
+    const std::string &path, const std::string &query,
+    std::unordered_map<std::string, std::string> &&process_params)
     -> nb::capsule {
-  const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}, {"default_database_version", "4"}};
+
+  if (!process_params.count("log_config"))
+    process_params["log_config"] = "";
+  if (!process_params.count("default_database_version"))
+    process_params["default_database_version"] = "4";
+
   const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
+      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
+      std::move(process_params)};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
 
   auto hyperResult = connection.executeQuery(query);

@@ -2,6 +2,7 @@ import pathlib
 
 import pandas as pd
 import pandas.testing as tm
+import pytest
 import tableauhyperapi as tab_api
 
 import pantab as pt
@@ -145,3 +146,21 @@ def test_frames_from_hyper_doesnt_generate_hyperd_log(frame, tmp_hyper):
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
     pt.frames_from_hyper(tmp_hyper)
     assert not pathlib.Path("hyperd.log").is_file()
+
+
+def test_reader_accepts_process_params(tmp_hyper):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+
+    params = {"default_database_version": "0"}
+    pt.frames_from_hyper(tmp_hyper, process_params=params)
+
+
+def test_reader_invalid_process_params_raises(frame, tmp_hyper):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+
+    params = {"not_a_real_parameter": "0"}
+    msg = r"No internal setting named 'not_a_real_parameter'"
+    with pytest.raises(RuntimeError, match=msg):
+        pt.frames_from_hyper(tmp_hyper, process_params=params)
