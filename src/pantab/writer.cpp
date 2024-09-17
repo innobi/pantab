@@ -580,8 +580,9 @@ using SchemaAndTableName = std::tuple<std::string, std::string>;
 void write_to_hyper(
     const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
     const std::string &path, const std::string &table_mode,
-    nb::iterable not_null_columns, nb::iterable json_columns,
-    nb::iterable geo_columns) {
+    const nb::iterable not_null_columns, const nb::iterable json_columns,
+    const nb::iterable geo_columns,
+    std::unordered_map<std::string, std::string> &&process_params) {
 
   std::set<std::string> not_null_set;
   for (auto col : not_null_columns) {
@@ -601,10 +602,14 @@ void write_to_hyper(
     geo_set.insert(colstr);
   }
 
-  const std::unordered_map<std::string, std::string> params = {
-      {"log_config", ""}, {"default_database_version", "4"}};
+  if (!process_params.count("log_config"))
+    process_params["log_config"] = "";
+  if (!process_params.count("default_database_version"))
+    process_params["default_database_version"] = "4";
+
   const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "", std::move(params)};
+      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
+      std::move(process_params)};
 
   // TODO: we don't have separate table / database create modes in the API
   // but probably should; for now we infer this from table mode

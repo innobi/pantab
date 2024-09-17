@@ -380,3 +380,18 @@ def test_eight_bit_int(tmp_hyper):
             num_col = table_def.get_column_by_name("nums")
             assert num_col is not None
             assert num_col.type == tab_api.SqlType.small_int()
+
+
+def test_writer_accepts_process_params(tmp_hyper):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    params = {"default_database_version": "0"}
+    pt.frame_to_hyper(frame, tmp_hyper, table="test", process_params=params)
+
+
+def test_writer_invalid_process_params_raises(tmp_hyper):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    params = {"not_a_real_parameter": "0"}
+
+    msg = r"No internal setting named 'not_a_real_parameter'"
+    with pytest.raises(RuntimeError, match=msg):
+        pt.frame_to_hyper(frame, tmp_hyper, table="test", process_params=params)
