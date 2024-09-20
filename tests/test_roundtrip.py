@@ -73,7 +73,12 @@ def test_multiple_tables(
     if not isinstance(table_name, TableName) or table_name.schema_name is None:
         table_name = TableName("public", table_name)
 
-    assert set(result.keys()) == set((table_name, TableName("public", "table2")))
+    assert set(result.keys()) == set(
+        (
+            ".".join(table_name._unescaped_components),
+            ".".join(TableName("public", "table2")._unescaped_components),
+        )
+    )
     for val in result.values():
         compat.assert_frame_equal(val, expected)
 

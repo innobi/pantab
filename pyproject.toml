@@ -30,7 +30,6 @@ dependencies = [
     # in the future we need not require pyarrow as pandas implements the
     # PyCapsule interface. See pandas PR #56587
     "pyarrow>=14.0.0",
-    "tableauhyperapi>=0.0.19691",
 ]
 
 [project.urls]
@@ -68,7 +67,13 @@ build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
 skip = "*musllinux*"
 
 test-command = "python -m pytest {project}/tests"
-test-requires = ["pytest", "pandas>=2.0.0", "polars~=1.2.0", "narwhals"]
+test-requires = [
+  "pytest",
+  "pandas>=2.0.0",
+  "polars~=1.2.0",
+  "narwhals",
+  "tableauhyperapi",
+]
 
 [tool.ruff]
 line-length = 88
