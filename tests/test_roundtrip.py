@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -140,4 +142,15 @@ def test_write_prevents_injection(tmp_hyper, table_name):
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
     frames = {table_name: frame}
     pt.frames_to_hyper(frames, tmp_hyper)
+    pt.frames_from_hyper(tmp_hyper)
+
+
+def test_roundtrip_works_without_tableauhyperapi(frame, tmp_hyper, monkeypatch):
+    libname = "tableauhyperapi"
+    mods = set(sys.modules.keys())
+    for mod in mods:
+        if mod.startswith(libname):
+            monkeypatch.delitem(sys.modules, mod)
+
+    pt.frame_to_hyper(frame, tmp_hyper, table="foo")
     pt.frames_from_hyper(tmp_hyper)
