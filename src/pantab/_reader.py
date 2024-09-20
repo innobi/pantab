@@ -1,12 +1,9 @@
 import pathlib
-import shutil
-import tempfile
 from typing import Literal, Optional, Union
 
 import pyarrow as pa
-import tableauhyperapi as tab_api
 
-import pantab._types as pantab_types
+import pantab._types as pt_types
 import pantab.libpantab as libpantab
 
 
@@ -43,15 +40,21 @@ def frame_from_hyper_query(
 def frame_from_hyper(
     source: Union[str, pathlib.Path],
     *,
-    table: pantab_types.TableNameType,
+    table: pt_types.TableNameType,
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
     process_params: Optional[dict[str, str]] = None,
 ):
     """See api.rst for documentation"""
-    if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
-        table = tab_api.TableName("public", table)
+    if isinstance(table, (pt_types.TableauName, pt_types.TableauTableName)):
+        tbl = str(table)
+    elif isinstance(table, tuple):
+        tbl = ".".join(
+            libpantab.escape_sql_identifier(x) for x in table
+        )  # check for injection
+    else:
+        tbl = libpantab.escape_sql_identifier(table)
 
-    query = f"SELECT * FROM {table}"
+    query = f"SELECT * FROM {tbl}"
     return frame_from_hyper_query(
         source, query, return_type=return_type, process_params=process_params
     )
@@ -65,17 +68,7 @@ def frames_from_hyper(
     """See api.rst for documentation."""
     result = {}
 
-    table_names = []
-    with tempfile.TemporaryDirectory() as tmp_dir, tab_api.HyperProcess(
-        tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
-        parameters={"log_config": ""},
-    ) as hpe:
-        tmp_db = shutil.copy(source, tmp_dir)
-        with tab_api.Connection(hpe.endpoint, tmp_db) as connection:
-            for schema in connection.catalog.get_schema_names():
-                for table in connection.catalog.get_table_names(schema=schema):
-                    table_names.append(table)
-
+    table_names = libpantab.get_table_names(str(source))
     for table in table_names:
         result[table] = frame_from_hyper(
             source=source,

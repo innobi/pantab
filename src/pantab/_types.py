@@ -1,5 +1,22 @@
-from typing import Union
+from typing import Optional, Protocol, Union, runtime_checkable
 
-import tableauhyperapi as tab_api
 
-TableNameType = Union[str, tab_api.Name, tab_api.TableName]
+@runtime_checkable
+class TableauName(Protocol):
+    @property
+    def unescaped(self) -> str:
+        ...
+
+
+@runtime_checkable
+class TableauTableName(Protocol):
+    @property
+    def name(self) -> TableauName:
+        ...
+
+    @property
+    def schema_name(self) -> Optional[TableauName]:
+        ...
+
+
+TableNameType = Union[str, TableauName, TableauTableName]

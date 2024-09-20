@@ -1,5 +1,9 @@
+import sys
+
+import pandas as pd
 import pyarrow as pa
-from tableauhyperapi import TableName
+import pytest
+import tableauhyperapi as tab_api
 
 import pantab as pt
 
@@ -70,10 +74,15 @@ def test_multiple_tables(
         expected = compat.concat_frames(expected, expected)
 
     # some test trickery here
-    if not isinstance(table_name, TableName) or table_name.schema_name is None:
-        table_name = TableName("public", table_name)
+    if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
+        table_name = tab_api.TableName("public", table_name)
 
-    assert set(result.keys()) == set((table_name, TableName("public", "table2")))
+    assert set(result.keys()) == set(
+        (
+            tuple(table_name._unescaped_components),
+            tuple(tab_api.TableName("public", "table2")._unescaped_components),
+        )
+    )
     for val in result.values():
         compat.assert_frame_equal(val, expected)
 
@@ -113,3 +122,35 @@ def test_empty_roundtrip(
     expected = compat.drop_columns(expected, ["object"])
     expected = compat.empty_like(expected)
     compat.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "table_name",
+    [
+        "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        tab_api.Name("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"),
+        tab_api.TableName(
+            "public", "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"
+        ),
+        tab_api.TableName(
+            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        ),
+    ],
+)
+def test_write_prevents_injection(tmp_hyper, table_name):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    frames = {table_name: frame}
+    pt.frames_to_hyper(frames, tmp_hyper)
+    pt.frames_from_hyper(tmp_hyper)
+
+
+def test_roundtrip_works_without_tableauhyperapi(frame, tmp_hyper, monkeypatch):
+    libname = "tableauhyperapi"
+    mods = set(sys.modules.keys())
+    for mod in mods:
+        if mod.startswith(libname):
+            monkeypatch.delitem(sys.modules, mod)
+
+    pt.frame_to_hyper(frame, tmp_hyper, table="foo")
+    pt.frames_from_hyper(tmp_hyper)

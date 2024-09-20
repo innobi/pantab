@@ -4,9 +4,7 @@ import tempfile
 import uuid
 from typing import Any, Literal, Optional, Union
 
-import tableauhyperapi as tab_api
-
-import pantab._types as pantab_types
+import pantab._types as pt_types
 import pantab.libpantab as libpantab
 
 
@@ -52,7 +50,7 @@ def frame_to_hyper(
     df,
     database: Union[str, pathlib.Path],
     *,
-    table: pantab_types.TableNameType,
+    table: pt_types.TableNameType,
     table_mode: Literal["a", "w"] = "w",
     not_null_columns: Optional[set[str]] = None,
     json_columns: Optional[set[str]] = None,
@@ -72,7 +70,7 @@ def frame_to_hyper(
 
 
 def frames_to_hyper(
-    dict_of_frames: dict[pantab_types.TableNameType, Any],
+    dict_of_frames: dict[pt_types.TableNameType, Any],
     database: Union[str, pathlib.Path],
     *,
     table_mode: Literal["a", "w"] = "w",
@@ -98,12 +96,16 @@ def frames_to_hyper(
     if table_mode == "a" and pathlib.Path(database).exists():
         shutil.copy(database, tmp_db)
 
-    def convert_to_table_name(table: pantab_types.TableNameType):
-        # nanobind expects a tuple of (schema, table) strings
-        if isinstance(table, (str, tab_api.Name)) or not table.schema_name:
-            table = tab_api.TableName("public", table)
+    def convert_to_table_name(table: pt_types.TableNameType):
+        if isinstance(table, pt_types.TableauTableName):
+            if table.schema_name:
+                return (table.schema_name.name.unescaped, table.name.unescaped)
+            else:
+                return table.name.unescaped
+        elif isinstance(table, pt_types.TableauName):
+            return table.unescaped
 
-        return (table.schema_name.name.unescaped, table.name.unescaped)
+        return table
 
     data = {
         convert_to_table_name(key): _get_capsule_from_obj(val)

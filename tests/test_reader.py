@@ -156,7 +156,7 @@ def test_reader_accepts_process_params(tmp_hyper):
     pt.frames_from_hyper(tmp_hyper, process_params=params)
 
 
-def test_reader_invalid_process_params_raises(frame, tmp_hyper):
+def test_reader_invalid_process_params_raises(tmp_hyper):
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
@@ -164,3 +164,23 @@ def test_reader_invalid_process_params_raises(frame, tmp_hyper):
     msg = r"No internal setting named 'not_a_real_parameter'"
     with pytest.raises(RuntimeError, match=msg):
         pt.frames_from_hyper(tmp_hyper, process_params=params)
+
+
+@pytest.mark.parametrize(
+    "table_name",
+    [
+        "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        tab_api.Name("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"),
+        tab_api.TableName(
+            "public", "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"
+        ),
+        tab_api.TableName(
+            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        ),
+    ],
+)
+def test_reader_prevents_sql_injection(tmp_hyper, table_name):
+    frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    pt.frame_to_hyper(frame, tmp_hyper, table=table_name)
+    pt.frame_from_hyper(tmp_hyper, table=table_name)
