@@ -97,16 +97,15 @@ def frames_to_hyper(
         shutil.copy(database, tmp_db)
 
     def convert_to_table_name(table: pt_types.TableNameType):
-        # nanobind expects a tuple of (schema, table) strings
         if isinstance(table, pt_types.TableauTableName):
             if table.schema_name:
                 return (table.schema_name.name.unescaped, table.name.unescaped)
             else:
-                return ("public", table.name.unescaped)
+                return table.name.unescaped
         elif isinstance(table, pt_types.TableauName):
-            return ("public", table.unescaped)
+            return table.unescaped
 
-        return ("public", table)
+        return table
 
     data = {
         convert_to_table_name(key): _get_capsule_from_obj(val)

@@ -575,13 +575,10 @@ static void AssertColumnsEqual(
   }
 };
 
-using SchemaAndTableName = std::tuple<std::string, std::string>;
-
 void write_to_hyper(
-    const std::map<SchemaAndTableName, nb::capsule> &dict_of_capsules,
-    const std::string &path, const std::string &table_mode,
-    const nb::iterable not_null_columns, const nb::iterable json_columns,
-    const nb::iterable geo_columns,
+    const nb::object &dict_of_capsules, const std::string &path,
+    const std::string &table_mode, const nb::iterable not_null_columns,
+    const nb::iterable json_columns, const nb::iterable geo_columns,
     std::unordered_map<std::string, std::string> &&process_params) {
 
   std::set<std::string> not_null_set;
@@ -620,10 +617,8 @@ void write_to_hyper(
   hyperapi::Connection connection{hyper.getEndpoint(), path, createMode};
   const hyperapi::Catalog &catalog = connection.getCatalog();
 
-  for (auto const &[schema_and_table, capsule] : dict_of_capsules) {
-    const auto hyper_schema = std::get<0>(schema_and_table);
-    const auto hyper_table = std::get<1>(schema_and_table);
-
+  for (auto const &[name, capsule] :
+       nb::cast<nb::dict>(dict_of_capsules, false)) {
     const auto c_stream = static_cast<struct ArrowArrayStream *>(
         PyCapsule_GetPointer(capsule.ptr(), "arrow_array_stream"));
     if (c_stream == nullptr) {
@@ -723,9 +718,22 @@ void write_to_hyper(
       }
     }
 
-    const hyperapi::TableName table_name{hyper_schema, hyper_table};
+    std::tuple<std::string, std::string> schema_and_table;
+    std::string t_name;
+    const auto is_tup = nb::try_cast(name, schema_and_table, false);
+    const auto is_str = nb::try_cast(name, t_name, false);
+    if (!(is_tup || is_str)) {
+      throw nb::type_error("Expected string or tuple key");
+    }
+    const auto table_name =
+        is_tup ? hyperapi::TableName(std::get<0>(schema_and_table),
+                                     std::get<1>(schema_and_table))
+               : hyperapi::TableName(t_name);
     const hyperapi::TableDefinition table_def{table_name, hyper_columns};
-    catalog.createSchemaIfNotExists(*table_name.getSchemaName());
+
+    const auto schema_name =
+        table_name.getSchemaName() ? *table_name.getSchemaName() : "public";
+    catalog.createSchemaIfNotExists(schema_name);
 
     if ((table_mode == "a") && (catalog.hasTable(table_name))) {
       const auto existing_def = catalog.getTableDefinition(table_name);

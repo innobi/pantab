@@ -45,10 +45,16 @@ def frame_from_hyper(
     process_params: Optional[dict[str, str]] = None,
 ):
     """See api.rst for documentation"""
-    if "." not in str(table):
-        table = f'"public".{table}'
+    if isinstance(table, (pt_types.TableauName, pt_types.TableauTableName)):
+        tbl = str(table)
+    elif isinstance(table, tuple):
+        tbl = ".".join(
+            libpantab.escape_sql_identifier(x) for x in table
+        )  # check for injection
+    else:
+        tbl = libpantab.escape_sql_identifier(table)
 
-    query = f"SELECT * FROM {table}"
+    query = f"SELECT * FROM {tbl}"
     return frame_from_hyper_query(
         source, query, return_type=return_type, process_params=process_params
     )
