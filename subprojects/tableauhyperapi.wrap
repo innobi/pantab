@@ -1,0 +1,10 @@
+[wrap-file]
+directory = tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c
+source_url = http://downloads.tableau.com/tssoftware//tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c.zip
+source_filename = tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c.zip
+source_hash = a1f03eb9570e5cc50668c043079ef510e16311f7d5b89a840a99d850f7770d87
+
+patch_directory=tableauhyperapi
+
+[provide]
+tableauhyperapi = hyper_dep

@@ -1,13 +1,13 @@
 [build-system]
 requires = [
-  "scikit-build-core",
+  "meson-python",
   "nanobind",
 ]
-build-backend = "scikit_build_core.build"
+build-backend = "mesonpy"
 
 [project]
 name = "pantab"
-version = "5.0.0"
+dynamic = ["version"]
 description = "Converts pandas DataFrames into Tableau Hyper Extracts and back"
 license = {file = "LICENSE.txt"}
 readme = "README.md"
@@ -40,6 +40,9 @@ Source = "https://github.com/innobi/pantab"
 
 [project.optional-dependencies]
 dev = ["pytest"]
+
+[tool.meson-python.args]
+install = ['--skip-subprojects']
 
 [tool.towncrier]
     package = "pantab"
@@ -81,17 +84,14 @@ line-length = 88
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = """
-auditwheel repair -w {dest_dir} {wheel} --exclude libtableauhyperapi.so
+auditwheel repair -w {dest_dir} {wheel}
 """
 
 [tool.cibuildwheel.macos]
-# we do not want delocate to relocate the tableauhyperapi.lib as our CMake
-# config already handles that, and the tableauhyperapi.lib necessicates
-# the hyper bin being relative to it, which delocate does not know about
 repair-wheel-command = """
-delocate-listdeps {wheel} && delocate-wheel --exclude libtableauhyperapi.dylib --require-archs {delocate_archs} -w {dest_dir} {wheel}
+delocate-listdeps {wheel} && delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}
 """
 
 [tool.cibuildwheel.windows]
 before-build = "python -m pip install delvewheel"
-repair-wheel-command = "python -m delvewheel repair -v --ignore-in-wheel --add-path C:/Windows/System32 -w {dest_dir} {wheel}"
+repair-wheel-command = "python -m delvewheel repair -v --add-path C:/Windows/System32 -w {dest_dir} {wheel}"
