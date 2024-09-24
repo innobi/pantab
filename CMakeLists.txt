@@ -34,8 +34,8 @@ endif()
 include(FetchContent)
 FetchContent_Declare(
   tableauhyperapi-cxx
-  URL "${TABLEAU_DOWNLOAD_URL}"
   DOWNLOAD_EXTRACT_TIMESTAMP ON
+  URL "${TABLEAU_DOWNLOAD_URL}"
 )
 
 FetchContent_MakeAvailable(tableauhyperapi-cxx)
