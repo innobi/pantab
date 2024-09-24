@@ -33,4 +33,3 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "10.14"
           CMAKE_APPLE_SILICON_PROCESSOR: ${{ matrix.os == 'macos-14' && 'arm64' || '' }}
-          CIBW_ENVIRONMENT_LINUX: LD_LIBRARY_PATH={project}/subprojects/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c/lib:$LD_LIBRARY_PATH

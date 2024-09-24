@@ -43,7 +43,7 @@ Source = "https://github.com/innobi/pantab"
 dev = ["pytest"]
 
 [tool.meson-python.args]
-install = ['--skip-subprojects']
+install = ['--skip-subprojects=nanoarrow']
 
 [tool.towncrier]
     package = "pantab"
@@ -87,8 +87,11 @@ line-length = 88
 # Ensure that this path is kept inline with tableau version number
 # ideally auditwheel issue 373 would be implemented instead of
 # hacking LD_LIBRARY_PATH
+# Note that we also hard-code /project as the root, even though the
+# CIBUILDWHEEL docs suggest we should be using {project} ???
+# https://github.com/pypa/cibuildwheel/issues/1931
 repair-wheel-command = """
-auditwheel repair -w {dest_dir} {wheel}
+LD_LIBRARY_PATH=/project/subprojects/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c/lib:$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel}
 """
 
 [tool.cibuildwheel.macos]
