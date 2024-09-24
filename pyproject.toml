@@ -93,6 +93,7 @@ line-length = 88
 repair-wheel-command = """
 export HYPER_PATH=/project/subprojects/tableauhyperapi-cxx-linux-x86_64-release-main.0.0.20027.rcc745c2c && \
 chmod 755 $HYPER_PATH/lib/hyper/hyperd && \
+ls -l $HYPER_PATH/lib/hyper/hyperd && \
 LD_LIBRARY_PATH=$HYPER_PATH/lib:$LD_LIBRARY_PATH auditwheel repair -w {dest_dir} {wheel}
 """
 
