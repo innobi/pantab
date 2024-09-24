@@ -71,7 +71,7 @@ test-requires = [
   "pytest",
   "pytest-xdist[psutil]",
   "pandas>=2.0.0",
-  "polars~=1.2.0",
+  "polars",
   "narwhals",
   "tableauhyperapi",
 ]
