@@ -2,6 +2,7 @@
 requires = [
   "meson-python",
   "nanobind",
+  "meson@git+https://github.com/mesonbuild/meson.git",
 ]
 build-backend = "mesonpy"
 
