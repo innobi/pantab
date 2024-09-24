@@ -15,6 +15,7 @@ dependencies:
   - pyarrow
   - python
   - pytest
+  - pytest_xdist
   - scikit-build-core
   - sphinx
   - pre-commit
