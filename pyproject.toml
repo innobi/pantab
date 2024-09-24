@@ -84,6 +84,9 @@ test-requires = [
 line-length = 88
 
 [tool.cibuildwheel.linux]
+# Ensure that this path is kept inline with tableau version number
+# ideally auditwheel issue 373 would be implemented instead of
+# hacking LD_LIBRARY_PATH
 repair-wheel-command = """
 auditwheel repair -w {dest_dir} {wheel}
 """
