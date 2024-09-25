@@ -191,11 +191,11 @@ public:
     const struct ArrowBufferView buffer_view =
         ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
 #if defined(_WIN32) && defined(_MSC_VER)
-    const auto result = std::string{
-        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+    const std::string result{buffer_view.data.as_char,
+                             static_cast<size_t>(buffer_view.size_bytes)};
 #else
-    const auto result = std::string_view{
-        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+    const std::string_view result{buffer_view.data.as_char,
+                                  static_cast<size_t>(buffer_view.size_bytes)};
 #endif
     hyperapi::internal::ValueInserter{inserter_}.addValue(result);
   }
@@ -638,7 +638,7 @@ void write_to_hyper(
     // subtley different from hyper_columns with geo
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
     for (int64_t i = 0; i < schema->n_children; i++) {
-      const auto col_name = std::string{schema->children[i]->name};
+      const std::string col_name{schema->children[i]->name};
       const auto nullability = not_null_set.find(col_name) != not_null_set.end()
                                    ? hyperapi::Nullability::NotNullable
                                    : hyperapi::Nullability::Nullable;
