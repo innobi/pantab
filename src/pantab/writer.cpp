@@ -360,9 +360,21 @@ public:
     std::string str{reinterpret_cast<const char *>(buffer.data),
                     static_cast<size_t>(buffer.size_bytes)};
     // The Hyper API wants the string to include the decimal place, which
-    // nanoarrow does not provide
-    if (scale_ > 0)
-      str = str.insert(str.size() - scale_, 1, '.');
+    // nanoarrow does not provide.
+    if (scale_ > 0) {
+      // nanoarrow strips leading zeros
+      const auto insert_pos = static_cast<int64_t>(str.size()) - scale_;
+      if (insert_pos < 0) {
+        std::string newstr{};
+        newstr.reserve(str.size() - insert_pos + 1);
+        newstr.append(1, '.');
+        newstr.append(-insert_pos, '0');
+        newstr.append(str);
+        str = std::move(newstr);
+      } else {
+        str = str.insert(str.size() - scale_, 1, '.');
+      }
+    }
 
     constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
     if (precision_ >= PrecisionLimit) {
