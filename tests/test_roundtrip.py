@@ -1,3 +1,4 @@
+import decimal
 import sys
 
 import pandas as pd
@@ -154,3 +155,21 @@ def test_roundtrip_works_without_tableauhyperapi(frame, tmp_hyper, monkeypatch):
 
     pt.frame_to_hyper(frame, tmp_hyper, table="foo")
     pt.frames_from_hyper(tmp_hyper)
+
+
+@pytest.mark.parametrize(
+    "value,precision,scale",
+    [
+        ("0.00", 3, 2),
+        ("0E-10", 3, 2),
+        ("100", 3, 0),
+        ("1.00", 3, 2),
+        (".001", 3, 3),
+    ],
+)
+def test_decimal_roundtrip(tmp_hyper, value, precision, scale, compat):
+    arr = pa.array([decimal.Decimal(value)], type=pa.decimal128(precision, scale))
+    tbl = pa.Table.from_arrays([arr], names=["col"])
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+    result = pt.frame_from_hyper(tmp_hyper, table="test", return_type="pyarrow")
+    compat.assert_frame_equal(result, tbl)
