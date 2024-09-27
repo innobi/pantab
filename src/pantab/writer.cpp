@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <set>
+#include <span>
 #include <utility>
 #include <variant>
 
@@ -74,11 +75,8 @@ public:
                int64_t column_position)
       : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
         column_position_(column_position) {
-    const struct ArrowSchema *child_schema =
-        schema_->children[column_position_];
 
-    if (ArrowArrayViewInitFromSchema(array_view_.get(), child_schema, error_) !=
-        0) {
+    if (ArrowArrayViewInitFromSchema(array_view_.get(), schema, error_) != 0) {
       throw std::runtime_error("Could not construct insert helper: " +
                                std::string{&error_->message[0]});
     }
@@ -410,18 +408,13 @@ private:
 
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
-                             struct ArrowSchema *schema,
+                             const struct ArrowSchema *schema,
                              struct ArrowError *error, int64_t column_position)
     -> std::unique_ptr<InsertHelper> {
-  // TODO: we should provide the full dtype here not just format string, so
-  // boolean fields can determine whether they are bit or byte masks
-
-  // right now we pass false as the template paramter to the
-  // PrimitiveInsertHelper as that is all pandas generates; other libraries may
-  // need the true variant
   struct ArrowSchemaView schema_view {};
-  if (ArrowSchemaViewInit(&schema_view, schema->children[column_position],
-                          error) != 0) {
+  std::span children{schema->children, static_cast<size_t>(schema->n_children)};
+  const struct ArrowSchema *child_schema = children[column_position];
+  if (ArrowSchemaViewInit(&schema_view, child_schema, error) != 0) {
     throw std::runtime_error("Issue generating insert helper: " +
                              std::string(&error->message[0]));
   }
@@ -430,107 +423,108 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
   case NANOARROW_TYPE_INT8:
   case NANOARROW_TYPE_INT16:
     return std::make_unique<IntegralInsertHelper<int16_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_INT32:
     return std::make_unique<IntegralInsertHelper<int32_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_INT64:
     return std::make_unique<IntegralInsertHelper<int64_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_UINT32:
-    return std::make_unique<UInt32InsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<UInt32InsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_FLOAT:
     return std::make_unique<FloatingInsertHelper<float>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_DOUBLE:
     return std::make_unique<FloatingInsertHelper<double>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_BOOL:
-    return std::make_unique<IntegralInsertHelper<bool>>(inserter, chunk, schema,
-                                                        error, column_position);
+    return std::make_unique<IntegralInsertHelper<bool>>(
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_BINARY:
   case NANOARROW_TYPE_LARGE_BINARY:
-    return std::make_unique<BinaryInsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<BinaryInsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
-    return std::make_unique<Utf8InsertHelper<int64_t>>(inserter, chunk, schema,
-                                                       error, column_position);
+    return std::make_unique<Utf8InsertHelper<int64_t>>(
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_DATE32:
-    return std::make_unique<Date32InsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<Date32InsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_TIMESTAMP:
     switch (schema_view.time_unit) {
     case NANOARROW_TIME_UNIT_SECOND:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MILLI:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MICRO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_NANO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
-    return std::make_unique<IntervalInsertHelper>(inserter, chunk, schema,
+    return std::make_unique<IntervalInsertHelper>(inserter, chunk, child_schema,
                                                   error, column_position);
   case NANOARROW_TYPE_TIME64:
     switch (schema_view.time_unit) {
     // must be a smarter way to do this!
     case NANOARROW_TIME_UNIT_SECOND: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_SECOND>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_MILLI: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MILLI>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_MICRO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MICRO>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_NANO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_DECIMAL128: {
     const auto precision = schema_view.decimal_precision;
     const auto scale = schema_view.decimal_scale;
-    return std::make_unique<DecimalInsertHelper>(
-        inserter, chunk, schema, error, column_position, precision, scale);
+    return std::make_unique<DecimalInsertHelper>(inserter, chunk, child_schema,
+                                                 error, column_position,
+                                                 precision, scale);
   }
   default:
     throw std::invalid_argument(
