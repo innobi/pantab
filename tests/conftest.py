@@ -544,7 +544,10 @@ class Compat:
             return frame
         elif isinstance(frame, pl.DataFrame):
             frame = frame.with_columns(
-                pl.Series(name="should_fail", values=[list((1, 2))])
+                pl.Series(
+                    name="should_fail",
+                    values=[list((1, 2)), list((1, 2)), list((1, 2))],
+                )
             )
             return frame
         else:
