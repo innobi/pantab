@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <set>
+#include <utility>
 #include <variant>
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
@@ -99,6 +100,23 @@ public:
   virtual void InsertValueAtIndex(int64_t) {}
 
 protected:
+  auto CheckNull(int64_t idx) const {
+    return ArrowArrayViewIsNull(array_view_.get(), idx);
+  }
+
+  template <typename T> auto InsertNull() {
+    // MSVC on cibuildwheel doesn't like this templated optional
+    // inserter_->add(std::optional<std:::string_view>{std::nullopt});
+    inserter_.add(std::optional<T>{});
+  }
+
+  auto GetArrayView() const { return array_view_.get(); }
+
+  template <typename T> auto InsertValue(T &&value) {
+    inserter_.add(std::forward<T>(value));
+  }
+
+private:
   hyperapi::Inserter &inserter_;
   const struct ArrowArray *chunk_;
   const struct ArrowSchema *schema_;
@@ -112,16 +130,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<T>();
       return;
     }
 
-    const int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<T>(value));
+    const int64_t value = ArrowArrayViewGetIntUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<T>(value));
   }
 };
 
@@ -130,16 +145,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<uint32_t>();
       return;
     }
 
-    const uint64_t value = ArrowArrayViewGetUIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<uint32_t>(value));
+    const uint64_t value = ArrowArrayViewGetUIntUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<uint32_t>(value));
   }
 };
 
@@ -148,16 +160,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<T>();
       return;
     }
 
-    const double value = ArrowArrayViewGetDoubleUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<T>(value));
+    const double value = ArrowArrayViewGetDoubleUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<T>(value));
   }
 };
 
@@ -166,18 +175,16 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::ByteSpan>();
       return;
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
+        ArrowArrayViewGetBytesUnsafe(GetArrayView(), idx);
     const hyperapi::ByteSpan result{
         buffer_view.data.as_uint8, static_cast<size_t>(buffer_view.size_bytes)};
-    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+    InsertValue(std::move(result));
   }
 };
 
@@ -186,23 +193,16 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::string_view>();
       return;
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
-#if defined(_WIN32) && defined(_MSC_VER)
-    const std::string result{buffer_view.data.as_char,
-                             static_cast<size_t>(buffer_view.size_bytes)};
-#else
-    const std::string_view result{buffer_view.data.as_char,
-                                  static_cast<size_t>(buffer_view.size_bytes)};
-#endif
-    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+        ArrowArrayViewGetBytesUnsafe(GetArrayView(), idx);
+    const hyperapi::string_view result{
+        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+    InsertValue(std::move(result));
   }
 };
 
@@ -212,16 +212,14 @@ public:
 
   void InsertValueAtIndex(int64_t idx) override {
     constexpr size_t elem_size = sizeof(int32_t);
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Date>();
       return;
     }
 
     int32_t value{};
     memcpy(&value,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
+           GetArrayView()->buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
     const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
@@ -232,11 +230,11 @@ public:
     const auto tt = std::chrono::system_clock::to_time_t(tp);
 
     const struct tm utc_tm = *std::gmtime(&tt);
-    const hyperapi::Date dt{1900 + utc_tm.tm_year,
-                            static_cast<int16_t>(1 + utc_tm.tm_mon),
-                            static_cast<int16_t>(utc_tm.tm_mday)};
+    hyperapi::Date dt{1900 + utc_tm.tm_year,
+                      static_cast<int16_t>(1 + utc_tm.tm_mon),
+                      static_cast<int16_t>(utc_tm.tm_mday)};
 
-    hyperapi::internal::ValueInserter{inserter_}.addValue(dt);
+    InsertValue(std::move(dt));
   }
 };
 
@@ -249,14 +247,12 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Time>();
       return;
     }
 
-    int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
+    int64_t value = ArrowArrayViewGetIntUnsafe(GetArrayView(), idx);
     // TODO: check for overflow in these branches
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
       value *= MicrosecondsPerSecond;
@@ -265,7 +261,7 @@ public:
     } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
       value /= NanosecondsPerMicrosecond;
     }
-    hyperapi::internal::ValueInserter{inserter_}.addValue(value);
+    InsertValue(hyperapi::Time{static_cast<hyper_time_t>(value), {}});
   }
 };
 
@@ -274,18 +270,20 @@ class TimestampInsertHelper : public InsertHelper {
 public:
   using InsertHelper::InsertHelper;
 
+  using timestamp_t =
+      typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
+                                hyperapi::Timestamp>::type;
+
   void InsertValueAtIndex(int64_t idx) override {
     constexpr size_t elem_size = sizeof(int64_t);
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<timestamp_t>();
       return;
     }
 
     int64_t value{};
     memcpy(&value,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
+           GetArrayView()->buffer_views[1].data.as_uint8 + (idx * elem_size),
            elem_size);
 
     // TODO: need overflow checks here
@@ -301,12 +299,8 @@ public:
     hyper_timestamp_t raw_timestamp =
         static_cast<hyper_timestamp_t>(value + USEC_TABLEAU_TO_UNIX_EPOCH);
 
-    using timestamp_t =
-        typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
-                                  hyperapi::Timestamp>::type;
     const timestamp_t ts{raw_timestamp, {}};
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<timestamp_t>(ts));
+    InsertValue(std::move(static_cast<timestamp_t>(ts)));
   }
 };
 
@@ -315,25 +309,19 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Interval>();
       return;
     }
 
     struct ArrowInterval arrow_interval {};
     ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
-    ArrowArrayViewGetIntervalUnsafe(array_view_.get(), idx, &arrow_interval);
+    ArrowArrayViewGetIntervalUnsafe(GetArrayView(), idx, &arrow_interval);
     const auto usec = static_cast<int32_t>(arrow_interval.ns / 1000);
 
-    // Hyper has no template specialization to insert an interval; instead we
-    // must use their internal representation
     hyperapi::Interval interval(0, arrow_interval.months, arrow_interval.days,
                                 0, 0, 0, usec);
-    // hyperapi::Interval interval{0, arrow_interval.months,
-    // arrow_interval.days, 0, 0, 0, usec};
-    inserter_.add(interval);
+    InsertValue(std::move(interval));
   }
 };
 
@@ -348,17 +336,33 @@ public:
         precision_(precision), scale_(scale) {}
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
+    if (precision_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric precision may not exceed 38!");
+    }
+    if (scale_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric scale may not exceed 38!");
+    }
+
+    if (CheckNull(idx)) {
+      std::visit(
+          [&](auto P, auto S) {
+            if constexpr (S() <= P()) {
+              InsertNull<hyperapi::Numeric<P(), S()>>();
+              return;
+            } else {
+              throw "unreachable";
+            }
+          },
+          to_integral_variant<PrecisionLimit>(precision_),
+          to_integral_variant<PrecisionLimit>(scale_));
       return;
     }
 
     constexpr int32_t bitwidth = 128;
     struct ArrowDecimal decimal {};
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
-    ArrowArrayViewGetDecimalUnsafe(array_view_.get(), idx, &decimal);
+    ArrowArrayViewGetDecimalUnsafe(GetArrayView(), idx, &decimal);
 
     struct ArrowBuffer buffer {};
     ArrowBufferInit(&buffer);
@@ -385,19 +389,11 @@ public:
       }
     }
 
-    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
-    if (precision_ >= PrecisionLimit) {
-      throw nb::value_error("Numeric precision may not exceed 38!");
-    }
-    if (scale_ >= PrecisionLimit) {
-      throw nb::value_error("Numeric scale may not exceed 38!");
-    }
-
     std::visit(
         [&](auto P, auto S) {
           if constexpr (S() <= P()) {
             const auto value = hyperapi::Numeric<P(), S()>{str};
-            inserter_.add(value);
+            InsertValue(std::move(value));
             return;
           } else {
             throw "unreachable";
