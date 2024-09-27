@@ -105,9 +105,7 @@ protected:
   }
 
   template <typename T> auto InsertNull() {
-    // MSVC on cibuildwheel doesn't like this templated optional
-    // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-    inserter_.add(std::optional<T>{});
+    inserter_.add(hyperapi::optional<T>{});
   }
 
   auto GetArrayView() const { return array_view_.get(); }
