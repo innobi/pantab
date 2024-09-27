@@ -6,6 +6,8 @@
 
 #include <chrono>
 #include <set>
+#include <span>
+#include <utility>
 #include <variant>
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
@@ -71,19 +73,17 @@ public:
   InsertHelper(hyperapi::Inserter &inserter, const struct ArrowArray *chunk,
                const struct ArrowSchema *schema, struct ArrowError *error,
                int64_t column_position)
-      : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
+      : inserter_(inserter), chunk_(chunk), error_(error),
         column_position_(column_position) {
-    const struct ArrowSchema *child_schema =
-        schema_->children[column_position_];
 
-    if (ArrowArrayViewInitFromSchema(array_view_.get(), child_schema, error_) !=
-        0) {
+    if (ArrowArrayViewInitFromSchema(array_view_.get(), schema, error_) != 0) {
       throw std::runtime_error("Could not construct insert helper: " +
                                std::string{&error_->message[0]});
     }
 
-    if (ArrowArrayViewSetArray(array_view_.get(),
-                               chunk_->children[column_position_],
+    std::span children{chunk_->children,
+                       static_cast<size_t>(chunk_->n_children)};
+    if (ArrowArrayViewSetArray(array_view_.get(), children[column_position_],
                                error_) != 0) {
       throw std::runtime_error("Could not set array view: " +
                                std::string{&error_->message[0]});
@@ -99,9 +99,23 @@ public:
   virtual void InsertValueAtIndex(int64_t) {}
 
 protected:
+  auto CheckNull(int64_t idx) const {
+    return ArrowArrayViewIsNull(array_view_.get(), idx);
+  }
+
+  template <typename T> auto InsertNull() {
+    inserter_.add(hyperapi::optional<T>{});
+  }
+
+  auto GetArrayView() const { return array_view_.get(); }
+
+  template <typename T> auto InsertValue(T &&value) {
+    inserter_.add(std::forward<T>(value));
+  }
+
+private:
   hyperapi::Inserter &inserter_;
   const struct ArrowArray *chunk_;
-  const struct ArrowSchema *schema_;
   struct ArrowError *error_;
   const int64_t column_position_;
   nanoarrow::UniqueArrayView array_view_;
@@ -112,16 +126,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<T>();
       return;
     }
 
-    const int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<T>(value));
+    const int64_t value = ArrowArrayViewGetIntUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<T>(value));
   }
 };
 
@@ -130,16 +141,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<uint32_t>();
       return;
     }
 
-    const uint64_t value = ArrowArrayViewGetUIntUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<uint32_t>(value));
+    const uint64_t value = ArrowArrayViewGetUIntUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<uint32_t>(value));
   }
 };
 
@@ -148,16 +156,13 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<T>();
       return;
     }
 
-    const double value = ArrowArrayViewGetDoubleUnsafe(array_view_.get(), idx);
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<T>(value));
+    const double value = ArrowArrayViewGetDoubleUnsafe(GetArrayView(), idx);
+    InsertValue(static_cast<T>(value));
   }
 };
 
@@ -166,18 +171,16 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::ByteSpan>();
       return;
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
+        ArrowArrayViewGetBytesUnsafe(GetArrayView(), idx);
     const hyperapi::ByteSpan result{
         buffer_view.data.as_uint8, static_cast<size_t>(buffer_view.size_bytes)};
-    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+    InsertValue(std::move(result));
   }
 };
 
@@ -186,23 +189,16 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<std:::string_view>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::string_view>();
       return;
     }
 
     const struct ArrowBufferView buffer_view =
-        ArrowArrayViewGetBytesUnsafe(array_view_.get(), idx);
-#if defined(_WIN32) && defined(_MSC_VER)
-    const std::string result{buffer_view.data.as_char,
-                             static_cast<size_t>(buffer_view.size_bytes)};
-#else
-    const std::string_view result{buffer_view.data.as_char,
-                                  static_cast<size_t>(buffer_view.size_bytes)};
-#endif
-    hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+        ArrowArrayViewGetBytesUnsafe(GetArrayView(), idx);
+    const hyperapi::string_view result{
+        buffer_view.data.as_char, static_cast<size_t>(buffer_view.size_bytes)};
+    InsertValue(std::move(result));
   }
 };
 
@@ -212,17 +208,17 @@ public:
 
   void InsertValueAtIndex(int64_t idx) override {
     constexpr size_t elem_size = sizeof(int32_t);
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Date>();
       return;
     }
 
     int32_t value{};
-    memcpy(&value,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
-           elem_size);
+
+    const auto buf_view = GetArrayView()->buffer_views[1];
+    std::span view_data{buf_view.data.as_uint8,
+                        static_cast<size_t>(buf_view.size_bytes)};
+    memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
     const std::chrono::time_point<
@@ -232,11 +228,13 @@ public:
     const auto tt = std::chrono::system_clock::to_time_t(tp);
 
     const struct tm utc_tm = *std::gmtime(&tt);
-    const hyperapi::Date dt{1900 + utc_tm.tm_year,
-                            static_cast<int16_t>(1 + utc_tm.tm_mon),
-                            static_cast<int16_t>(utc_tm.tm_mday)};
+    using YearT = decltype(std::declval<hyperapi::Date>().getYear());
+    static constexpr auto epoch = static_cast<YearT>(1900);
+    hyperapi::Date dt{epoch + utc_tm.tm_year,
+                      static_cast<int16_t>(1 + utc_tm.tm_mon),
+                      static_cast<int16_t>(utc_tm.tm_mday)};
 
-    hyperapi::internal::ValueInserter{inserter_}.addValue(dt);
+    InsertValue(std::move(dt));
   }
 };
 
@@ -249,14 +247,12 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<T>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Time>();
       return;
     }
 
-    int64_t value = ArrowArrayViewGetIntUnsafe(array_view_.get(), idx);
+    int64_t value = ArrowArrayViewGetIntUnsafe(GetArrayView(), idx);
     // TODO: check for overflow in these branches
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
       value *= MicrosecondsPerSecond;
@@ -265,7 +261,7 @@ public:
     } else if constexpr (TU == NANOARROW_TIME_UNIT_NANO) {
       value /= NanosecondsPerMicrosecond;
     }
-    hyperapi::internal::ValueInserter{inserter_}.addValue(value);
+    InsertValue(hyperapi::Time{static_cast<hyper_time_t>(value), {}});
   }
 };
 
@@ -274,19 +270,22 @@ class TimestampInsertHelper : public InsertHelper {
 public:
   using InsertHelper::InsertHelper;
 
+  using timestamp_t =
+      typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
+                                hyperapi::Timestamp>::type;
+
   void InsertValueAtIndex(int64_t idx) override {
     constexpr size_t elem_size = sizeof(int64_t);
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<timestamp_t>();
       return;
     }
 
     int64_t value{};
-    memcpy(&value,
-           array_view_->buffer_views[1].data.as_uint8 + (idx * elem_size),
-           elem_size);
+    const auto buf_view = GetArrayView()->buffer_views[1];
+    std::span view_data{buf_view.data.as_uint8,
+                        static_cast<size_t>(buf_view.size_bytes)};
+    memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     // TODO: need overflow checks here
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
@@ -301,12 +300,8 @@ public:
     hyper_timestamp_t raw_timestamp =
         static_cast<hyper_timestamp_t>(value + USEC_TABLEAU_TO_UNIX_EPOCH);
 
-    using timestamp_t =
-        typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
-                                  hyperapi::Timestamp>::type;
     const timestamp_t ts{raw_timestamp, {}};
-    hyperapi::internal::ValueInserter{inserter_}.addValue(
-        static_cast<timestamp_t>(ts));
+    InsertValue(std::move(static_cast<timestamp_t>(ts)));
   }
 };
 
@@ -315,25 +310,19 @@ public:
   using InsertHelper::InsertHelper;
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Interval>();
       return;
     }
 
     struct ArrowInterval arrow_interval {};
     ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
-    ArrowArrayViewGetIntervalUnsafe(array_view_.get(), idx, &arrow_interval);
+    ArrowArrayViewGetIntervalUnsafe(GetArrayView(), idx, &arrow_interval);
     const auto usec = static_cast<int32_t>(arrow_interval.ns / 1000);
 
-    // Hyper has no template specialization to insert an interval; instead we
-    // must use their internal representation
     hyperapi::Interval interval(0, arrow_interval.months, arrow_interval.days,
                                 0, 0, 0, usec);
-    // hyperapi::Interval interval{0, arrow_interval.months,
-    // arrow_interval.days, 0, 0, 0, usec};
-    inserter_.add(interval);
+    InsertValue(std::move(interval));
   }
 };
 
@@ -348,17 +337,33 @@ public:
         precision_(precision), scale_(scale) {}
 
   void InsertValueAtIndex(int64_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      // inserter_->add(std::optional<timestamp_t>{std::nullopt});
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
+    if (precision_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric precision may not exceed 38!");
+    }
+    if (scale_ >= PrecisionLimit) {
+      throw nb::value_error("Numeric scale may not exceed 38!");
+    }
+
+    if (CheckNull(idx)) {
+      std::visit(
+          [&](auto P, auto S) {
+            if constexpr (S() <= P()) {
+              InsertNull<hyperapi::Numeric<P(), S()>>();
+              return;
+            } else {
+              throw "unreachable";
+            }
+          },
+          to_integral_variant<PrecisionLimit>(precision_),
+          to_integral_variant<PrecisionLimit>(scale_));
       return;
     }
 
     constexpr int32_t bitwidth = 128;
     struct ArrowDecimal decimal {};
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
-    ArrowArrayViewGetDecimalUnsafe(array_view_.get(), idx, &decimal);
+    ArrowArrayViewGetDecimalUnsafe(GetArrayView(), idx, &decimal);
 
     struct ArrowBuffer buffer {};
     ArrowBufferInit(&buffer);
@@ -366,8 +371,10 @@ public:
       throw std::runtime_error("could not create buffer from decmial value");
     }
 
-    std::string str{reinterpret_cast<const char *>(buffer.data),
-                    static_cast<size_t>(buffer.size_bytes)};
+    const std::span bufspan{buffer.data,
+                            static_cast<size_t>(buffer.size_bytes)};
+    std::string str{bufspan.begin(), bufspan.end()};
+
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide.
     if (scale_ > 0) {
@@ -385,19 +392,11 @@ public:
       }
     }
 
-    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
-    if (precision_ >= PrecisionLimit) {
-      throw nb::value_error("Numeric precision may not exceed 38!");
-    }
-    if (scale_ >= PrecisionLimit) {
-      throw nb::value_error("Numeric scale may not exceed 38!");
-    }
-
     std::visit(
         [&](auto P, auto S) {
           if constexpr (S() <= P()) {
             const auto value = hyperapi::Numeric<P(), S()>{str};
-            inserter_.add(value);
+            InsertValue(std::move(value));
             return;
           } else {
             throw "unreachable";
@@ -416,18 +415,13 @@ private:
 
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
-                             struct ArrowSchema *schema,
+                             const struct ArrowSchema *schema,
                              struct ArrowError *error, int64_t column_position)
     -> std::unique_ptr<InsertHelper> {
-  // TODO: we should provide the full dtype here not just format string, so
-  // boolean fields can determine whether they are bit or byte masks
-
-  // right now we pass false as the template paramter to the
-  // PrimitiveInsertHelper as that is all pandas generates; other libraries may
-  // need the true variant
   struct ArrowSchemaView schema_view {};
-  if (ArrowSchemaViewInit(&schema_view, schema->children[column_position],
-                          error) != 0) {
+  std::span children{schema->children, static_cast<size_t>(schema->n_children)};
+  const struct ArrowSchema *child_schema = children[column_position];
+  if (ArrowSchemaViewInit(&schema_view, child_schema, error) != 0) {
     throw std::runtime_error("Issue generating insert helper: " +
                              std::string(&error->message[0]));
   }
@@ -436,107 +430,108 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
   case NANOARROW_TYPE_INT8:
   case NANOARROW_TYPE_INT16:
     return std::make_unique<IntegralInsertHelper<int16_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_INT32:
     return std::make_unique<IntegralInsertHelper<int32_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_INT64:
     return std::make_unique<IntegralInsertHelper<int64_t>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_UINT32:
-    return std::make_unique<UInt32InsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<UInt32InsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_FLOAT:
     return std::make_unique<FloatingInsertHelper<float>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_DOUBLE:
     return std::make_unique<FloatingInsertHelper<double>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_BOOL:
-    return std::make_unique<IntegralInsertHelper<bool>>(inserter, chunk, schema,
-                                                        error, column_position);
+    return std::make_unique<IntegralInsertHelper<bool>>(
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_BINARY:
   case NANOARROW_TYPE_LARGE_BINARY:
-    return std::make_unique<BinaryInsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<BinaryInsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_STRING:
   case NANOARROW_TYPE_LARGE_STRING:
-    return std::make_unique<Utf8InsertHelper<int64_t>>(inserter, chunk, schema,
-                                                       error, column_position);
+    return std::make_unique<Utf8InsertHelper<int64_t>>(
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_DATE32:
-    return std::make_unique<Date32InsertHelper>(inserter, chunk, schema, error,
-                                                column_position);
+    return std::make_unique<Date32InsertHelper>(inserter, chunk, child_schema,
+                                                error, column_position);
   case NANOARROW_TYPE_TIMESTAMP:
     switch (schema_view.time_unit) {
     case NANOARROW_TIME_UNIT_SECOND:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MILLI:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_MICRO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     case NANOARROW_TIME_UNIT_NANO:
       if (std::strcmp("", schema_view.timezone)) {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       } else {
         return std::make_unique<
             TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>>(
-            inserter, chunk, schema, error, column_position);
+            inserter, chunk, child_schema, error, column_position);
       }
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
-    return std::make_unique<IntervalInsertHelper>(inserter, chunk, schema,
+    return std::make_unique<IntervalInsertHelper>(inserter, chunk, child_schema,
                                                   error, column_position);
   case NANOARROW_TYPE_TIME64:
     switch (schema_view.time_unit) {
     // must be a smarter way to do this!
     case NANOARROW_TIME_UNIT_SECOND: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_SECOND>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_MILLI: // untested
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MILLI>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_MICRO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_MICRO>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     case NANOARROW_TIME_UNIT_NANO:
       return std::make_unique<TimeInsertHelper<NANOARROW_TIME_UNIT_NANO>>(
-          inserter, chunk, schema, error, column_position);
+          inserter, chunk, child_schema, error, column_position);
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
   case NANOARROW_TYPE_DECIMAL128: {
     const auto precision = schema_view.decimal_precision;
     const auto scale = schema_view.decimal_scale;
-    return std::make_unique<DecimalInsertHelper>(
-        inserter, chunk, schema, error, column_position, precision, scale);
+    return std::make_unique<DecimalInsertHelper>(inserter, chunk, child_schema,
+                                                 error, column_position,
+                                                 precision, scale);
   }
   default:
     throw std::invalid_argument(
@@ -658,8 +653,11 @@ void write_to_hyper(
     std::vector<hyperapi::Inserter::ColumnMapping> column_mappings;
     // subtley different from hyper_columns with geo
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
+
+    const std::span children{schema->children,
+                             static_cast<size_t>(schema->n_children)};
     for (int64_t i = 0; i < schema->n_children; i++) {
-      const std::string col_name{schema->children[i]->name};
+      const std::string col_name{children[i]->name};
       const auto nullability = not_null_set.find(col_name) != not_null_set.end()
                                    ? hyperapi::Nullability::NotNullable
                                    : hyperapi::Nullability::Nullable;
@@ -676,7 +674,7 @@ void write_to_hyper(
       } else if (geo_set.find(col_name) != geo_set.end()) {
         // if binary just write as is; for text we provide conversion
         const auto detected_type =
-            GetHyperTypeFromArrowSchema(schema->children[i], &error);
+            GetHyperTypeFromArrowSchema(children[i], &error);
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
@@ -708,7 +706,7 @@ void write_to_hyper(
         }
       } else {
         struct ArrowSchemaView schema_view {};
-        if (ArrowSchemaViewInit(&schema_view, schema->children[i], &error)) {
+        if (ArrowSchemaViewInit(&schema_view, children[i], &error)) {
           throw std::runtime_error(
               "Could not init schema view from child schema " +
               std::to_string(i) + ": " + std::string(&error.message[0]));
@@ -727,7 +725,7 @@ void write_to_hyper(
           column_mappings.emplace_back(mapping);
         } else {
           const auto hypertype =
-              GetHyperTypeFromArrowSchema(schema->children[i], &error);
+              GetHyperTypeFromArrowSchema(children[i], &error);
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
                                                          nullability};
 
