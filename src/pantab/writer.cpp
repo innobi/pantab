@@ -73,7 +73,7 @@ public:
   InsertHelper(hyperapi::Inserter &inserter, const struct ArrowArray *chunk,
                const struct ArrowSchema *schema, struct ArrowError *error,
                int64_t column_position)
-      : inserter_(inserter), chunk_(chunk), schema_(schema), error_(error),
+      : inserter_(inserter), chunk_(chunk), error_(error),
         column_position_(column_position) {
 
     if (ArrowArrayViewInitFromSchema(array_view_.get(), schema, error_) != 0) {
@@ -81,8 +81,9 @@ public:
                                std::string{&error_->message[0]});
     }
 
-    if (ArrowArrayViewSetArray(array_view_.get(),
-                               chunk_->children[column_position_],
+    std::span children{chunk_->children,
+                       static_cast<size_t>(chunk_->n_children)};
+    if (ArrowArrayViewSetArray(array_view_.get(), children[column_position_],
                                error_) != 0) {
       throw std::runtime_error("Could not set array view: " +
                                std::string{&error_->message[0]});
@@ -115,7 +116,6 @@ protected:
 private:
   hyperapi::Inserter &inserter_;
   const struct ArrowArray *chunk_;
-  const struct ArrowSchema *schema_;
   struct ArrowError *error_;
   const int64_t column_position_;
   nanoarrow::UniqueArrayView array_view_;
@@ -214,9 +214,11 @@ public:
     }
 
     int32_t value{};
-    memcpy(&value,
-           GetArrayView()->buffer_views[1].data.as_uint8 + (idx * elem_size),
-           elem_size);
+
+    const auto buf_view = GetArrayView()->buffer_views[1];
+    std::span view_data{buf_view.data.as_uint8,
+                        static_cast<size_t>(buf_view.size_bytes)};
+    memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
     const std::chrono::time_point<
@@ -226,7 +228,9 @@ public:
     const auto tt = std::chrono::system_clock::to_time_t(tp);
 
     const struct tm utc_tm = *std::gmtime(&tt);
-    hyperapi::Date dt{1900 + utc_tm.tm_year,
+    using YearT = decltype(std::declval<hyperapi::Date>().getYear());
+    static constexpr auto epoch = static_cast<YearT>(1900);
+    hyperapi::Date dt{epoch + utc_tm.tm_year,
                       static_cast<int16_t>(1 + utc_tm.tm_mon),
                       static_cast<int16_t>(utc_tm.tm_mday)};
 
@@ -278,9 +282,10 @@ public:
     }
 
     int64_t value{};
-    memcpy(&value,
-           GetArrayView()->buffer_views[1].data.as_uint8 + (idx * elem_size),
-           elem_size);
+    const auto buf_view = GetArrayView()->buffer_views[1];
+    std::span view_data{buf_view.data.as_uint8,
+                        static_cast<size_t>(buf_view.size_bytes)};
+    memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     // TODO: need overflow checks here
     if constexpr (TU == NANOARROW_TIME_UNIT_SECOND) {
@@ -366,8 +371,10 @@ public:
       throw std::runtime_error("could not create buffer from decmial value");
     }
 
-    std::string str{reinterpret_cast<const char *>(buffer.data),
-                    static_cast<size_t>(buffer.size_bytes)};
+    const std::span bufspan{buffer.data,
+                            static_cast<size_t>(buffer.size_bytes)};
+    std::string str{bufspan.begin(), bufspan.end()};
+
     // The Hyper API wants the string to include the decimal place, which
     // nanoarrow does not provide.
     if (scale_ > 0) {
@@ -646,8 +653,11 @@ void write_to_hyper(
     std::vector<hyperapi::Inserter::ColumnMapping> column_mappings;
     // subtley different from hyper_columns with geo
     std::vector<hyperapi::TableDefinition::Column> inserter_defs;
+
+    const std::span children{schema->children,
+                             static_cast<size_t>(schema->n_children)};
     for (int64_t i = 0; i < schema->n_children; i++) {
-      const std::string col_name{schema->children[i]->name};
+      const std::string col_name{children[i]->name};
       const auto nullability = not_null_set.find(col_name) != not_null_set.end()
                                    ? hyperapi::Nullability::NotNullable
                                    : hyperapi::Nullability::Nullable;
@@ -664,7 +674,7 @@ void write_to_hyper(
       } else if (geo_set.find(col_name) != geo_set.end()) {
         // if binary just write as is; for text we provide conversion
         const auto detected_type =
-            GetHyperTypeFromArrowSchema(schema->children[i], &error);
+            GetHyperTypeFromArrowSchema(children[i], &error);
         if (detected_type == hyperapi::SqlType::text()) {
           const auto hypertype = hyperapi::SqlType::geography();
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
@@ -696,7 +706,7 @@ void write_to_hyper(
         }
       } else {
         struct ArrowSchemaView schema_view {};
-        if (ArrowSchemaViewInit(&schema_view, schema->children[i], &error)) {
+        if (ArrowSchemaViewInit(&schema_view, children[i], &error)) {
           throw std::runtime_error(
               "Could not init schema view from child schema " +
               std::to_string(i) + ": " + std::string(&error.message[0]));
@@ -715,7 +725,7 @@ void write_to_hyper(
           column_mappings.emplace_back(mapping);
         } else {
           const auto hypertype =
-              GetHyperTypeFromArrowSchema(schema->children[i], &error);
+              GetHyperTypeFromArrowSchema(children[i], &error);
           const hyperapi::TableDefinition::Column column{col_name, hypertype,
                                                          nullability};
 
