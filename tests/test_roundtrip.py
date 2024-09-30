@@ -40,6 +40,12 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
     if table_mode == "a":
         expected = compat.concat_frames(expected, expected)
 
+    if isinstance(frame, pd.DataFrame) and return_type != "pandas":
+        expected = compat.drop_columns(expected, ["string_view", "binary_view"])
+
+    if return_type == "pandas" and not isinstance(frame, pd.DataFrame):
+        result = compat.drop_columns(result, ["string_view", "binary_view"])
+
     compat.assert_frame_equal(result, expected)
 
 
@@ -78,6 +84,9 @@ def test_multiple_tables(
     if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
         table_name = tab_api.TableName("public", table_name)
 
+    if isinstance(frame, pd.DataFrame) and return_type != "pandas":
+        expected = compat.drop_columns(expected, ["string_view", "binary_view"])
+
     assert set(result.keys()) == set(
         (
             tuple(table_name._unescaped_components),
@@ -85,6 +94,9 @@ def test_multiple_tables(
         )
     )
     for val in result.values():
+        if return_type == "pandas" and not isinstance(frame, pd.DataFrame):
+            val = compat.drop_columns(val, ["string_view", "binary_view"])
+
         compat.assert_frame_equal(val, expected)
 
 
@@ -119,6 +131,12 @@ def test_empty_roundtrip(
     )
 
     result = pt.frame_from_hyper(tmp_hyper, table=table_name, return_type=return_type)
+
+    if isinstance(frame, pd.DataFrame) and return_type != "pandas":
+        expected = compat.drop_columns(expected, ["string_view", "binary_view"])
+
+    if return_type == "pandas" and not isinstance(frame, pd.DataFrame):
+        result = compat.drop_columns(result, ["string_view", "binary_view"])
 
     expected = compat.drop_columns(expected, ["object"])
     expected = compat.empty_like(expected)

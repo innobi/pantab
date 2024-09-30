@@ -44,6 +44,8 @@ def basic_arrow_table():
             ("time64us", pa.time64("us")),
             ("geography", pa.large_binary()),
             ("decimal", pa.decimal128(38, 10)),
+            ("string_view", pa.string_view()),
+            ("binary_view", pa.binary_view()),
         ]
     )
     tbl = pa.Table.from_arrays(
@@ -106,6 +108,8 @@ def basic_arrow_table():
                 ]
             ),
             pa.array(["1234567890.123456789", "99876543210.987654321", None]),
+            pa.array(["foo", "longer_than_prefix_size", None], type=pa.string_view()),
+            pa.array([b"foo", b"longer_than_prefix_size", None], type=pa.binary_view()),
         ],
         schema=schema,
     )
@@ -286,6 +290,14 @@ def basic_dataframe():
         ["1234567890.123456789", "99876543210.987654321", None],
         dtype=pd.ArrowDtype(pa.decimal128(38, 10)),
     )
+    """
+    df["string_view"] = pd.Series(
+        ["foo", "longer_than_prefix_size", None],
+        dtype=pd.ArrowDtype(pa.string_view())),
+    df["binary_view"] = pd.Series(
+        [b"foo", b"longer_than_prefix_size", None],
+        dtype=pd.ArrowDtype(pa.binary_view())),
+    """
 
     return df
 
@@ -354,11 +366,23 @@ def roundtripped_pyarrow():
             ("time64us", pa.time64("us")),
             ("geography", pa.large_binary()),
             ("decimal", pa.decimal128(38, 10)),
+            # ("string_view", pa.large_string()),
+            # ("binary_view", pa.large_binary()),
         ]
     )
     tbl = basic_arrow_table()
 
-    return tbl.cast(schema)
+    # pyarrow does not support casting from string_view to large_string,
+    # so we have to handle manually
+    tbl = tbl.drop_columns(["string_view", "binary_view"])
+    tbl = tbl.cast(schema)
+
+    sv = (pa.array(["foo", "longer_than_prefix_size", None], type=pa.large_string()),)
+    bv = pa.array([b"foo", b"longer_than_prefix_size", None], type=pa.large_binary())
+    tbl = tbl.append_column("string_view", sv)
+    tbl = tbl.append_column("binary_view", bv)
+
+    return tbl
 
 
 def roundtripped_pandas():
@@ -394,6 +418,8 @@ def roundtripped_pandas():
             # "interval": "month_day_nano_interval[pyarrow]",
             "time64us": "time64[us][pyarrow]",
             "geography": "large_binary[pyarrow]",
+            # "string_view": "string_view[pyarrow]",
+            # "binary_view": "binary_view[pyarrow]",
         }
     )
     return df
@@ -518,7 +544,10 @@ class Compat:
             return frame
         elif isinstance(frame, pl.DataFrame):
             frame = frame.with_columns(
-                pl.Series(name="should_fail", values=[list((1, 2))])
+                pl.Series(
+                    name="should_fail",
+                    values=[list((1, 2)), list((1, 2)), list((1, 2))],
+                )
             )
             return frame
         else:
