@@ -208,23 +208,35 @@ template <bool IsString> class BinaryViewInsertHelper : public InsertHelper {
 public:
   using InsertHelper::InsertHelper;
 
-  void InsertValueAtIndex(size_t idx) override {
-    if (ArrowArrayViewIsNull(array_view_.get(), idx)) {
-      // MSVC on cibuildwheel doesn't like this templated optional
-      hyperapi::internal::ValueInserter{inserter_}.addNull();
+  void InsertValueAtIndex(int64_t idx) override {
+    if (CheckNull(idx)) {
+      if constexpr (IsString) {
+        InsertNull<hyperapi::string_view>();
+      } else {
+        InsertNull<hyperapi::ByteSpan>();
+      }
       return;
     }
 
-    const union ArrowBinaryView bv =
-        array_view_->buffer_views[1].data.as_binary_view[idx];
+    const auto buf_view = GetArrayView()->buffer_views[1];
+    const std::span view_data{buf_view.data.as_binary_view,
+                              static_cast<size_t>(buf_view.size_bytes)};
+
+    const std::span buffers{
+        GetArrayView()->array->buffers,
+        static_cast<size_t>(GetArrayView()->array->n_buffers)};
+
+    const union ArrowBinaryView bv = view_data[idx];
     struct ArrowBufferView bin_data = {{NULL}, bv.inlined.size};
     if (bv.inlined.size <= NANOARROW_BINARY_VIEW_INLINE_SIZE) {
-      bin_data.data.as_uint8 = bv.inlined.data;
+      bin_data.data.as_uint8 = &bv.inlined.data[0];
     } else {
       const int32_t buf_index =
           bv.ref.buffer_index + NANOARROW_BINARY_VIEW_FIXED_BUFFERS;
-      bin_data.data.data = array_view_->array->buffers[buf_index];
-      bin_data.data.as_uint8 += bv.ref.offset;
+      bin_data.data.data = buffers[buf_index];
+      const std::span bin_span{bin_data.data.as_uint8,
+                               static_cast<size_t>(bin_data.size_bytes)};
+      bin_data.data.as_uint8 = &bin_span[bv.ref.offset];
     }
 
     if constexpr (IsString) {
@@ -234,13 +246,12 @@ public:
 #else
       const std::string_view result{bin_data.data.as_char,
                                     static_cast<size_t>(bin_data.size_bytes)};
-
 #endif
-      hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+      InsertValue(std::move(result));
     } else {
       const hyperapi::ByteSpan result{bin_data.data.as_uint8,
                                       static_cast<size_t>(bin_data.size_bytes)};
-      hyperapi::internal::ValueInserter{inserter_}.addValue(result);
+      InsertValue(std::move(result));
     }
   }
 };
@@ -578,10 +589,10 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
   }
   case NANOARROW_TYPE_BINARY_VIEW:
     return std::make_unique<BinaryViewInsertHelper<false>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   case NANOARROW_TYPE_STRING_VIEW:
     return std::make_unique<BinaryViewInsertHelper<true>>(
-        inserter, chunk, schema, error, column_position);
+        inserter, chunk, child_schema, error, column_position);
   default:
     throw std::invalid_argument(
         std::string("MakeInsertHelper: Unsupported Arrow type: ") +
