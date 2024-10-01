@@ -46,6 +46,7 @@ def basic_arrow_table():
             ("decimal", pa.decimal128(38, 10)),
             ("string_view", pa.string_view()),
             ("binary_view", pa.binary_view()),
+            ("categorical", pa.dictionary(pa.int8(), pa.utf8())),
         ]
     )
     tbl = pa.Table.from_arrays(
@@ -110,6 +111,7 @@ def basic_arrow_table():
             pa.array(["1234567890.123456789", "99876543210.987654321", None]),
             pa.array(["foo", "longer_than_prefix_size", None], type=pa.string_view()),
             pa.array([b"foo", b"longer_than_prefix_size", None], type=pa.binary_view()),
+            pa.array(["foo", "foo", None]),
         ],
         schema=schema,
     )
@@ -291,6 +293,7 @@ def basic_dataframe():
         dtype=pd.ArrowDtype(pa.decimal128(38, 10)),
     )
     """
+    https://github.com/pandas-dev/pandas/issues/59883
     df["string_view"] = pd.Series(
         ["foo", "longer_than_prefix_size", None],
         dtype=pd.ArrowDtype(pa.string_view())),
@@ -298,6 +301,7 @@ def basic_dataframe():
         [b"foo", b"longer_than_prefix_size", None],
         dtype=pd.ArrowDtype(pa.binary_view())),
     """
+    df["categorical"] = pd.Series(["foo", "foo", pd.NA]).astype(pd.CategoricalDtype())
 
     return df
 
@@ -374,13 +378,15 @@ def roundtripped_pyarrow():
 
     # pyarrow does not support casting from string_view to large_string,
     # so we have to handle manually
-    tbl = tbl.drop_columns(["string_view", "binary_view"])
+    tbl = tbl.drop_columns(["string_view", "binary_view", "categorical"])
     tbl = tbl.cast(schema)
 
     sv = (pa.array(["foo", "longer_than_prefix_size", None], type=pa.large_string()),)
     bv = pa.array([b"foo", b"longer_than_prefix_size", None], type=pa.large_binary())
+    cat = pa.array(["foo", "foo", None], type=pa.large_string())
     tbl = tbl.append_column("string_view", sv)
     tbl = tbl.append_column("binary_view", bv)
+    tbl = tbl.append_column("categorical", cat)
 
     return tbl
 
@@ -420,6 +426,7 @@ def roundtripped_pandas():
             "geography": "large_binary[pyarrow]",
             # "string_view": "string_view[pyarrow]",
             # "binary_view": "binary_view[pyarrow]",
+            "categorical": "large_string[pyarrow]",
         }
     )
     return df

@@ -64,6 +64,25 @@ static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
     constexpr int16_t scale = 0;
     return hyperapi::SqlType::numeric(precision, scale);
   }
+  case NANOARROW_TYPE_DICTIONARY: {
+    struct ArrowSchemaView value_view {};
+    struct ArrowError error {};
+    NANOARROW_THROW_NOT_OK(
+        ArrowSchemaViewInit(&value_view, schema->dictionary, &error));
+
+    // only support dictionary-encoded string values for now
+    switch (value_view.type) {
+    case NANOARROW_TYPE_STRING:
+    case NANOARROW_TYPE_LARGE_STRING:
+    case NANOARROW_TYPE_STRING_VIEW:
+      return hyperapi::SqlType::text();
+    default:
+      throw std::invalid_argument(
+          std::string(
+              "Can only encode dictionaries with binary value types, got:") +
+          ArrowTypeString(value_view.type));
+    }
+  }
   default:
     throw std::invalid_argument(std::string("Unsupported Arrow type: ") +
                                 ArrowTypeString(schema_view.type));
@@ -467,6 +486,26 @@ private:
   int32_t scale_;
 };
 
+class DictionaryInsertHelper : public InsertHelper {
+public:
+  using InsertHelper::InsertHelper;
+
+  void InsertValueAtIndex(int64_t idx) override {
+    if (CheckNull(idx)) {
+      InsertNull<hyperapi::Time>();
+      return;
+    }
+
+    const auto key = ArrowArrayViewGetIntUnsafe(GetArrayView(), idx);
+    const auto value =
+        ArrowArrayViewGetStringUnsafe(GetArrayView()->dictionary, key);
+
+    const hyperapi::string_view result{value.data,
+                                       static_cast<size_t>(value.size_bytes)};
+    InsertValue(std::move(result));
+  }
+};
+
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
                              const struct ArrowSchema *schema,
@@ -593,6 +632,25 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
   case NANOARROW_TYPE_STRING_VIEW:
     return std::make_unique<BinaryViewInsertHelper<true>>(
         inserter, chunk, child_schema, error, column_position);
+  case NANOARROW_TYPE_DICTIONARY: {
+    struct ArrowSchemaView value_view {};
+    NANOARROW_THROW_NOT_OK(
+        ArrowSchemaViewInit(&value_view, child_schema->dictionary, error));
+
+    // only support dictionary-encoded string values for now
+    switch (value_view.type) {
+    case NANOARROW_TYPE_STRING:
+    case NANOARROW_TYPE_LARGE_STRING:
+    case NANOARROW_TYPE_STRING_VIEW:
+      return std::make_unique<DictionaryInsertHelper>(
+          inserter, chunk, child_schema, error, column_position);
+    default:
+      throw std::invalid_argument(
+          std::string("MakeInsertHelper: Can only encode dictionaries with "
+                      "binary value types, got:") +
+          ArrowTypeString(value_view.type));
+    }
+  }
   default:
     throw std::invalid_argument(
         std::string("MakeInsertHelper: Unsupported Arrow type: ") +
