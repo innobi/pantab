@@ -736,7 +736,7 @@ void write_to_hyper(
   if (!process_params.count("log_config"))
     process_params["log_config"] = "";
   if (!process_params.count("default_database_version"))
-    process_params["default_database_version"] = "4";
+    process_params["default_database_version"] = "2";
 
   const hyperapi::HyperProcess hyper{
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",

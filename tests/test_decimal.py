@@ -62,6 +62,7 @@ def test_decimal_roundtrip(tmp_hyper, compat):
         tbl,
         tmp_hyper,
         table="decimals",
+        process_params={"default_database_version": "3"},
     )
 
     result = pt.frame_from_hyper(tmp_hyper, table="decimals", return_type="pyarrow")
@@ -131,6 +132,7 @@ def test_decimal_negative(tmp_hyper, compat):
         tbl,
         tmp_hyper,
         table="decimals",
+        process_params={"default_database_version": "3"},
     )
 
     result = pt.frame_from_hyper(tmp_hyper, table="decimals", return_type="pyarrow")

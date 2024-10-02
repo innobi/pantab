@@ -25,6 +25,7 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
     pt.frame_to_hyper(
         frame,
@@ -33,6 +34,7 @@ def test_basic(frame, roundtripped, tmp_hyper, table_name, table_mode, compat):
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
 
     result = pt.frame_from_hyper(tmp_hyper, table=table_name, return_type=return_type)
@@ -66,6 +68,7 @@ def test_multiple_tables(
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
     pt.frames_to_hyper(
         {table_name: frame, "table2": frame},
@@ -73,6 +76,7 @@ def test_multiple_tables(
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
 
     result = pt.frames_from_hyper(tmp_hyper, return_type=return_type)
@@ -120,6 +124,7 @@ def test_empty_roundtrip(
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
     pt.frame_to_hyper(
         empty,
@@ -128,6 +133,7 @@ def test_empty_roundtrip(
         table_mode=table_mode,
         json_columns={"json"},
         geo_columns={"geography"},
+        process_params={"default_database_version": "4"},
     )
 
     result = pt.frame_from_hyper(tmp_hyper, table=table_name, return_type=return_type)
@@ -171,7 +177,12 @@ def test_roundtrip_works_without_tableauhyperapi(frame, tmp_hyper, monkeypatch):
         if mod.startswith(libname):
             monkeypatch.delitem(sys.modules, mod)
 
-    pt.frame_to_hyper(frame, tmp_hyper, table="foo")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="foo",
+        process_params={"default_database_version": "4"},
+    )
     pt.frames_from_hyper(tmp_hyper)
 
 
