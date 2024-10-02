@@ -1,6 +1,61 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 5.1.0rc0 (XXXX-XX-XX)
+=========================
+
+
+New Features
+------------
+
+Control Hyper Database Version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hyper files provide a "database version" that controls features and backwards compatability. To support many of the new features in pantab 5.0.0 this value was set to a database version of "4".
+
+However, this had the unintended consquence of making pantab-creeated files incompatible with older tools. To fix this, we have set the default version to 2 and added a ``process_params`` argument to the pantab API which allows you to override this setting.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab as pt
+
+   # single precision float support requires database version 4+
+   df = pd.DataFrame(
+     {"float32": pd.Series([3.14], dtype="float32")}
+   )
+
+   pt.frame_to_hyper(
+       df,
+       "example.hyper",
+       table="test",
+       process_params={"default_database_version": "4"}
+   )
+
+Ultimately there is not one default value that will work for all users. For details specific to this parameter and its effects, please refer to Tableau's `default_database_version <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process/#default_database_version>`_ parameter documentation.
+
+tableauhyperapi Package is Now an Optional Dependency
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Historically we have required users to install the tableauhyperapi Python package alongside pantab. However, this can cause issues when a user installs a version of the tableauhyperapi package that is incompatible with the binaries provided already by pantab. There is no great way to prevent this via Python packaging, and it can yield subtle or even outright bugs, especially on Windows platforms.
+
+Aside from the packaging difficulties, dropping this dependency now makes pantab a much smaller installation. Depending on your platform, this may save you anywhere from 60-80 MB of disk space per installation.
+
+If you decide to still install both, pantab will continue to work alongside the tableauhyperapi and can continue to accept the TableName / Name objects from that library. However, for Windows users in particular, we advise against installing both packages.
+
+
+Other Features
+--------------
+
+- Implemented write support for binary view types, which polars uses by default for strings (#340)
+- Implemented write support for dictionary-encoded strings (aka categoricals)
+- Improved performance and reduced memory usage (#343)
+
+Bug Fixes
+---------
+
+- Fixed a bug where leading decimal places were not being transmitted properly (#342)
+
 Pantab 5.0.0 (2024-08-21)
 =========================
 
