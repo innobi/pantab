@@ -12,6 +12,7 @@ API Reference
    :param not_null_columns: Columns which should be considered "NOT NULL" in the target Hyper database. By default, all columns are considered nullable
    :param json_columns: Columns to be written as a JSON data type
    :param geo_columns: Columns to be written as a GEOGRAPHY data type
+   :param process_params: Parameters to pass to the Hyper Process constructor.
 
 .. py:function:: frame_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, table: Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], return_type: Literal["pandas", "pyarrow", "polars"] = "pandas")
 
@@ -20,6 +21,7 @@ API Reference
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param table: Table to read.
    :param return_type: The type of DataFrame to be returned
+   :param process_params: Parameters to pass to the Hyper Process constructor.
 
 
 .. py:function:: frames_to_hyper(dict_of_frames: Dict[Union[str, tableauhyperapi.Name, tableauhyperapi.TableName], pd.DataFrame], database: Union[str, pathlib.Path], *, table_mode: str = "w", not_null_columns: Optional[Iterable[str]] = None, json_columns: Optional[Iterable[str]] = None, geo_columns: Optional[Iterable[str]] = None,) -> None:
@@ -32,6 +34,7 @@ API Reference
    :param not_null_columns: Columns which should be considered "NOT NULL" in the target Hyper database. By default, all columns are considered nullable
    :param json_columns: Columns to be written as a JSON data type
    :param geo_columns: Columns to be written as a GEOGRAPHY data type
+   :param process_params: Parameters to pass to the Hyper Process constructor.
 
 .. py:function:: frames_from_hyper(source: Union[str, pathlib.Path, tab_api.Connection], *, return_type: Literal["pandas", "pyarrow", "polars"] = "pandas") -> dict:
 
@@ -39,6 +42,7 @@ API Reference
 
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param return_type: The type of DataFrame to be returned
+   :param process_params: Parameters to pass to the Hyper Process constructor.
 
 
 .. py:function:: frame_from_hyper_query(source: Union[str, pathlib.Path, tab_api.Connection], query: str, *, return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",)
@@ -48,3 +52,4 @@ API Reference
    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
    :param query: SQL query to execute.
    :param return_type: The type of DataFrame to be returned
+   :param process_params: Parameters to pass to the Hyper Process constructor.

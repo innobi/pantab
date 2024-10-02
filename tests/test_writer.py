@@ -32,21 +32,43 @@ def test_append_mode_raises_column_dtype_mismatch(
     new_dtype, hyper_type_name, frame, tmp_hyper, table_name, compat
 ):
     frame = compat.select_columns(frame, ["int16"])
-    pt.frame_to_hyper(frame, tmp_hyper, table=table_name)
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table=table_name,
+        process_params={"default_database_version": "4"},
+    )
 
     frame = compat.cast_column_to_type(frame, "int16", new_dtype)
     msg = f"Column type mismatch at index 0; new: {hyper_type_name} old: SMALLINT"
     with pytest.raises(ValueError, match=msg):
-        pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+        pt.frame_to_hyper(
+            frame,
+            tmp_hyper,
+            table=table_name,
+            table_mode="a",
+            process_params={"default_database_version": "4"},
+        )
 
 
 def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, compat):
-    pt.frame_to_hyper(frame, tmp_hyper, table=table_name)
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table=table_name,
+        process_params={"default_database_version": "4"},
+    )
 
     frame = compat.drop_columns(frame, ["int16"])
     msg = "Number of columns"
     with pytest.raises(ValueError, match=msg):
-        pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
+        pt.frame_to_hyper(
+            frame,
+            tmp_hyper,
+            table=table_name,
+            table_mode="a",
+            process_params={"default_database_version": "4"},
+        )
 
 
 @pytest.mark.parametrize("container_t", [set, list, tuple])
@@ -156,6 +178,7 @@ def test_failed_write_doesnt_overwrite_file(
         tmp_hyper,
         table="test",
         table_mode=table_mode,
+        process_params={"default_database_version": "4"},
     )
     last_modified = tmp_hyper.stat().st_mtime
 
@@ -220,7 +243,12 @@ def test_utc_bug(tmp_hyper):
 
 
 def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -237,7 +265,12 @@ def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
 
 @pytest.mark.parametrize("container_t", [set, list, tuple])
 def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
 
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
@@ -260,6 +293,7 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
         table="test",
         json_columns=container_t(("json",)),
         geo_columns=container_t(("geography",)),
+        process_params={"default_database_version": "4"},
     )
 
     with tab_api.HyperProcess(

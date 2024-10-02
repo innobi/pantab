@@ -9,7 +9,12 @@ import pantab as pt
 
 
 def test_read_doesnt_modify_existing_file(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
     last_modified = tmp_hyper.stat().st_mtime
 
     # Try out our read methods
@@ -56,7 +61,12 @@ def test_reads_nullable_columns(tmp_hyper, compat):
 
 
 def test_read_query(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
 
     query = "SELECT int16 AS i, '_' || int32 AS _i2 FROM test"
     result = pt.frame_from_hyper_query(tmp_hyper, query)
@@ -137,13 +147,23 @@ def test_reader_handles_duplicate_columns(tmp_hyper):
 
 
 def test_frame_from_hyper_doesnt_generate_hyperd_log(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
     pt.frame_from_hyper(tmp_hyper, table="test")
     assert not pathlib.Path("hyperd.log").is_file()
 
 
 def test_frames_from_hyper_doesnt_generate_hyperd_log(frame, tmp_hyper):
-    pt.frame_to_hyper(frame, tmp_hyper, table="test")
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
     pt.frames_from_hyper(tmp_hyper)
     assert not pathlib.Path("hyperd.log").is_file()
 

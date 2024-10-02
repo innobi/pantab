@@ -30,6 +30,98 @@ Reading a Hyper Extract
    df = pt.frame_from_hyper("example.hyper", table="animals")
    print(df)
 
+Overriding Nullability
+----------------------
+
+By default, all data written to the Hyper database will be nullable. If you want to force nullability checks in the Hyper database, you will want to pass the names of the columns as arguments to the ``not_null_columns`` parameter.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab as pt
+
+   df = pd.DataFrame([
+       ["dog", 4],
+       ["cat", 4],
+   ], columns=["animal", "num_of_legs"])
+
+   pt.frame_to_hyper(
+       df,
+       "example.hyper",
+       table="animals",
+       not_null_columns=["animal", "num_of_legs"]
+   )
+
+Writing JSON data
+-----------------
+
+The Hyper database can store JSON data. Although the Arrow specification has an extension type that can store JSON, support for it is very limited.
+
+As such, if you want to store JSON in a Hyper database, you should send it as a string and add the column names to the ``json_columns`` argument.
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab as pt
+
+   df = pd.DataFrame({"json": ['{"key": "value"}']})
+
+   pt.frame_to_hyper(
+       df,
+       "example.hyper",
+       table="test",
+       json_columns=["json"]
+   )
+
+Geo Support
+-----------
+
+The Hyper database supports the storage of Geography data. The easiest way to write this data is to specify your input data as a string using the `WKT <https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry>`_ and supplying the name of the column(s) as an argument to ``geo_col``
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab as pt
+
+   df = pd.DataFrame(
+       {"geo": ["point(-122.338083 47.647528)", "point(11.584329 48.139257)"]}
+   )
+
+   pt.frame_to_hyper(
+       df,
+       "example.hyper",
+       table="test",
+       geo_columns=["geo"]
+   )
+
+When reading such data back from a Hyper database, it will be returned as a binary field containing WKB. You may write WKB back to Hyper using the same pattern above. If you need to translate between WKB and WKT, please consider using a geo-dataframe library like `GeoArrow <https://geoarrow.org/>`~ or `GeoPandas <https://geopandas.org/en/stable/getting_started/introduction.html>`_
+
+Controlling Hyper Process Parameters
+------------------------------------
+
+pantab is responsible for starting and managing its own Hyper Process. Arguments to this process can be provided via the ``process_params`` parameter.
+
+The most common thing users have needed to control is the ``default_database_version``. While pantab specifies a value internally, older tools may not work with the default pantab provides. Some newer Hyper features may also require a more updated default version. For details specific to this parameter and its effects, please refer to Tableau's `default_database_version <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process/#default_database_version>`_ parameter documentation.
+
+For a full listing of valid parameters, please refer to the `Tableau Documentation <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process/#process-settings>`_
+
+.. code-block:: python
+
+   import pandas as pd
+   import pantab as pt
+
+   # single precision float support requires database version 4+
+   df = pd.DataFrame(
+     {"float32": pd.Series([3.14], dtype="float32")}
+   )
+
+   pt.frame_to_hyper(
+       df,
+       "example.hyper",
+       table="test",
+       process_params={"default_database_version": "4"}
+   )
+
 Working with Schemas
 --------------------
 
