@@ -26,6 +26,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4.4.0
         with:
+          name: artifacts-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
   upload_pypi:
@@ -43,8 +44,9 @@ jobs:
       - uses: actions/download-artifact@v4.1.8
         with:
           # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact
+          # https://github.com/actions/upload-artifact/issues/480#issuecomment-1937762859
+          pattern: artifacts-*
+          merge-multiple: true
           path: dist
 
       - name: Publish package distributions to PyPI
