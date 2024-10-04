@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 keywords = ["tableau", "visualization", "pandas", "dataframe"]
 
@@ -63,7 +64,7 @@ multi_line_output = 3
 known_first_party = "pantab"
 
 [tool.cibuildwheel]
-build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64"
+build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64 cp313-*64"
 skip = "*musllinux*"
 
 test-command = "python -m pytest -n auto {project}/tests"
