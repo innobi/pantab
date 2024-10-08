@@ -5,7 +5,6 @@ import narwhals as nw
 import pandas as pd
 import pyarrow as pa
 import pytest
-import tableauhyperapi as tab_api
 
 import pantab as pt
 
@@ -73,6 +72,7 @@ def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, comp
 
 @pytest.mark.parametrize("container_t", [set, list, tuple])
 def test_writer_creates_not_null_columns(tmp_hyper, container_t):
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("test")
     df = pd.DataFrame({"int32": [1, 2, 3]}, dtype="int32")
     pt.frame_to_hyper(
@@ -100,6 +100,7 @@ def test_writing_to_non_nullable_column_without_nulls(tmp_hyper, container_t):
     # With arrow as our backend we define everything as nullable, so it is up
     # to the users to override this if they want
     column_name = "int32"
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
         table_name=table_name,
@@ -139,6 +140,7 @@ def test_writing_to_non_nullable_column_without_nulls(tmp_hyper, container_t):
 
 def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
     column_name = "string"
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
         table_name=table_name,
@@ -223,6 +225,8 @@ def test_utc_bug(tmp_hyper):
         }
     )
     pt.frame_to_hyper(frame, tmp_hyper, table="exp")
+
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -249,6 +253,8 @@ def test_uint32_actually_writes_as_oid(tmp_hyper, frame):
         table="test",
         process_params={"default_database_version": "4"},
     )
+
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -272,6 +278,7 @@ def test_geo_and_json_columns_writes_proper_type(tmp_hyper, frame, container_t):
         process_params={"default_database_version": "4"},
     )
 
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -322,6 +329,8 @@ def test_can_write_wkt_as_geo(tmp_hyper):
     )
 
     pt.frame_to_hyper(df, tmp_hyper, table="test", geo_columns=["geography"])
+
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -346,6 +355,8 @@ def test_can_write_wkt_as_geo(tmp_hyper):
 
 def test_can_write_chunked_frames(chunked_frame, tmp_hyper):
     pt.frame_to_hyper(chunked_frame, tmp_hyper, table="test")
+
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -378,6 +389,8 @@ def test_write_date_bug(tmp_hyper):
     )
 
     pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},
@@ -401,6 +414,7 @@ def test_eight_bit_int(tmp_hyper):
 
     pt.frame_to_hyper(frame, tmp_hyper, table="test")
 
+    tab_api = pytest.importorskip("tableauhyperapi")
     with tab_api.HyperProcess(
         tab_api.Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU,
         parameters={"log_config": ""},

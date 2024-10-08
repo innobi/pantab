@@ -3,7 +3,6 @@ import pathlib
 import pandas as pd
 import pandas.testing as tm
 import pytest
-import tableauhyperapi as tab_api
 
 import pantab as pt
 
@@ -28,6 +27,7 @@ def test_read_doesnt_modify_existing_file(frame, tmp_hyper):
 def test_reads_nullable_columns(tmp_hyper, compat):
     # We don't ever write nullable columns but we should be able to read them
     column_name = "int32"
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
         table_name=table_name,
@@ -79,6 +79,7 @@ def test_read_query(frame, tmp_hyper):
 
 def test_read_varchar(tmp_hyper):
     column_name = "VARCHAR Column"
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
         table_name=table_name,
@@ -116,6 +117,7 @@ def test_read_varchar(tmp_hyper):
 
 def test_reader_handles_duplicate_columns(tmp_hyper):
     column_name = "does_not_matter"
+    tab_api = pytest.importorskip("tableauhyperapi")
     table_name = tab_api.TableName("public", "table")
     table = tab_api.TableDefinition(
         table_name=table_name,
@@ -187,20 +189,34 @@ def test_reader_invalid_process_params_raises(tmp_hyper):
 
 
 @pytest.mark.parametrize(
-    "table_name",
+    "needs_hyperapi, hyperapi_obj, table_args",
     [
-        "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
-        tab_api.Name("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"),
-        tab_api.TableName(
-            "public", "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"
+        (False, None, tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",))),
+        (True, "Name", tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",))),
+        (
+            True,
+            "TableName",
+            tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",)),
         ),
-        tab_api.TableName(
-            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
-            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        (
+            True,
+            "TableName",
+            (
+                "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+                "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+            ),
         ),
     ],
 )
-def test_reader_prevents_sql_injection(tmp_hyper, table_name):
+def test_reader_prevents_sql_injection(
+    tmp_hyper, needs_hyperapi, hyperapi_obj, table_args
+):
+    if not needs_hyperapi:
+        table = table_args[0]
+    else:
+        tab_api = pytest.importorskip("tableauhyperapi")
+        table = getattr(tab_api, hyperapi_obj)(*table_args)
+
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
-    pt.frame_to_hyper(frame, tmp_hyper, table=table_name)
-    pt.frame_from_hyper(tmp_hyper, table=table_name)
+    pt.frame_to_hyper(frame, tmp_hyper, table=table)
+    pt.frame_from_hyper(tmp_hyper, table=table)

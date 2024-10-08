@@ -8,7 +8,14 @@ import pandas.testing as tm
 import polars as pl
 import pyarrow as pa
 import pytest
-import tableauhyperapi as tab_api
+
+try:
+    import tableauhyperapi as tab_api
+except ModuleNotFoundError:
+    has_tableauhyperapi = False
+else:
+    del tab_api
+    has_tableauhyperapi = True
 
 
 def basic_arrow_table():
@@ -461,18 +468,30 @@ def table_mode(request):
     return request.param
 
 
+@pytest.fixture
+def tab_api():
+    tab_api = pytest.importorskip("tableauhyperapi")
+    return tab_api
+
+
 @pytest.fixture(
     params=[
-        "table",
-        tab_api.Name("table"),
-        tab_api.TableName("table"),
-        tab_api.TableName("public", "table"),
-        tab_api.TableName("nonpublic", "table"),
+        (False, None, tuple(("table",))),
+        (True, "Name", tuple(("table",))),
+        (True, "TableName", tuple(("table",))),
+        (True, "TableName", ("public", "table")),
+        (True, "TableName", ("nonpublic", "table")),
     ]
 )
 def table_name(request):
     """Various ways to represent a table in Tableau."""
-    return request.param
+    needs_hyperapi, hyperapi_obj, args = request.param
+    if not needs_hyperapi:
+        return args[0]
+
+    tab_api = pytest.importorskip("tableauhyperapi")
+    obj = getattr(tab_api, hyperapi_obj)(*args)
+    return obj
 
 
 @pytest.fixture
