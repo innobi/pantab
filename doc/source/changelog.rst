@@ -1,7 +1,7 @@
 Changelog
 ^^^^^^^^^
 
-Pantab 5.1.0rc0 (XXXX-XX-XX)
+Pantab 5.1.0rc1 (XXXX-XX-XX)
 =========================
 
 
@@ -39,7 +39,7 @@ tableauhyperapi Package is Now an Optional Dependency
 
 Historically we have required users to install the tableauhyperapi Python package alongside pantab. However, this can cause issues when a user installs a version of the tableauhyperapi package that is incompatible with the binaries provided already by pantab. There is no great way to prevent this via Python packaging, and it can yield subtle or even outright bugs, especially on Windows platforms.
 
-Aside from the packaging difficulties, dropping this dependency now makes pantab a much smaller installation. Depending on your platform, this may save you anywhere from 60-80 MB of disk space per installation.
+Aside from the packaging difficulties, dropping this dependency now makes pantab a much smaller installation. While the exact amount of disk space saved will depend upon the platform, users should expect to save roughly 250 MB of disk space per installation.
 
 If you decide to still install both, pantab will continue to work alongside the tableauhyperapi and can continue to accept the TableName / Name objects from that library. However, for Windows users in particular, we advise against installing both packages.
 
