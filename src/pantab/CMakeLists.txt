@@ -49,7 +49,9 @@ install(TARGETS libpantab
 install(FILES ${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_LIB_DIR}/${HYPERAPI_LIB_NAME}
    DESTINATION ${SKBUILD_PROJECT_NAME}/)
 install(DIRECTORY "${tableauhyperapi-cxx_SOURCE_DIR}/${HYPERAPI_BIN_LOC}/"
-  DESTINATION ${SKBUILD_PROJECT_NAME}/hyper)
+  DESTINATION ${SKBUILD_PROJECT_NAME}/hyper
+  USE_SOURCE_PERMISSIONS
+)
 
 # Support out of source builds
 set(SRC_FILES
