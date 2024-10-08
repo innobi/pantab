@@ -1,10 +1,16 @@
 import decimal
-import sys
 
 import pandas as pd
 import pyarrow as pa
 import pytest
-import tableauhyperapi as tab_api
+
+try:
+    import tableauhyperapi as tab_api
+except ModuleNotFoundError:
+    has_tableauhyperapi = False
+else:
+    del tab_api
+    has_tableauhyperapi = True
 
 import pantab as pt
 
@@ -84,17 +90,27 @@ def test_multiple_tables(
     if table_mode == "a":
         expected = compat.concat_frames(expected, expected)
 
-    # some test trickery here
-    if not isinstance(table_name, tab_api.TableName) or table_name.schema_name is None:
-        table_name = tab_api.TableName("public", table_name)
+    if hasattr(table_name, "_unescaped_components"):  # tableauhyperapi TableName
+        if table_name.schema_name:
+            exp_schema = table_name.schema_name.name.unescaped
+        else:
+            exp_schema = "public"
+
+        exp_table = table_name.name.unescaped
+    elif hasattr(table_name, "unescaped"):  # tableauhyperapi Name
+        exp_schema = "public"
+        exp_table = table_name.unescaped
+    else:
+        exp_schema = "public"
+        exp_table = table_name
 
     if isinstance(frame, pd.DataFrame) and return_type != "pandas":
         expected = compat.drop_columns(expected, ["string_view", "binary_view"])
 
     assert set(result.keys()) == set(
         (
-            tuple(table_name._unescaped_components),
-            tuple(tab_api.TableName("public", "table2")._unescaped_components),
+            (exp_schema, exp_table),
+            ("public", "table2"),
         )
     )
     for val in result.values():
@@ -150,39 +166,35 @@ def test_empty_roundtrip(
 
 
 @pytest.mark.parametrize(
-    "table_name",
+    "needs_hyperapi, hyperapi_obj, table_args",
     [
-        "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
-        tab_api.Name("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"),
-        tab_api.TableName(
-            "public", "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't"
+        (False, None, tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",))),
+        (True, "Name", tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",))),
+        (
+            True,
+            "TableName",
+            tuple(("a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",)),
         ),
-        tab_api.TableName(
-            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
-            "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+        (
+            True,
+            "TableName",
+            (
+                "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+                "a';DROP TABLE users;DELETE FROM foo WHERE 't' = 't",
+            ),
         ),
     ],
 )
-def test_write_prevents_injection(tmp_hyper, table_name):
+def test_write_prevents_injection(tmp_hyper, needs_hyperapi, hyperapi_obj, table_args):
+    if not needs_hyperapi:
+        table = table_args[0]
+    else:
+        tab_api = pytest.importorskip("tableauhyperapi")
+        table = getattr(tab_api, hyperapi_obj)(*table_args)
+
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
-    frames = {table_name: frame}
+    frames = {table: frame}
     pt.frames_to_hyper(frames, tmp_hyper)
-    pt.frames_from_hyper(tmp_hyper)
-
-
-def test_roundtrip_works_without_tableauhyperapi(frame, tmp_hyper, monkeypatch):
-    libname = "tableauhyperapi"
-    mods = set(sys.modules.keys())
-    for mod in mods:
-        if mod.startswith(libname):
-            monkeypatch.delitem(sys.modules, mod)
-
-    pt.frame_to_hyper(
-        frame,
-        tmp_hyper,
-        table="foo",
-        process_params={"default_database_version": "4"},
-    )
     pt.frames_from_hyper(tmp_hyper)
 
 
