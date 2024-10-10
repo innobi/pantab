@@ -15,9 +15,9 @@ dependencies:
   - pyarrow
   - python
   - pytest
-  - pytest_xdist
   - scikit-build-core
   - sphinx
+  - sphinx-autodoc-typehints
   - pre-commit
   - sphinx_rtd_theme
   - sphinxext-opengraph
