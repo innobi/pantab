@@ -57,7 +57,18 @@ def frame_to_hyper(
     geo_columns: Optional[set[str]] = None,
     process_params: Optional[dict[str, str]] = None,
 ) -> None:
-    """See api.rst for documentation"""
+    """
+    Convert a DataFrame to a .hyper extract.
+
+    :param df: Data to be written out.
+    :param database: Name / location of the Hyper file to write to.
+    :param table: Table to write to.
+    :param table_mode: The mode to open the table with. Default is "w" for write, which truncates the file before writing. Another option is "a", which will append data to the file if it already contains information.
+    :param not_null_columns: Columns which should be considered "NOT NULL" in the target Hyper database. By default, all columns are considered nullable
+    :param json_columns: Columns to be written as a JSON data type
+    :param geo_columns: Columns to be written as a GEOGRAPHY data type
+    :param process_params: Parameters to pass to the Hyper Process constructor.
+    """
     frames_to_hyper(
         {table: df},
         database,
@@ -79,7 +90,17 @@ def frames_to_hyper(
     geo_columns: Optional[set[str]] = None,
     process_params: Optional[dict[str, str]] = None,
 ) -> None:
-    """See api.rst for documentation."""
+    """
+    Writes multiple DataFrames to a .hyper extract.
+
+    :param dict_of_frames: A dictionary whose keys are valid table identifiers and values are dataframes
+    :param database: Name / location of the Hyper file to write to.
+    :param table_mode: The mode to open the table with. Default is "w" for write, which truncates the file before writing. Another option is "a", which will append data to the file if it already contains information.
+    :param not_null_columns: Columns which should be considered "NOT NULL" in the target Hyper database. By default, all columns are considered nullable
+    :param json_columns: Columns to be written as a JSON data type
+    :param geo_columns: Columns to be written as a GEOGRAPHY data type
+    :param process_params: Parameters to pass to the Hyper Process constructor.
+    """
     _validate_table_mode(table_mode)
 
     if not_null_columns is None:
