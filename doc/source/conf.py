@@ -46,5 +46,5 @@ ogp_image = "https://pantab.readthedocs.io/en/latest/_static/pantab_logo.png"
 
 autodoc_mock_imports = ["pantab.libpantab"]
 autodoc_typehints = "none"
-typehints_use_signature = "true"
-typehints_use_signature_return = "true"
+typehints_use_signature = True
+typehints_use_signature_return = True
