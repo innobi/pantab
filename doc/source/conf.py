@@ -1,8 +1,9 @@
-import os
+import pathlib
 import sys
 from typing import List
 
-sys.path.insert(0, os.path.abspath(os.path.join("..", "..", "src")))
+srcdir = pathlib.Path(__file__).resolve().parent.parent.parent / "src"
+sys.path.insert(0, str(srcdir))
 
 # -- Project information -----------------------------------------------------
 
