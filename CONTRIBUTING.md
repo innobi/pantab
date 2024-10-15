@@ -86,7 +86,7 @@ pre-commit
 New code development should come bundled with type annotations. Be sure to check any new annotations with
 
 ```sh
-mypy pantab
+mypy src/
 ```
 
 ### Adding a whatsnew entry
