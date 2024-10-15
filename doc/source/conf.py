@@ -1,4 +1,9 @@
+import pathlib
+import sys
 from typing import List
+
+srcdir = pathlib.Path(__file__).resolve().parent.parent.parent / "src"
+sys.path.insert(0, str(srcdir))
 
 # -- Project information -----------------------------------------------------
 
@@ -13,6 +18,8 @@ release = "5.1.0"
 extensions = [
     "sphinx_rtd_theme",
     "sphinxext.opengraph",
+    "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",
 ]
 
 templates_path = ["_templates"]
@@ -35,3 +42,10 @@ html_static_path = ["_static"]
 ogp_site_url = "https://pantab.readthedocs.io/"
 ogp_use_first_image = False
 ogp_image = "https://pantab.readthedocs.io/en/latest/_static/pantab_logo.png"
+
+# -- Options for autodoc -----------------------------------------------------
+
+autodoc_mock_imports = ["pantab.libpantab"]
+autodoc_typehints = "none"
+typehints_use_signature = True
+typehints_use_signature_return = True

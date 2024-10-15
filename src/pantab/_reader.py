@@ -14,7 +14,14 @@ def frame_from_hyper_query(
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
     process_params: Optional[dict[str, str]] = None,
 ):
-    """See api.rst for documentation."""
+    """
+    Executes a SQL query and returns the result as a pandas dataframe
+
+    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
+    :param query: SQL query to execute.
+    :param return_type: The type of DataFrame to be returned
+    :param process_params: Parameters to pass to the Hyper Process constructor.
+    """
     if process_params is None:
         process_params = {}
 
@@ -44,7 +51,14 @@ def frame_from_hyper(
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
     process_params: Optional[dict[str, str]] = None,
 ):
-    """See api.rst for documentation"""
+    """
+    Extracts a DataFrame from a .hyper extract.
+
+    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
+    :param table: Table to read.
+    :param return_type: The type of DataFrame to be returned
+    :param process_params: Parameters to pass to the Hyper Process constructor.
+    """
     if isinstance(table, (pt_types.TableauName, pt_types.TableauTableName)):
         tbl = str(table)
     elif isinstance(table, tuple):
@@ -65,7 +79,13 @@ def frames_from_hyper(
     return_type: Literal["pandas", "polars", "pyarrow"] = "pandas",
     process_params: Optional[dict[str, str]] = None,
 ):
-    """See api.rst for documentation."""
+    """
+    Extracts tables from a .hyper extract.
+
+    :param source: Name / location of the Hyper file to be read  or Hyper-API connection.
+    :param return_type: The type of DataFrame to be returned
+    :param process_params: Parameters to pass to the Hyper Process constructor.
+    """
     result = {}
 
     table_names = libpantab.get_table_names(str(source))
