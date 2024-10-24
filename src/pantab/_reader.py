@@ -8,6 +8,10 @@ import pantab.libpantab as libpantab
 
 
 class PantabStream:
+    """
+    This class adheres to the Arrow PyCapsule interface.
+    """
+
     def __init__(self, capsule):
         self._capsule = capsule
 

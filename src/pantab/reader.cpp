@@ -435,6 +435,8 @@ static auto ReleaseArrowStream(void *ptr) noexcept -> void {
   if (stream->release != nullptr) {
     ArrowArrayStreamRelease(stream);
   }
+
+  delete stream;
 }
 
 static auto GetSchema = [](struct ArrowArrayStream *stream,
@@ -444,11 +446,10 @@ static auto GetSchema = [](struct ArrowArrayStream *stream,
 
   const auto resultSchema = private_data->result_->getSchema();
 
-  struct ArrowSchema schema {};
-  ArrowSchemaInit(&schema);
+  nanoarrow::UniqueSchema schema{};
+  ArrowSchemaInit(schema.get());
 
-  if (ArrowSchemaSetTypeStruct(&schema, resultSchema.getColumnCount())) {
-    ArrowSchemaRelease(&schema);
+  if (ArrowSchemaSetTypeStruct(schema.get(), resultSchema.getColumnCount())) {
     ArrowErrorSetString(&private_data->error_,
                         "ArrowSchemaSetTypeStruct failed!");
     return EINVAL;
@@ -465,16 +466,15 @@ static auto GetSchema = [](struct ArrowArrayStream *stream,
     }
     elem->second += 1;
 
-    if (ArrowSchemaSetName(schema.children[i], name.c_str())) {
-      ArrowSchemaRelease(&schema);
+    if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
       ArrowErrorSetString(&private_data->error_, "ArrowSchemaSetName failed!");
       return EINVAL;
     }
 
-    SetSchemaTypeFromHyperType(schema.children[i], column.getType());
+    SetSchemaTypeFromHyperType(schema->children[i], column.getType());
   }
 
-  ArrowSchemaMove(&schema, out);
+  ArrowSchemaMove(schema.get(), out);
   return 0;
 };
 
@@ -489,17 +489,16 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
     return 0;
   }
 
-  struct ArrowSchema schema {};
-  if (int errcode = GetSchema(stream, &schema)) {
+  nanoarrow::UniqueSchema schema{};
+  if (int errcode = GetSchema(stream, schema.get())) {
     return errcode;
   }
 
-  const auto column_count = static_cast<size_t>(schema.n_children);
+  const auto column_count = static_cast<size_t>(schema->n_children);
   nanoarrow::UniqueArray array{};
-  if (ArrowArrayInitFromSchema(array.get(), &schema, nullptr)) {
+  if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
     ArrowErrorSetString(&private_data->error_,
                         "ArrowArrayInitFromSchema failed!");
-    ArrowSchemaRelease(&schema);
     return EINVAL;
   }
 
@@ -508,16 +507,14 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   std::vector<std::unique_ptr<ReadHelper>> read_helpers{column_count};
   for (size_t i = 0; i < column_count; i++) {
     struct ArrowSchemaView schema_view {};
-    if (ArrowSchemaViewInit(&schema_view, schema.children[i], nullptr)) {
+    if (ArrowSchemaViewInit(&schema_view, schema->children[i], nullptr)) {
       ArrowErrorSetString(&private_data->error_, "ArrowSchemaViewInit failed!");
-      ArrowSchemaRelease(&schema);
       return EINVAL;
     }
 
     auto read_helper = MakeReadHelper(&schema_view, array->children[i]);
     read_helpers[i] = std::move(read_helper);
   }
-  ArrowSchemaRelease(&schema);
 
   if (ArrowArrayStartAppending(array.get())) {
     ArrowErrorSetString(&private_data->error_,
@@ -579,8 +576,7 @@ auto read_from_hyper_query(
   auto private_data =
       new HyperResultIteratorPrivate{std::move(hyperResult), std::move(iter)};
 
-  auto stream =
-      (struct ArrowArrayStream *)malloc(sizeof(struct ArrowArrayStream));
+  auto stream = new struct ArrowArrayStream;
   stream->private_data = private_data;
   stream->get_next = GetNext;
   stream->get_schema = GetSchema;
