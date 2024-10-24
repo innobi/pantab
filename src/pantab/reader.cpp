@@ -419,8 +419,7 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
   }
 }
 
-class HyperResultIteratorPrivate {
-public:
+struct HyperResultIteratorPrivate {
   HyperResultIteratorPrivate(
       std::unique_ptr<hyperapi::Result> result,
       std::unique_ptr<hyperapi::ChunkedResultIterator> iter)
@@ -501,19 +500,17 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
     ArrowErrorSetString(&private_data->error_,
                         "ArrowArrayInitFromSchema failed!");
     ArrowSchemaRelease(&schema);
-    delete private_data;
     return EINVAL;
   }
 
-  // TODO: this does not need to be a part of GetNext; can be part of our
-  // private_data
+  // TODO: we might want to move the vector of ReadHelpers to the private_data
+  // rather than doing on each loop iteration here
   std::vector<std::unique_ptr<ReadHelper>> read_helpers{column_count};
   for (size_t i = 0; i < column_count; i++) {
     struct ArrowSchemaView schema_view {};
     if (ArrowSchemaViewInit(&schema_view, schema.children[i], nullptr)) {
       ArrowErrorSetString(&private_data->error_, "ArrowSchemaViewInit failed!");
       ArrowSchemaRelease(&schema);
-      delete private_data;
       return EINVAL;
     }
 
@@ -525,7 +522,6 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   if (ArrowArrayStartAppending(array.get())) {
     ArrowErrorSetString(&private_data->error_,
                         "ArrowArrayStartAppending failed!");
-    delete private_data;
     return EINVAL;
   }
   for (const auto &row : **private_data->iter_) {
@@ -538,7 +534,6 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
     if (ArrowArrayFinishElement(array.get())) {
       ArrowErrorSetString(&private_data->error_,
                           "ArrowArrayFinishElement failed!");
-      delete private_data;
       return EINVAL;
     }
   }
@@ -547,7 +542,6 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   if (ArrowArrayFinishBuildingDefault(array.get(), nullptr)) {
     ArrowErrorSetString(&private_data->error_,
                         "ArrowArrayFinishBuildingDefault failed!");
-    delete private_data;
     return EINVAL;
   }
 
