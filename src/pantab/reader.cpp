@@ -419,34 +419,63 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
   }
 }
 
-struct HyperResultIteratorPrivate {
-  struct ArrowSchema schema;
-  hyperapi::Result *result;
-  hyperapi::ChunkedResultIterator *iter;
+class HyperResultIteratorPrivate {
+public:
+  HyperResultIteratorPrivate(
+      std::unique_ptr<hyperapi::Result> result,
+      std::unique_ptr<hyperapi::ChunkedResultIterator> iter)
+      : result_(std::move(result)), iter_(std::move(iter)) {}
+
+  std::unique_ptr<hyperapi::Result> result_;
+  std::unique_ptr<hyperapi::ChunkedResultIterator> iter_;
+  struct ArrowError error_ {};
 };
 
 static auto ReleaseArrowStream(void *ptr) noexcept -> void {
   auto stream = static_cast<ArrowArrayStream *>(ptr);
   if (stream->release != nullptr) {
-    auto private_data =
-        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
-    delete private_data;
     ArrowArrayStreamRelease(stream);
   }
 }
-
-static auto HyperResultIteratorPrivateCleanup =
-    [](HyperResultIteratorPrivate *private_data) noexcept {
-      delete private_data->iter;
-      delete private_data->result;
-      ArrowSchemaRelease(&private_data->schema);
-    };
 
 static auto GetSchema = [](struct ArrowArrayStream *stream,
                            struct ArrowSchema *out) noexcept {
   auto private_data =
       static_cast<HyperResultIteratorPrivate *>(stream->private_data);
-  *out = private_data->schema;
+
+  const auto resultSchema = private_data->result_->getSchema();
+
+  struct ArrowSchema schema {};
+  ArrowSchemaInit(&schema);
+
+  if (ArrowSchemaSetTypeStruct(&schema, resultSchema.getColumnCount())) {
+    ArrowSchemaRelease(&schema);
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowSchemaSetTypeStruct failed!");
+    return EINVAL;
+  }
+
+  const auto column_count = resultSchema.getColumnCount();
+  std::unordered_map<std::string, size_t> name_counter;
+  for (size_t i = 0; i < column_count; i++) {
+    const auto column = resultSchema.getColumn(i);
+    auto name = column.getName().getUnescaped();
+    const auto &[elem, did_insert] = name_counter.emplace(name, 0);
+    if (!did_insert) {
+      name = name + "_" + std::to_string(elem->second);
+    }
+    elem->second += 1;
+
+    if (ArrowSchemaSetName(schema.children[i], name.c_str())) {
+      ArrowSchemaRelease(&schema);
+      ArrowErrorSetString(&private_data->error_, "ArrowSchemaSetName failed!");
+      return EINVAL;
+    }
+
+    SetSchemaTypeFromHyperType(schema.children[i], column.getType());
+  }
+
+  ArrowSchemaMove(&schema, out);
   return 0;
 };
 
@@ -455,19 +484,24 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   auto private_data =
       static_cast<HyperResultIteratorPrivate *>(stream->private_data);
 
-  auto end = hyperapi::ChunkedResultIterator{*private_data->result,
+  auto end = hyperapi::ChunkedResultIterator{*private_data->result_,
                                              hyperapi::IteratorEndTag{}};
-  if (*private_data->iter == end) {
-    HyperResultIteratorPrivateCleanup(private_data);
-    ArrowArrayRelease(out);
+  if (*private_data->iter_ == end) {
     return 0;
   }
 
-  const auto schema = private_data->schema;
+  struct ArrowSchema schema {};
+  if (int errcode = GetSchema(stream, &schema)) {
+    return errcode;
+  }
+
   const auto column_count = static_cast<size_t>(schema.n_children);
   nanoarrow::UniqueArray array{};
   if (ArrowArrayInitFromSchema(array.get(), &schema, nullptr)) {
-    HyperResultIteratorPrivateCleanup(private_data);
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayInitFromSchema failed!");
+    ArrowSchemaRelease(&schema);
+    delete private_data;
     return EINVAL;
   }
 
@@ -477,19 +511,24 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   for (size_t i = 0; i < column_count; i++) {
     struct ArrowSchemaView schema_view {};
     if (ArrowSchemaViewInit(&schema_view, schema.children[i], nullptr)) {
-      HyperResultIteratorPrivateCleanup(private_data);
+      ArrowErrorSetString(&private_data->error_, "ArrowSchemaViewInit failed!");
+      ArrowSchemaRelease(&schema);
+      delete private_data;
       return EINVAL;
     }
 
     auto read_helper = MakeReadHelper(&schema_view, array->children[i]);
     read_helpers[i] = std::move(read_helper);
   }
+  ArrowSchemaRelease(&schema);
 
   if (ArrowArrayStartAppending(array.get())) {
-    HyperResultIteratorPrivateCleanup(private_data);
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayStartAppending failed!");
+    delete private_data;
     return EINVAL;
   }
-  for (const auto &row : **private_data->iter) {
+  for (const auto &row : **private_data->iter_) {
     size_t column_idx = 0;
     for (const auto &value : row) {
       const auto &read_helper = read_helpers[column_idx];
@@ -497,14 +536,18 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
       column_idx++;
     }
     if (ArrowArrayFinishElement(array.get())) {
-      HyperResultIteratorPrivateCleanup(private_data);
+      ArrowErrorSetString(&private_data->error_,
+                          "ArrowArrayFinishElement failed!");
+      delete private_data;
       return EINVAL;
     }
   }
-  ++(*private_data->iter);
+  ++(*private_data->iter_);
 
   if (ArrowArrayFinishBuildingDefault(array.get(), nullptr)) {
-    HyperResultIteratorPrivateCleanup(private_data);
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayFinishBuildingDefault failed!");
+    delete private_data;
     return EINVAL;
   }
 
@@ -528,46 +571,33 @@ auto read_from_hyper_query(
       std::move(process_params)};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
 
-  auto hyperResult = new hyperapi::Result{connection.executeQuery(query)};
+  auto hyperResult =
+      std::make_unique<hyperapi::Result>(connection.executeQuery(query));
 
-  const auto resultSchema = hyperResult->getSchema();
+  auto iter = std::make_unique<hyperapi::ChunkedResultIterator>(
+      *hyperResult, hyperapi::IteratorBeginTag{});
 
-  struct ArrowSchema schema {};
-  ArrowSchemaInit(&schema);
-  if (ArrowSchemaSetTypeStruct(&schema, resultSchema.getColumnCount())) {
-    ArrowSchemaRelease(&schema);
-    delete hyperResult;
-    throw std::runtime_error("ArrowSchemaViewInit failed");
-  }
-
-  const auto column_count = resultSchema.getColumnCount();
-  std::unordered_map<std::string, size_t> name_counter;
-  for (size_t i = 0; i < column_count; i++) {
-    const auto column = resultSchema.getColumn(i);
-    auto name = column.getName().getUnescaped();
-    const auto &[elem, did_insert] = name_counter.emplace(name, 0);
-    if (!did_insert) {
-      name = name + "_" + std::to_string(elem->second);
-    }
-    elem->second += 1;
-
-    if (ArrowSchemaSetName(schema.children[i], name.c_str())) {
-      ArrowSchemaRelease(&schema);
-      delete hyperResult;
-      throw std::runtime_error("ArrowSchemaViewInit failed");
-    }
-
-    SetSchemaTypeFromHyperType(schema.children[i], column.getType());
-  }
+  auto private_data =
+      new HyperResultIteratorPrivate{std::move(hyperResult), std::move(iter)};
 
   auto stream =
       (struct ArrowArrayStream *)malloc(sizeof(struct ArrowArrayStream));
-  auto iter = new hyperapi::ChunkedResultIterator{*hyperResult,
-                                                  hyperapi::IteratorBeginTag{}};
-  auto private_data = new HyperResultIteratorPrivate{schema, hyperResult, iter};
   stream->private_data = private_data;
   stream->get_next = GetNext;
   stream->get_schema = GetSchema;
+  stream->get_last_error = [](struct ArrowArrayStream *stream) {
+    auto private_data =
+        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+    return static_cast<const char *>(private_data->error_.message);
+  };
+
+  stream->release = [](struct ArrowArrayStream *stream) {
+    // TODO: this is going to leak some resources
+    auto private_data =
+        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+    delete private_data;
+    stream->release = nullptr;
+  };
 
   nb::capsule result{stream, "arrow_array_stream", &ReleaseArrowStream};
   return result;
