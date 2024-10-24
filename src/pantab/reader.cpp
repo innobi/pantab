@@ -552,8 +552,8 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
 
 auto read_from_hyper_query(
     const std::string &path, const std::string &query,
-    std::unordered_map<std::string, std::string> &&process_params)
-    -> nb::capsule {
+    std::unordered_map<std::string, std::string> &&process_params,
+    size_t chunk_size) -> nb::capsule {
 
   if (!process_params.count("log_config"))
     process_params["log_config"] = "";
@@ -564,6 +564,11 @@ auto read_from_hyper_query(
       hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
       std::move(process_params)};
   hyperapi::Connection connection(hyper.getEndpoint(), path);
+
+  if (chunk_size) {
+    hyper_set_chunked_mode(hyperapi::internal::getHandle(connection), true);
+    hyper_set_chunk_size(hyperapi::internal::getHandle(connection), chunk_size);
+  }
 
   auto hyperResult =
       std::make_unique<hyperapi::Result>(connection.executeQuery(query));
