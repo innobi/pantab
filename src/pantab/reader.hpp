@@ -6,5 +6,5 @@
 
 auto read_from_hyper_query(
     const std::string &path, const std::string &query,
-    std::unordered_map<std::string, std::string> &&process_params)
-    -> nanobind::capsule;
+    std::unordered_map<std::string, std::string> &&process_params,
+    size_t chunk_size) -> nanobind::capsule;

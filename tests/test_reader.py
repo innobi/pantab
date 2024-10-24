@@ -220,3 +220,37 @@ def test_reader_prevents_sql_injection(
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
     pt.frame_to_hyper(frame, tmp_hyper, table=table)
     pt.frame_from_hyper(tmp_hyper, table=table)
+
+
+def test_read_batches(tmp_hyper, compat):
+    pa = pytest.importorskip("pyarrow")
+    tbl = pa.table({"int": pa.array(range(4), type=pa.int16())})
+
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+    stream = pt.frame_from_hyper(
+        tmp_hyper, table="test", return_type="stream", chunk_size=2
+    )
+
+    rdr = pa.RecordBatchReader.from_stream(stream)
+    tbl1 = pa.table({"int": pa.array(range(2), type=pa.int16())})
+    compat.assert_frame_equal(tbl1, pa.table(rdr.read_next_batch()))
+
+    tbl2 = pa.table({"int": pa.array(range(2, 4), type=pa.int16())})
+    compat.assert_frame_equal(tbl2, pa.table(rdr.read_next_batch()))
+
+    with pytest.raises(StopIteration):
+        rdr.read_next_batch()
+
+
+@pytest.mark.parametrize("return_type", ["polars", "pandas", "pyarrow"])
+def test_read_batches_without_capsule(tmp_hyper, compat, return_type):
+    pa = pytest.importorskip("pyarrow")
+    tbl = pa.table({"int": pa.array(range(4), type=pa.int16())})
+
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+
+    msg = r"only implemented with return_type='stream'"
+    with pytest.raises(NotImplementedError, match=msg):
+        pt.frame_from_hyper(
+            tmp_hyper, table="test", return_type=return_type, chunk_size=2
+        )

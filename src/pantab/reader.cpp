@@ -419,40 +419,40 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
   }
 }
 
+struct HyperResultIteratorPrivate {
+  HyperResultIteratorPrivate(
+      std::unique_ptr<hyperapi::Result> result,
+      std::unique_ptr<hyperapi::ChunkedResultIterator> iter)
+      : result_(std::move(result)), iter_(std::move(iter)) {}
+
+  std::unique_ptr<hyperapi::Result> result_;
+  std::unique_ptr<hyperapi::ChunkedResultIterator> iter_;
+  struct ArrowError error_ {};
+};
+
 static auto ReleaseArrowStream(void *ptr) noexcept -> void {
   auto stream = static_cast<ArrowArrayStream *>(ptr);
   if (stream->release != nullptr) {
     ArrowArrayStreamRelease(stream);
   }
+
+  delete stream;
 }
 
-///
-/// read_from_hyper_query is slightly different than read_from_hyper_table
-/// because the former detects a schema from the hyper Result object
-/// which does not hold nullability information
-///
-auto read_from_hyper_query(
-    const std::string &path, const std::string &query,
-    std::unordered_map<std::string, std::string> &&process_params)
-    -> nb::capsule {
+static auto GetSchema = [](struct ArrowArrayStream *stream,
+                           struct ArrowSchema *out) noexcept {
+  auto private_data =
+      static_cast<HyperResultIteratorPrivate *>(stream->private_data);
 
-  if (!process_params.count("log_config"))
-    process_params["log_config"] = "";
-  if (!process_params.count("default_database_version"))
-    process_params["default_database_version"] = "2";
+  const auto resultSchema = private_data->result_->getSchema();
 
-  const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
-      std::move(process_params)};
-  hyperapi::Connection connection(hyper.getEndpoint(), path);
-
-  auto hyperResult = connection.executeQuery(query);
-  const auto resultSchema = hyperResult.getSchema();
-
-  auto schema = std::make_unique<struct ArrowSchema>();
+  nanoarrow::UniqueSchema schema{};
   ArrowSchemaInit(schema.get());
+
   if (ArrowSchemaSetTypeStruct(schema.get(), resultSchema.getColumnCount())) {
-    throw std::runtime_error("ArrowSchemaSetTypeStruct failed");
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowSchemaSetTypeStruct failed!");
+    return EINVAL;
   }
 
   const auto column_count = resultSchema.getColumnCount();
@@ -467,21 +467,49 @@ auto read_from_hyper_query(
     elem->second += 1;
 
     if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
-      throw std::runtime_error("ArrowSchemaSetName failed");
+      ArrowErrorSetString(&private_data->error_, "ArrowSchemaSetName failed!");
+      return EINVAL;
     }
 
     SetSchemaTypeFromHyperType(schema->children[i], column.getType());
   }
 
+  ArrowSchemaMove(schema.get(), out);
+  return 0;
+};
+
+static auto GetNext = [](struct ArrowArrayStream *stream,
+                         struct ArrowArray *out) noexcept {
+  auto private_data =
+      static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+
+  auto end = hyperapi::ChunkedResultIterator{*private_data->result_,
+                                             hyperapi::IteratorEndTag{}};
+  if (*private_data->iter_ == end) {
+    return 0;
+  }
+
+  nanoarrow::UniqueSchema schema{};
+  if (int errcode = GetSchema(stream, schema.get())) {
+    return errcode;
+  }
+
+  const auto column_count = static_cast<size_t>(schema->n_children);
   nanoarrow::UniqueArray array{};
   if (ArrowArrayInitFromSchema(array.get(), schema.get(), nullptr)) {
-    throw std::runtime_error("ArrowSchemaInitFromSchema failed");
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayInitFromSchema failed!");
+    return EINVAL;
   }
+
+  // TODO: we might want to move the vector of ReadHelpers to the private_data
+  // rather than doing on each loop iteration here
   std::vector<std::unique_ptr<ReadHelper>> read_helpers{column_count};
   for (size_t i = 0; i < column_count; i++) {
-    struct ArrowSchemaView schema_view;
+    struct ArrowSchemaView schema_view {};
     if (ArrowSchemaViewInit(&schema_view, schema->children[i], nullptr)) {
-      throw std::runtime_error("ArrowSchemaViewInit failed");
+      ArrowErrorSetString(&private_data->error_, "ArrowSchemaViewInit failed!");
+      return EINVAL;
     }
 
     auto read_helper = MakeReadHelper(&schema_view, array->children[i]);
@@ -489,9 +517,11 @@ auto read_from_hyper_query(
   }
 
   if (ArrowArrayStartAppending(array.get())) {
-    throw std::runtime_error("ArrowArrayStartAppending failed");
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayStartAppending failed!");
+    return EINVAL;
   }
-  for (const auto &row : hyperResult) {
+  for (const auto &row : **private_data->iter_) {
     size_t column_idx = 0;
     for (const auto &value : row) {
       const auto &read_helper = read_helpers[column_idx];
@@ -499,20 +529,70 @@ auto read_from_hyper_query(
       column_idx++;
     }
     if (ArrowArrayFinishElement(array.get())) {
-      throw std::runtime_error("ArrowArrayFinishElement failed");
+      ArrowErrorSetString(&private_data->error_,
+                          "ArrowArrayFinishElement failed!");
+      return EINVAL;
     }
   }
+  ++(*private_data->iter_);
+
   if (ArrowArrayFinishBuildingDefault(array.get(), nullptr)) {
-    throw std::runtime_error("ArrowArrayFinishBuildingDefault failed");
+    ArrowErrorSetString(&private_data->error_,
+                        "ArrowArrayFinishBuildingDefault failed!");
+    return EINVAL;
   }
 
-  auto stream =
-      (struct ArrowArrayStream *)malloc(sizeof(struct ArrowArrayStream));
-  if (ArrowBasicArrayStreamInit(stream, schema.get(), 1)) {
-    free(stream);
-    throw std::runtime_error("ArrowBasicArrayStreamInit failed");
+  ArrowArrayMove(array.get(), out);
+
+  return 0;
+};
+
+auto read_from_hyper_query(
+    const std::string &path, const std::string &query,
+    std::unordered_map<std::string, std::string> &&process_params,
+    size_t chunk_size) -> nb::capsule {
+
+  if (!process_params.count("log_config"))
+    process_params["log_config"] = "";
+  if (!process_params.count("default_database_version"))
+    process_params["default_database_version"] = "2";
+
+  const hyperapi::HyperProcess hyper{
+      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
+      std::move(process_params)};
+  hyperapi::Connection connection(hyper.getEndpoint(), path);
+
+  if (chunk_size) {
+    hyper_set_chunked_mode(hyperapi::internal::getHandle(connection), true);
+    hyper_set_chunk_size(hyperapi::internal::getHandle(connection), chunk_size);
   }
-  ArrowBasicArrayStreamSetArray(stream, 0, array.get());
+
+  auto hyperResult =
+      std::make_unique<hyperapi::Result>(connection.executeQuery(query));
+
+  auto iter = std::make_unique<hyperapi::ChunkedResultIterator>(
+      *hyperResult, hyperapi::IteratorBeginTag{});
+
+  auto private_data =
+      new HyperResultIteratorPrivate{std::move(hyperResult), std::move(iter)};
+
+  auto stream = new struct ArrowArrayStream;
+  stream->private_data = private_data;
+  stream->get_next = GetNext;
+  stream->get_schema = GetSchema;
+  stream->get_last_error = [](struct ArrowArrayStream *stream) {
+    auto private_data =
+        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+    return static_cast<const char *>(private_data->error_.message);
+  };
+
+  stream->release = [](struct ArrowArrayStream *stream) {
+    // TODO: this is going to leak some resources
+    auto private_data =
+        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+    delete private_data;
+    stream->release = nullptr;
+  };
 
   nb::capsule result{stream, "arrow_array_stream", &ReleaseArrowStream};
   return result;

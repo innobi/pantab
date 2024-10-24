@@ -55,5 +55,5 @@ NB_MODULE(libpantab, m) { // NOLINT
            nb::arg("json_columns"), nb::arg("geo_columns"),
            nb::arg("process_params"))
       .def("read_from_hyper_query", &read_from_hyper_query, nb::arg("path"),
-           nb::arg("query"), nb::arg("process_params"));
+           nb::arg("query"), nb::arg("process_params"), nb::arg("chunk_size"));
 }
