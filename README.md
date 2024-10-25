@@ -1,6 +1,26 @@
 ![pantab logo](./misc/pantab_logo.svg)
 
+# Who is this for
+
+If you are a data analyst who needs to use tableau andpython pantab is the best way to tansfer data between th two platforms.
+
+# Watch what it can do
+
+Insert a 30 second gif showing pantab being used by an experienced practitioner.  The idea is to sell the power of the platform.  For me personally, I don't care about installing or even reading a quick start until I understand what the software can do for me.  Sell that here
+
+# Quick start
+
+Explain what the following snippet does.
+```python
+import pantab as pt
+df = pd.DataFrame({"column": np.ones(n, dtype=np.int16)})
+pantab.frame_to_hyper(df, "example.hyper", table="table")
+```
+
+
+
 # Getting Help
+
 
 ## Documentation
 Official documentation for the project and all of its features is hosted at:
