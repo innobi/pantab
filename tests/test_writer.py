@@ -1,5 +1,6 @@
 import datetime
 import re
+import unittest.mock
 
 import narwhals as nw
 import pandas as pd
@@ -187,11 +188,60 @@ def test_failed_write_doesnt_overwrite_file(
     frame = compat.add_non_writeable_column(frame)
     msg = "Unsupported Arrow type"
     with pytest.raises(ValueError, match=msg):
-        pt.frame_to_hyper(frame, tmp_hyper, table="test", table_mode=table_mode)
-        pt.frames_to_hyper({"test": frame}, tmp_hyper, table_mode=table_mode)
+        pt.frame_to_hyper(
+            frame,
+            tmp_hyper,
+            table="test",
+            table_mode=table_mode,
+            process_params={"default_database_version": "4"},
+        )
+        pt.frames_to_hyper(
+            {"test": frame},
+            tmp_hyper,
+            table_mode=table_mode,
+            process_params={"default_database_version": "4"},
+        )
 
     # Neither should not update file stats
     assert last_modified == tmp_hyper.stat().st_mtime
+
+
+@unittest.mock.patch("shutil.copy")
+@unittest.mock.patch("shutil.move")
+def test_atomic_keyword_does_not_copy_or_move(
+    mocked_copy,
+    mocked_move,
+    frame,
+    tmp_hyper,
+    monkeypatch,
+    table_mode,
+):
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        table_mode=table_mode,
+        process_params={"default_database_version": "4"},
+    )
+
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        table_mode=table_mode,
+        atomic=False,
+        process_params={"default_database_version": "4"},
+    )
+    pt.frames_to_hyper(
+        {"test": frame},
+        tmp_hyper,
+        table_mode=table_mode,
+        atomic=False,
+        process_params={"default_database_version": "4"},
+    )
+
+    mocked_copy.assert_not_called()
+    mocked_move.assert_not_called()
 
 
 def test_duplicate_columns_raises(tmp_hyper):
