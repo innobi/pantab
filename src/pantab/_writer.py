@@ -56,6 +56,7 @@ def frame_to_hyper(
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
     process_params: Optional[dict[str, str]] = None,
+    atomic: bool = True,
 ) -> None:
     """
     Convert a DataFrame to a .hyper extract.
@@ -68,6 +69,7 @@ def frame_to_hyper(
     :param json_columns: Columns to be written as a JSON data type
     :param geo_columns: Columns to be written as a GEOGRAPHY data type
     :param process_params: Parameters to pass to the Hyper Process constructor.
+    :param atomic: Whether to treat write as atomic. Disabling gives better performance, but failures during write will likely corrupt the Hyper file.
     """
     frames_to_hyper(
         {table: df},
@@ -77,6 +79,7 @@ def frame_to_hyper(
         json_columns=json_columns,
         geo_columns=geo_columns,
         process_params=process_params,
+        atomic=atomic,
     )
 
 
@@ -89,6 +92,7 @@ def frames_to_hyper(
     json_columns: Optional[set[str]] = None,
     geo_columns: Optional[set[str]] = None,
     process_params: Optional[dict[str, str]] = None,
+    atomic: bool = True,
 ) -> None:
     """
     Writes multiple DataFrames to a .hyper extract.
@@ -100,6 +104,7 @@ def frames_to_hyper(
     :param json_columns: Columns to be written as a JSON data type
     :param geo_columns: Columns to be written as a GEOGRAPHY data type
     :param process_params: Parameters to pass to the Hyper Process constructor.
+    :param atomic: Whether to treat write as atomic. Disabling gives better performance, but failures during write will likely corrupt the Hyper file.
     """
     _validate_table_mode(table_mode)
 
@@ -112,10 +117,27 @@ def frames_to_hyper(
     if process_params is None:
         process_params = {}
 
-    tmp_db = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
+    if not atomic:
+        needs_copy = False
+        needs_move = False
+        path_to_write = database
+    else:
+        if pathlib.Path(database).exists():
+            path_to_write = (
+                pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
+            )
+            needs_move = True
+            if table_mode == "a":
+                needs_copy = True
+            else:
+                needs_copy = False
+        else:
+            needs_copy = False
+            needs_move = False
+            path_to_write = database
 
-    if table_mode == "a" and pathlib.Path(database).exists():
-        shutil.copy(database, tmp_db)
+    if needs_copy:
+        shutil.copy(database, path_to_write)
 
     def convert_to_table_name(table: pt_types.TableNameType):
         if isinstance(table, pt_types.TableauTableName):
@@ -135,7 +157,7 @@ def frames_to_hyper(
 
     libpantab.write_to_hyper(
         data,
-        path=str(tmp_db),
+        path=str(path_to_write),
         table_mode=table_mode,
         not_null_columns=not_null_columns,
         json_columns=json_columns,
@@ -143,6 +165,7 @@ def frames_to_hyper(
         process_params=process_params,
     )
 
-    # In Python 3.9+ we can just pass the path object, but due to bpo 32689
-    # and subsequent typeshed changes it is easier to just pass as str for now
-    shutil.move(str(tmp_db), database)
+    if needs_move:
+        # In Python 3.9+ we can just pass the path object, but due to bpo 32689
+        # and subsequent typeshed changes it is easier to just pass as str for now
+        shutil.move(str(path_to_write), database)
