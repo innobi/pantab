@@ -117,24 +117,17 @@ def frames_to_hyper(
     if process_params is None:
         process_params = {}
 
-    if not atomic:
+    if not (atomic and pathlib.Path(database).exists()):
         needs_copy = False
         needs_move = False
         path_to_write = database
     else:
-        if pathlib.Path(database).exists():
-            path_to_write = (
-                pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
-            )
-            needs_move = True
-            if table_mode == "a":
-                needs_copy = True
-            else:
-                needs_copy = False
+        path_to_write = pathlib.Path(tempfile.gettempdir()) / f"{uuid.uuid4()}.hyper"
+        needs_move = True
+        if table_mode == "a":
+            needs_copy = True
         else:
             needs_copy = False
-            needs_move = False
-            path_to_write = database
 
     if needs_copy:
         shutil.copy(database, path_to_write)

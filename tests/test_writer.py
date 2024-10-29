@@ -208,6 +208,28 @@ def test_failed_write_doesnt_overwrite_file(
 
 @unittest.mock.patch("shutil.copy")
 @unittest.mock.patch("shutil.move")
+def test_new_file_write_does_not_copy_or_move(
+    mocked_copy,
+    mocked_move,
+    frame,
+    tmp_hyper,
+    monkeypatch,
+    table_mode,
+):
+    pt.frame_to_hyper(
+        frame,
+        tmp_hyper,
+        table="test",
+        table_mode=table_mode,
+        process_params={"default_database_version": "4"},
+    )
+
+    mocked_copy.assert_not_called()
+    mocked_move.assert_not_called()
+
+
+@unittest.mock.patch("shutil.copy")
+@unittest.mock.patch("shutil.move")
 def test_atomic_keyword_does_not_copy_or_move(
     mocked_copy,
     mocked_move,
