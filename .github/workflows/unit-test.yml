@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-12, macos-14]
+        os: [ubuntu-24.04, windows-2022, macos-13, macos-14]
 
     steps:
       - uses: actions/checkout@v4
@@ -52,8 +52,7 @@ jobs:
       - name: Build wheels for ${{ matrix.os }}
         uses: pypa/cibuildwheel@v2.21.3
         env:
-          MACOSX_DEPLOYMENT_TARGET: "10.14"
-          CMAKE_APPLE_SILICON_PROCESSOR: ${{ matrix.os == 'macos-14' && 'arm64' || '' }}
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
 
   test_no_tableauhyperapi:
     name: Test wheels without tableauhyperapi on ${{ matrix.os }}
@@ -61,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-12, macos-14]
+        os: [ubuntu-24.04, windows-2022, macos-13, macos-14]
 
     steps:
       - uses: actions/checkout@v4
@@ -73,5 +72,4 @@ jobs:
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_TEST_REQUIRES: pytest pytest-xdist[psutil] pandas>=2.0.0 polars narwhals
-          MACOSX_DEPLOYMENT_TARGET: "10.14"
-          CMAKE_APPLE_SILICON_PROCESSOR: ${{ matrix.os == 'macos-14' && 'arm64' || '' }}
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
