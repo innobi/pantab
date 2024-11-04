@@ -1,6 +1,67 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 5.2.0 (2024-11-XX)
+=========================
+
+New Features
+------------
+
+Larger than RAM Read Support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, from a Hyper database materializes all of the query results into memory. This can be problematic when dealing with a result set that exceeds the amount of available RAM on your machine.
+
+With pantab 5.2 we are adding support for passing result sets through the `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ using``result_type="stream"`` and optionally specifying a ``chunk_size=`` argument. The object returned can be forwarded along to the stream reader of your choice to iterate the result set in batches.
+
+To illustrate, let's take a look at code using PyArrow's `RecordBatchReader <https://arrow.apache.org/docs/python/generated/pyarrow.RecordBatchReader.html>`_:
+
+.. code-block:: python
+
+   import pantab as pt
+   import pyarrow as pa
+
+   tbl = pa.table({"col1": range(4), "col2": list("abcd")})
+   pt.frame_to_hyper(tbl, "example.hyper", table="test")
+
+   stream = pt.frame_from_hyper(
+       "example.hyper",
+       table="test",
+       return_type="stream",
+       chunk_size=2,
+   )
+   reader = pa.RecordBatchReader.from_stream(stream)
+
+   for batch in reader:
+       print(batch)
+
+If you do not specify a ``chunk_size`` argument, Tableau should by default provide back results in 256MB blocks of data.
+
+Note that writing larger than RAM datasets is already natively supported by pantab; this version helps enforce that consistency on the read size.
+
+Improved Write Performance
+--------------------------
+
+Prior to the 5.2.0 release, pantab would first try to write to a Hyper file in your temporary directory, only copying it to the desired location when a write was successful. In cases where the file you are trying to write did not exist, this unnecessary copy would add performance overhead.
+
+In cases where you are trying to overwrite or append to an existing file, pantab by default will still write to the temporary directory so as to avoid corrupting the existing Hyper file in case of write failure. However, if you do not care to preserve the existing file at all even in case of subsequent write failures, you can provide the ``atomic==False`` keyword to avoid use of the temporary directory.
+
+.. code-block:: python
+
+   import pantab as pt
+   import pyarrow as pa
+
+   tbl = pa.table({"col1": range(4), "col2": list("abcd")})
+   for _ in range(100):
+       pt.frame_to_hyper(tbl, "example.hyper", table="test", table_mode="append")
+
+Prior to 5.2.0 the preceding code block would exhibit O(n) performance, with ``n`` representing the number of loop iterations. With 5.2.0 and using ``atomic==False``, the performance is closer to O(1).
+
+Other Features
+--------------
+
+- Pantab 5.2.0 is the first release to officially provide Python 3.13 wheels
+
 Pantab 5.1.0 (2024-10-09)
 =========================
 
