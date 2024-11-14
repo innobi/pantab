@@ -1,6 +1,7 @@
 #include "reader.hpp"
 #include "numeric_gen.hpp"
 
+#include <span>
 #include <variant>
 #include <vector>
 
@@ -9,13 +10,25 @@
 
 namespace nb = nanobind;
 
+namespace gsl {
+template <typename T> using owner = T;
+}
+
 class ReadHelper {
 public:
   ReadHelper(struct ArrowArray *array) : array_(array) {}
+  ReadHelper(const ReadHelper &) = delete;
+  ReadHelper &operator=(ReadHelper &) = delete;
+  ReadHelper(ReadHelper &&) = delete;
+  ReadHelper &operator=(ReadHelper &&) = delete;
+
   virtual ~ReadHelper() = default;
   virtual auto Read(const hyperapi::Value &) -> void = 0;
 
 protected:
+  auto GetMutableArray() { return array_; }
+
+private:
   struct ArrowArray *array_;
 };
 
@@ -24,12 +37,12 @@ template <typename T> class IntegralReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
-    if (ArrowArrayAppendInt(array_, value.get<T>())) {
+    if (ArrowArrayAppendInt(GetMutableArray(), value.get<T>())) {
       throw std::runtime_error("ArrowAppendInt failed");
     };
   }
@@ -40,12 +53,12 @@ class OidReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
-    if (ArrowArrayAppendUInt(array_, value.get<uint32_t>())) {
+    if (ArrowArrayAppendUInt(GetMutableArray(), value.get<uint32_t>())) {
       throw std::runtime_error("ArrowAppendUInt failed");
     };
   }
@@ -56,12 +69,12 @@ template <typename T> class FloatReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
-    if (ArrowArrayAppendDouble(array_, value.get<T>())) {
+    if (ArrowArrayAppendDouble(GetMutableArray(), value.get<T>())) {
       throw std::runtime_error("ArrowAppendDouble failed");
     };
   }
@@ -72,12 +85,12 @@ class BooleanReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
-    if (ArrowArrayAppendInt(array_, value.get<bool>())) {
+    if (ArrowArrayAppendInt(GetMutableArray(), value.get<bool>())) {
       throw std::runtime_error("ArrowAppendBool failed");
     };
   }
@@ -88,7 +101,7 @@ class BytesReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
@@ -100,7 +113,7 @@ class BytesReadHelper : public ReadHelper {
     const ArrowBufferView arrow_buffer_view{{bytes.data()},
                                             static_cast<int64_t>(bytes.size())};
 
-    if (ArrowArrayAppendBytes(array_, arrow_buffer_view)) {
+    if (ArrowArrayAppendBytes(GetMutableArray(), arrow_buffer_view)) {
       throw std::runtime_error("ArrowAppendString failed");
     };
   }
@@ -111,7 +124,7 @@ class StringReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
@@ -127,7 +140,7 @@ class StringReadHelper : public ReadHelper {
         strval.data(), static_cast<int64_t>(strval.size())};
 #endif
 
-    if (ArrowArrayAppendString(array_, arrow_string_view)) {
+    if (ArrowArrayAppendString(GetMutableArray(), arrow_string_view)) {
       throw std::runtime_error("ArrowAppendString failed");
     };
   }
@@ -138,7 +151,7 @@ class DateReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
@@ -151,16 +164,17 @@ class DateReadHelper : public ReadHelper {
     const auto raw_value = static_cast<int32_t>(hyper_date.getRaw());
     const auto arrow_value = raw_value - tableau_to_unix_days;
 
-    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
+    auto array = GetMutableArray();
+    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array, 1);
     if (ArrowBufferAppendInt32(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append date32 value");
     }
 
-    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array_);
+    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array);
     if (ArrowBitmapAppend(validity_bitmap, true, 1)) {
       throw std::runtime_error("Could not append validity buffer for date32");
     };
-    array_->length++;
+    array->length++;
   }
 };
 
@@ -169,7 +183,7 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
@@ -187,17 +201,18 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
     const auto raw_usec = static_cast<int64_t>(hyper_ts.getRaw());
     const auto arrow_value = raw_usec - tableau_to_unix_usec;
 
-    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array_, 1);
+    auto array = GetMutableArray();
+    struct ArrowBuffer *data_buffer = ArrowArrayBuffer(array, 1);
     if (ArrowBufferAppendInt64(data_buffer, arrow_value)) {
       throw std::runtime_error("Failed to append timestamp64 value");
     }
 
-    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array_);
+    struct ArrowBitmap *validity_bitmap = ArrowArrayValidityBitmap(array);
     if (ArrowBitmapAppend(validity_bitmap, true, 1)) {
       throw std::runtime_error(
           "Could not append validity buffer for timestamp");
     };
-    array_->length++;
+    array->length++;
   }
 };
 
@@ -206,7 +221,7 @@ class TimeReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
@@ -214,7 +229,8 @@ class TimeReadHelper : public ReadHelper {
 
     const auto time = value.get<hyperapi::Time>();
     const auto raw_value = time.getRaw();
-    if (ArrowArrayAppendInt(array_, raw_value)) {
+    if (ArrowArrayAppendInt(GetMutableArray(),
+                            static_cast<int64_t>(raw_value))) {
       throw std::runtime_error("ArrowAppendInt failed");
     }
   }
@@ -225,24 +241,30 @@ class IntervalReadHelper : public ReadHelper {
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
 
-    struct ArrowInterval arrow_interval;
+    struct ArrowInterval arrow_interval {};
     ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
     const auto interval_value = value.get<hyperapi::Interval>();
-    arrow_interval.months =
-        interval_value.getYears() * 12 + interval_value.getMonths();
-    arrow_interval.days = interval_value.getDays();
-    arrow_interval.ns = interval_value.getHours() * 3'600'000'000'000LL +
-                        interval_value.getMinutes() * 60'000'000'000LL +
-                        interval_value.getSeconds() * 1'000'000'000LL +
-                        interval_value.getMicroseconds() * 1'000LL;
+    constexpr auto MonthsPerYear = 12;
+    constexpr auto NsPerHour = 3'600'000'000'000LL;
+    constexpr auto NsPerMin = 60'000'000'000LL;
+    constexpr auto NsPerSec = 1'000'000'000LL;
+    constexpr auto NsPerUsec = 1'000LL;
 
-    if (ArrowArrayAppendInterval(array_, &arrow_interval)) {
+    arrow_interval.months =
+        interval_value.getYears() * MonthsPerYear + interval_value.getMonths();
+    arrow_interval.days = interval_value.getDays();
+    arrow_interval.ns = interval_value.getHours() * NsPerHour +
+                        interval_value.getMinutes() * NsPerMin +
+                        interval_value.getSeconds() * NsPerSec +
+                        interval_value.getMicroseconds() * NsPerUsec;
+
+    if (ArrowArrayAppendInterval(GetMutableArray(), &arrow_interval)) {
       throw std::runtime_error("Failed to append interval value");
     }
   }
@@ -256,14 +278,14 @@ public:
 
   auto Read(const hyperapi::Value &value) -> void override {
     if (value.isNull()) {
-      if (ArrowArrayAppendNull(array_, 1)) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
         throw std::runtime_error("ArrowAppendNull failed");
       }
       return;
     }
 
     constexpr int32_t bitwidth = 128;
-    struct ArrowDecimal decimal;
+    struct ArrowDecimal decimal {};
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
 
     constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
@@ -296,7 +318,7 @@ public:
           "Unable to convert tableau numeric to arrow decimal");
     }
 
-    if (ArrowArrayAppendDecimal(array_, &decimal)) {
+    if (ArrowArrayAppendDecimal(GetMutableArray(), &decimal)) {
       throw std::runtime_error("Failed to append decimal value");
     }
   }
@@ -405,8 +427,9 @@ static auto SetSchemaTypeFromHyperType(struct ArrowSchema *schema,
   case hyperapi::TypeTag::Numeric: {
     const auto precision = sqltype.getPrecision();
     const auto scale = sqltype.getScale();
-    if (ArrowSchemaSetTypeDecimal(schema, NANOARROW_TYPE_DECIMAL128, precision,
-                                  scale)) {
+    if (ArrowSchemaSetTypeDecimal(schema, NANOARROW_TYPE_DECIMAL128,
+                                  static_cast<int32_t>(precision),
+                                  static_cast<int32_t>(scale))) {
       throw std::runtime_error("ArrowSchemaSetTypeDecimal failed");
     }
     break;
@@ -431,7 +454,7 @@ struct HyperResultIteratorPrivate {
 };
 
 static auto ReleaseArrowStream(void *ptr) noexcept -> void {
-  auto stream = static_cast<ArrowArrayStream *>(ptr);
+  auto stream = static_cast<gsl::owner<ArrowArrayStream *>>(ptr);
   if (stream->release != nullptr) {
     ArrowArrayStreamRelease(stream);
   }
@@ -439,8 +462,8 @@ static auto ReleaseArrowStream(void *ptr) noexcept -> void {
   delete stream;
 }
 
-static auto GetSchema = [](struct ArrowArrayStream *stream,
-                           struct ArrowSchema *out) noexcept {
+static const auto GetSchema = [](struct ArrowArrayStream *stream,
+                                 struct ArrowSchema *out) noexcept {
   auto private_data =
       static_cast<HyperResultIteratorPrivate *>(stream->private_data);
 
@@ -449,7 +472,8 @@ static auto GetSchema = [](struct ArrowArrayStream *stream,
   nanoarrow::UniqueSchema schema{};
   ArrowSchemaInit(schema.get());
 
-  if (ArrowSchemaSetTypeStruct(schema.get(), resultSchema.getColumnCount())) {
+  if (ArrowSchemaSetTypeStruct(
+          schema.get(), static_cast<int64_t>(resultSchema.getColumnCount()))) {
     ArrowErrorSetString(&private_data->error_,
                         "ArrowSchemaSetTypeStruct failed!");
     return EINVAL;
@@ -457,6 +481,9 @@ static auto GetSchema = [](struct ArrowArrayStream *stream,
 
   const auto column_count = resultSchema.getColumnCount();
   std::unordered_map<std::string, size_t> name_counter;
+  const std::span children{schema->children,
+                           static_cast<size_t>(schema->n_children)};
+
   for (size_t i = 0; i < column_count; i++) {
     const auto column = resultSchema.getColumn(i);
     auto name = column.getName().getUnescaped();
@@ -466,20 +493,20 @@ static auto GetSchema = [](struct ArrowArrayStream *stream,
     }
     elem->second += 1;
 
-    if (ArrowSchemaSetName(schema->children[i], name.c_str())) {
+    if (ArrowSchemaSetName(children[i], name.c_str())) {
       ArrowErrorSetString(&private_data->error_, "ArrowSchemaSetName failed!");
       return EINVAL;
     }
 
-    SetSchemaTypeFromHyperType(schema->children[i], column.getType());
+    SetSchemaTypeFromHyperType(children[i], column.getType());
   }
 
   ArrowSchemaMove(schema.get(), out);
   return 0;
 };
 
-static auto GetNext = [](struct ArrowArrayStream *stream,
-                         struct ArrowArray *out) noexcept {
+static const auto GetNext = [](struct ArrowArrayStream *stream,
+                               struct ArrowArray *out) noexcept {
   auto private_data =
       static_cast<HyperResultIteratorPrivate *>(stream->private_data);
 
@@ -505,14 +532,18 @@ static auto GetNext = [](struct ArrowArrayStream *stream,
   // TODO: we might want to move the vector of ReadHelpers to the private_data
   // rather than doing on each loop iteration here
   std::vector<std::unique_ptr<ReadHelper>> read_helpers{column_count};
+  const std::span schema_children{schema->children,
+                                  static_cast<size_t>(schema->n_children)};
+  const std::span array_children{array->children,
+                                 static_cast<size_t>(array->n_children)};
   for (size_t i = 0; i < column_count; i++) {
     struct ArrowSchemaView schema_view {};
-    if (ArrowSchemaViewInit(&schema_view, schema->children[i], nullptr)) {
+    if (ArrowSchemaViewInit(&schema_view, schema_children[i], nullptr)) {
       ArrowErrorSetString(&private_data->error_, "ArrowSchemaViewInit failed!");
       return EINVAL;
     }
 
-    auto read_helper = MakeReadHelper(&schema_view, array->children[i]);
+    auto read_helper = MakeReadHelper(&schema_view, array_children[i]);
     read_helpers[i] = std::move(read_helper);
   }
 
@@ -573,10 +604,11 @@ auto read_from_hyper_query(
   auto iter = std::make_unique<hyperapi::ChunkedResultIterator>(
       *hyperResult, hyperapi::IteratorBeginTag{});
 
-  auto private_data =
-      new HyperResultIteratorPrivate{std::move(hyperResult), std::move(iter)};
+  auto private_data = gsl::owner<HyperResultIteratorPrivate *>(
+      new HyperResultIteratorPrivate{std::move(hyperResult), std::move(iter)});
 
-  auto stream = new struct ArrowArrayStream;
+  auto stream =
+      gsl::owner<struct ArrowArrayStream *>(new struct ArrowArrayStream);
   stream->private_data = private_data;
   stream->get_next = GetNext;
   stream->get_schema = GetSchema;
@@ -587,9 +619,8 @@ auto read_from_hyper_query(
   };
 
   stream->release = [](struct ArrowArrayStream *stream) {
-    // TODO: this is going to leak some resources
-    auto private_data =
-        static_cast<HyperResultIteratorPrivate *>(stream->private_data);
+    auto private_data = static_cast<gsl::owner<HyperResultIteratorPrivate *>>(
+        stream->private_data);
     delete private_data;
     stream->release = nullptr;
   };
