@@ -254,3 +254,15 @@ def test_read_batches_without_capsule(tmp_hyper, compat, return_type):
         pt.frame_from_hyper(
             tmp_hyper, table="test", return_type=return_type, chunk_size=2
         )
+
+
+def test_reader_can_enable_logging(tmp_hyper):
+    df = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
+    pt.frame_to_hyper(df, tmp_hyper, table="test")
+
+    log_dir = tmp_hyper.parent
+    params = {"log_config": "enable_me", "log_dir": str(log_dir)}
+    pt.frame_from_hyper(tmp_hyper, table="test", process_params=params)
+
+    assert (log_dir / "hyperd.log").exists()
+    (log_dir / "hyperd.log").unlink()

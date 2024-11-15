@@ -733,8 +733,11 @@ void write_to_hyper(
     geo_set.insert(colstr);
   }
 
-  if (!process_params.count("log_config"))
+  if (!process_params.count("log_config")) {
     process_params["log_config"] = "";
+  } else {
+    process_params.erase("log_config");
+  }
   if (!process_params.count("default_database_version"))
     process_params["default_database_version"] = "2";
 

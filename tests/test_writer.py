@@ -515,3 +515,14 @@ def test_writer_invalid_process_params_raises(tmp_hyper):
     msg = r"No internal setting named 'not_a_real_parameter'"
     with pytest.raises(RuntimeError, match=msg):
         pt.frame_to_hyper(frame, tmp_hyper, table="test", process_params=params)
+
+
+def test_writer_can_enable_logging(tmp_hyper):
+    tbl = pa.table({"int": pa.array(range(4), type=pa.int16())})
+
+    log_dir = tmp_hyper.parent
+    params = {"log_config": "enable_me", "log_dir": str(log_dir)}
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test", process_params=params)
+
+    assert (log_dir / "hyperd.log").exists()
+    (log_dir / "hyperd.log").unlink()

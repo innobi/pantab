@@ -552,8 +552,11 @@ auto read_from_hyper_query(
     std::unordered_map<std::string, std::string> &&process_params,
     size_t chunk_size) -> nb::capsule {
 
-  if (!process_params.count("log_config"))
+  if (!process_params.count("log_config")) {
     process_params["log_config"] = "";
+  } else {
+    process_params.erase("log_config");
+  }
   if (!process_params.count("default_database_version"))
     process_params["default_database_version"] = "2";
 
