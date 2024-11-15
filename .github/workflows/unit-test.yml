@@ -33,7 +33,7 @@ jobs:
         ln -s build/compile_commands.json
     - name: Run clang-tidy
       run: |
-        clang-tidy src/pantab/writer.cpp
+        clang-tidy src/pantab/*.*pp --warnings-as-errors='*'
 
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
