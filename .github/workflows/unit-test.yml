@@ -85,7 +85,7 @@ jobs:
 
       - name: Build library
         run: |
-          cmake -S . -B build -G Ninja -DPANTAB_USE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+          cmake -S . -B build -DPANTAB_USE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=RelWithDebugInfo
           cmake --build build
 
       - name: Test library
