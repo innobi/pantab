@@ -73,3 +73,25 @@ jobs:
         env:
           CIBW_TEST_REQUIRES: pytest pytest-xdist[psutil] pandas>=2.0.0 polars narwhals
           MACOSX_DEPLOYMENT_TARGET: "11.0"
+
+  test_sanitizers:
+    name: ASAN/UBSAN test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Used to host cibuildwheel
+      - uses: actions/setup-python@v3
+
+      - name: Build library
+        run: |
+          cmake -S . -B build -G Ninja -DPANTAB_USE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+          cmake --build build
+
+      - name: Test library
+        env:
+          ASAN_OPTIONS: "detect_leaks=0"
+          LD_PRELOAD: "$(gcc -print-file-name=libasan.so)"
+        run: |
+          cd build/src
+          python -m pytest -m "not skip_asan" -s ../../tests/

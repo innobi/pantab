@@ -51,6 +51,9 @@ testpaths = ["tests"]
 addopts = [
     "--import-mode=importlib",
 ]
+markers = [
+  "skip_asan: tests that are known to fail with ASAN",
+]
 
 [tool.mypy]
 [[tool.mypy.overrides]]
