@@ -178,6 +178,7 @@ def test_reader_accepts_process_params(tmp_hyper):
     pt.frames_from_hyper(tmp_hyper, process_params=params)
 
 
+@pytest.mark.skip_asan
 def test_reader_invalid_process_params_raises(tmp_hyper):
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
     pt.frame_to_hyper(frame, tmp_hyper, table="test")

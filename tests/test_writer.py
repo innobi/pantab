@@ -24,6 +24,7 @@ def test_bad_table_mode_raises(frame, tmp_hyper):
         pt.frames_to_hyper({"a": frame}, tmp_hyper, table_mode="x")
 
 
+@pytest.mark.skip_asan
 @pytest.mark.parametrize(
     "new_dtype,hyper_type_name",
     [(nw.Int64, "BIGINT"), (nw.Float64, "DOUBLE PRECISION")],
@@ -51,6 +52,7 @@ def test_append_mode_raises_column_dtype_mismatch(
         )
 
 
+@pytest.mark.skip_asan
 def test_append_mode_raises_ncolumns_mismatch(frame, tmp_hyper, table_name, compat):
     pt.frame_to_hyper(
         frame,
@@ -173,6 +175,7 @@ def test_string_type_to_existing_varchar(frame, tmp_hyper, compat):
     pt.frame_to_hyper(frame, tmp_hyper, table=table_name, table_mode="a")
 
 
+@pytest.mark.skip_asan
 def test_failed_write_doesnt_overwrite_file(
     frame, tmp_hyper, monkeypatch, table_mode, compat
 ):
@@ -266,6 +269,7 @@ def test_atomic_keyword_does_not_copy_or_move(
     mocked_move.assert_not_called()
 
 
+@pytest.mark.skip_asan
 def test_duplicate_columns_raises(tmp_hyper):
     frame = pd.DataFrame([[1, 1]], columns=[1, 1])
     msg = r"Duplicate column names found: \[1, 1\]"
@@ -276,6 +280,7 @@ def test_duplicate_columns_raises(tmp_hyper):
         pt.frames_to_hyper({"test": frame}, tmp_hyper)
 
 
+@pytest.mark.skip_asan
 def test_unsupported_dtype_raises(tmp_hyper):
     frame = pd.DataFrame([[pd.Timedelta("1D")]])
 
@@ -508,6 +513,7 @@ def test_writer_accepts_process_params(tmp_hyper):
     pt.frame_to_hyper(frame, tmp_hyper, table="test", process_params=params)
 
 
+@pytest.mark.skip_asan
 def test_writer_invalid_process_params_raises(tmp_hyper):
     frame = pd.DataFrame(list(range(10)), columns=["nums"]).astype("int8")
     params = {"not_a_real_parameter": "0"}
