@@ -82,8 +82,8 @@ jobs:
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v3
-      - name: Install nanobind
-        run: python -m pip install nanobind
+      - name: Install dependencies
+        run: python -m pip install nanobind pytest pandas polars narwhals pytest-xdist[psutil] pyarrow
       - name: Build library
         run: |
           cmake -S . -B build -DPANTAB_USE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=RelWithDebugInfo
