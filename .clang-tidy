@@ -1,1 +1,4 @@
 Checks: '-*,cppcoreguidelines-*,-cppcoreguidelines-pro-type-union-access'
+CheckOptions:
+  - key: cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value: true
