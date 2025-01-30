@@ -91,7 +91,6 @@ jobs:
       - name: Test library
         env:
           ASAN_OPTIONS: "detect_leaks=0"
-          LD_PRELOAD: "$(gcc -print-file-name=libasan.so)"
         run: |
           cd build/src
-          python -m pytest -m "not skip_asan" -s ../../tests/
+          LD_PRELOAD="$(gcc -print-file-name=libasan.so)" python -m pytest -m "not skip_asan" -s ../../tests/
