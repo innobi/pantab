@@ -69,6 +69,7 @@ known_first_party = "pantab"
 [tool.cibuildwheel]
 build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64 cp313-*64"
 skip = "*musllinux*"
+manylinux-x86_64-image = "manylinux_2_28"
 
 test-command = "python -m pytest -n auto {project}/tests"
 test-requires = [
