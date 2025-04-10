@@ -8,9 +8,9 @@ sys.path.insert(0, str(srcdir))
 # -- Project information -----------------------------------------------------
 
 project = "pantab"
-copyright = "2019-2024, Will Ayd, innobi, LLC"
+copyright = "2019-2025, Will Ayd, innobi, LLC"
 author = "Will Ayd, innobi, LLC"
-release = "5.2.0"
+release = "5.2.1"
 
 
 # -- General configuration ---------------------------------------------------
