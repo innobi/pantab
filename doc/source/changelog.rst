@@ -1,6 +1,14 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 5.2.1 (2025-04-10)
+=========================
+
+Bug Fixes
+---------
+
+- Fixed an issue where reading a Hyper file with pantab would occassionally crash (#392)
+
 Pantab 5.2.0 (2024-11-07)
 =========================
 
