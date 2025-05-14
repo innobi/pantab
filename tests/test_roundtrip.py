@@ -230,3 +230,19 @@ def test_date32_time_t_limits_roundtrip(tmp_hyper, compat):
     pt.frame_to_hyper(tbl, tmp_hyper, table="test")
     result = pt.frame_from_hyper(tmp_hyper, table="test", return_type="pyarrow")
     compat.assert_frame_equal(result, tbl)
+
+
+def test_chunked_data_roundtrip(frame, tmp_hyper, compat):
+    if not isinstance(frame, pa.Table):
+        pytest.skip("only testing for pyarrow roundtrip")
+
+    pt.frame_to_hyper(
+        frame.to_reader(1),
+        tmp_hyper,
+        table="test",
+        process_params={"default_database_version": "4"},
+    )
+    result = pt.frame_from_hyper(tmp_hyper, table="test", return_type="pyarrow")
+    expected = frame.cast(result.schema)
+
+    compat.assert_frame_equal(result, expected)

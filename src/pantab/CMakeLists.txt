@@ -11,9 +11,9 @@ nanobind_add_module(
 )
 target_link_libraries(libpantab
   PRIVATE Tableau::tableauhyperapi-cxx
-  PRIVATE nanoarrow
+  PRIVATE nanoarrow_static
 )
-set_target_properties(nanoarrow
+set_target_properties(nanoarrow_static
                       PROPERTIES POSITION_INDEPENDENT_CODE
                       ON)
 

@@ -237,9 +237,12 @@ public:
       return;
     }
 
+    const auto view_offset = GetArrayView()->offset;
     const auto buf_view = GetArrayView()->buffer_views[1];
-    const std::span view_data{buf_view.data.as_binary_view,
-                              static_cast<size_t>(buf_view.size_bytes)};
+
+    const std::span raw_span{buf_view.data.as_binary_view,
+                             static_cast<size_t>(buf_view.size_bytes)};
+    const auto view_data = raw_span.subspan(view_offset);
 
     const std::span buffers{
         GetArrayView()->array->buffers,
@@ -288,9 +291,11 @@ public:
 
     int32_t value{};
 
+    const auto view_offset = GetArrayView()->offset * elem_size;
     const auto buf_view = GetArrayView()->buffer_views[1];
-    std::span view_data{buf_view.data.as_uint8,
-                        static_cast<size_t>(buf_view.size_bytes)};
+    const std::span raw_span{buf_view.data.as_uint8,
+                             static_cast<size_t>(buf_view.size_bytes)};
+    const auto view_data = raw_span.subspan(view_offset);
     memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     const std::chrono::duration<int32_t, std::ratio<86400>> dur{value};
@@ -357,9 +362,12 @@ public:
     }
 
     int64_t value{};
+
+    const auto view_offset = GetArrayView()->offset * elem_size;
     const auto buf_view = GetArrayView()->buffer_views[1];
-    std::span view_data{buf_view.data.as_uint8,
-                        static_cast<size_t>(buf_view.size_bytes)};
+    const std::span raw_span{buf_view.data.as_uint8,
+                             static_cast<size_t>(buf_view.size_bytes)};
+    const auto view_data = raw_span.subspan(view_offset);
     memcpy(&value, &view_data[idx * elem_size], elem_size);
 
     // TODO: need overflow checks here
