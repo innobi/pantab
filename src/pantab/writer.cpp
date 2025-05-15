@@ -298,14 +298,16 @@ public:
         std::chrono::system_clock,
         std::chrono::duration<int32_t, std::ratio<86400>>>
         tp{dur};
-    const auto tt = std::chrono::system_clock::to_time_t(tp);
 
-    const struct tm utc_tm = *std::gmtime(&tt);
+    const auto dp = std::chrono::floor<std::chrono::days>(tp);
+    const auto ymd = std::chrono::year_month_day{dp};
+
     using YearT = decltype(std::declval<hyperapi::Date>().getYear());
-    static constexpr auto epoch = static_cast<YearT>(1900);
-    hyperapi::Date dt{epoch + utc_tm.tm_year,
-                      static_cast<int16_t>(1 + utc_tm.tm_mon),
-                      static_cast<int16_t>(utc_tm.tm_mday)};
+    using MonthT = decltype(std::declval<hyperapi::Date>().getMonth());
+    using DayT = decltype(std::declval<hyperapi::Date>().getDay());
+    hyperapi::Date dt{static_cast<YearT>(ymd.year()),
+                      static_cast<MonthT>(static_cast<unsigned>(ymd.month())),
+                      static_cast<DayT>(static_cast<unsigned>(ymd.day()))};
 
     InsertValue(std::move(dt));
   }
