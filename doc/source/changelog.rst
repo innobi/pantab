@@ -1,6 +1,15 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 5.2.2 (2025-05-15)
+=========================
+
+Bug Fixes
+---------
+
+- Fixed an issue where writing temporal or binary view data in batches would yield incorrect results
+- Fixed an issue where dates beyond 2262-04-11 and before 1677-09-21 were not writing properly
+
 Pantab 5.2.1 (2025-04-10)
 =========================
 
