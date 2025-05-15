@@ -1,3 +1,4 @@
+import datetime
 import decimal
 
 import pandas as pd
@@ -210,6 +211,21 @@ def test_write_prevents_injection(tmp_hyper, needs_hyperapi, hyperapi_obj, table
 )
 def test_decimal_roundtrip(tmp_hyper, value, precision, scale, compat):
     arr = pa.array([decimal.Decimal(value)], type=pa.decimal128(precision, scale))
+    tbl = pa.Table.from_arrays([arr], names=["col"])
+    pt.frame_to_hyper(tbl, tmp_hyper, table="test")
+    result = pt.frame_from_hyper(tmp_hyper, table="test", return_type="pyarrow")
+    compat.assert_frame_equal(result, tbl)
+
+
+def test_date32_time_t_limits_roundtrip(tmp_hyper, compat):
+    arr = pa.array(
+        [
+            datetime.date(2262, 4, 11),
+            datetime.date(2262, 4, 12),
+            datetime.date(2262, 4, 13),
+        ],
+        type=pa.date32(),
+    )
     tbl = pa.Table.from_arrays([arr], names=["col"])
     pt.frame_to_hyper(tbl, tmp_hyper, table="test")
     result = pt.frame_from_hyper(tmp_hyper, table="test", return_type="pyarrow")
