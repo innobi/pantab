@@ -71,7 +71,7 @@ def basic_arrow_table():
             pa.array([True, False, False]),
             pa.array([True, False, None]),
             pa.array(
-                [datetime.date(2024, 1, 1), datetime.date(2024, 1, 1), None],
+                [datetime.date(2024, 1, 1), datetime.date(2025, 1, 1), None],
             ),
             pa.array(
                 [
@@ -169,7 +169,7 @@ def basic_dataframe():
                 2.0,
                 False,
                 False,
-                pd.to_datetime("2024-01-01"),
+                pd.to_datetime("2025-01-01"),
                 pd.to_datetime("2019-01-01"),
                 pd.to_datetime("2019-01-01", utc=True),
                 "bar",
@@ -325,22 +325,6 @@ def basic_polars_frame():
 @pytest.fixture(params=[basic_arrow_table, basic_dataframe, basic_polars_frame])
 def frame(request):
     """Fixture to use which should contain all data types."""
-    return request.param()
-
-
-def chunked_pyarrow_table():
-    arr = pa.chunked_array([[1, 2, 3], [4, 5, 6]])
-    table = pa.table([arr], names=["int"])
-    return table
-
-
-def chunked_polars_frame():
-    tbl = chunked_pyarrow_table()
-    return pl.from_arrow(tbl)
-
-
-@pytest.fixture(params=[chunked_pyarrow_table, chunked_polars_frame])
-def chunked_frame(request):
     return request.param()
 
 
