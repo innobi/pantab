@@ -33,6 +33,10 @@ html_logo = "../../misc/pantab_logo.svg"
 master_doc = "index"  # see RTD GH issue 2569
 html_context = {
     "display_github": True,
+    "github_user": "innobi",
+    "github_repo": "pantab",
+    "github_version": "main",
+    "conf_py_path": "/doc/source/", # Path in the checkout to the docs root
 }
 
 html_static_path = ["_static"]
