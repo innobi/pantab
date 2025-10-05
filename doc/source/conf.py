@@ -36,7 +36,7 @@ html_context = {
     "github_user": "innobi",
     "github_repo": "pantab",
     "github_version": "main",
-    "conf_py_path": "/doc/source/", # Path in the checkout to the docs root
+    "conf_py_path": "/doc/source/",
 }
 
 html_static_path = ["_static"]
