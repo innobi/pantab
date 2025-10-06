@@ -14,12 +14,11 @@ readme = "README.md"
 authors = [
     { name = "Will Ayd", email = "will_ayd@innobi.io" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Office/Business",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -67,7 +66,7 @@ multi_line_output = 3
 known_first_party = "pantab"
 
 [tool.cibuildwheel]
-build = "cp39-*64 cp310-*64 cp311-*64 cp312-*64 cp313-*64"
+build = "cp310-*64 cp311-*64 cp312-*64 cp313-*64"
 skip = "*musllinux*"
 manylinux-x86_64-image = "manylinux_2_28"
 
