@@ -57,7 +57,7 @@ For an editable install of pantab you can simply run `pip install -ve .` from th
 Tests are required for new changes and no code will be accepted without them. You should first set up your test in the appropriate module in the `pantab/tests` directory. You can then run the test suite with
 
 ```sh
-pytest tests
+pytest tests doc
 ```
 
 For more advanced use cases where you may want to debug compiled extensions, you _may_ need to build the extension in the source tree and invoke pytest from the src folder. As an example:
