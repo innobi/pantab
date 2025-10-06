@@ -1,7 +1,6 @@
 Usage Examples
 ==============
 
-
 Writing to a Hyper Extract
 --------------------------
 
