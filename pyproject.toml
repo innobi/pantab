@@ -69,9 +69,10 @@ build = "cp311-*64 cp312-*64 cp313-*64"
 skip = "*musllinux*"
 manylinux-x86_64-image = "manylinux_2_28"
 
-test-command = "python -m pytest -n auto {project}/tests"
+test-command = "python -m pytest -n auto {project}/tests {project}/doc"
 test-requires = [
   "pytest",
+  "pytest-rst",
   "pytest-xdist[psutil]",
   "pandas>=2.0.0",
   "polars",
