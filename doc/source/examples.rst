@@ -281,17 +281,15 @@ As far as reading is concerned, you can control the type of DataFrame you receiv
    import pantab as pt
 
    >>> pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
-     col
+      col
    0    1
    1    2
    2    3
-
    >>> pt.frame_from_hyper("example.hyper", table="test", return_type="pyarrow")
    pyarrow.Table
    col: int64
    ----
    col: [[1,2,3]]
-
    >>> pt.frame_from_hyper("example.hyper", table="test", return_type="polars")
    shape: (3, 1)
    ┌─────┐
