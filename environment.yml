@@ -15,8 +15,6 @@ dependencies:
   - pyarrow
   - python
   - pytest
-  - pytest-rst
-  - tableauhyperapi
   - scikit-build-core
   - sphinx
   - sphinx-autodoc-typehints
