@@ -4,6 +4,9 @@ pushd %~dp0
 
 REM Command file for Sphinx documentation
 
+if "%SPHINXOPTS%" == "" (
+	set SPHINXOPTS=--exception-on-warning
+)
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )

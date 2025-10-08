@@ -1,3 +1,4 @@
+pyarrow
 sphinx
 sphinx_rtd_theme
 sphinxext-opengraph
