@@ -277,31 +277,32 @@ When pantab was first created, pandas was the dominant DataFrame library. In the
 As far as reading is concerned, you can control the type of DataFrame you receive back via the ``return_type`` keyword. pandas remains the default
 
 .. code-block:: python
-   :name: test_return_type
 
    import pantab as pt
 
-   pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
-   #   col
-   # 0    1
-   # 1    2
-   # 2    3
-   pt.frame_from_hyper("example.hyper", table="test", return_type="pyarrow")
-   # pyarrow.Table
-   # col: int64
-   # ----
-   # col: [[1,2,3]]
-   pt.frame_from_hyper("example.hyper", table="test", return_type="polars")
-   # shape: (3, 1)
-   # ┌─────┐
-   # │ col │
-   # │ --- │
-   # │ i64 │
-   # ╞═════╡
-   # │ 1   │
-   # │ 2   │
-   # │ 3   │
-   # └─────┘
+   >>> pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
+     col
+   0    1
+   1    2
+   2    3
+
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="pyarrow")
+   pyarrow.Table
+   col: int64
+   ----
+   col: [[1,2,3]]
+
+   >>> pt.frame_from_hyper("example.hyper", table="test", return_type="polars")
+   shape: (3, 1)
+   ┌─────┐
+   │ col │
+   │ --- │
+   │ i64 │
+   ╞═════╡
+   │ 1   │
+   │ 2   │
+   │ 3   │
+   └─────┘
 
 .. note::
 
