@@ -5,6 +5,7 @@ Writing to a Hyper Extract
 --------------------------
 
 .. code-block:: python
+   :name: test_writing_to_hyper_extract
 
    import pandas as pd
    import pantab as pt
@@ -24,6 +25,7 @@ Reading a Hyper Extract
 -----------------------
 
 .. code-block:: python
+   :name: test_reading_a_hyper_extract
 
    import pantab as pt
 
@@ -36,6 +38,7 @@ Overriding Nullability
 By default, all data written to the Hyper database will be nullable. If you want to force nullability checks in the Hyper database, you will want to pass the names of the columns as arguments to the ``not_null_columns`` parameter.
 
 .. code-block:: python
+   :name: test_overriding_nullability
 
    import pandas as pd
    import pantab as pt
@@ -60,6 +63,7 @@ The Hyper database can store JSON data. Although the Arrow specification has an 
 As such, if you want to store JSON in a Hyper database, you should send it as a string and add the column names to the ``json_columns`` argument.
 
 .. code-block:: python
+   :name: test_writing_json_data
 
    import pandas as pd
    import pantab as pt
@@ -79,6 +83,7 @@ Geo Support
 The Hyper database supports the storage of Geography data. The easiest way to write this data is to specify your input data as a string using the `WKT <https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry>`_ and supplying the name of the column(s) as an argument to ``geo_col``
 
 .. code-block:: python
+   :name: test_geo_support
 
    import pandas as pd
    import pantab as pt
@@ -106,6 +111,7 @@ The most common thing users have needed to control is the ``default_database_ver
 For a full listing of valid parameters, please refer to the `Tableau Documentation <https://tableau.github.io/hyper-db/docs/hyper-api/hyper_process/#process-settings>`_
 
 .. code-block:: python
+   :name: test_controlling_hyper_process_parameters
 
    import pandas as pd
    import pantab as pt
@@ -128,6 +134,7 @@ Working with Schemas
 By default tables will be written to the "public" schema. You can control this behavior however by specifying a ``tableauhyperapi.TableName`` when reading / writing extracts.
 
 .. code-block:: python
+   :name: test_working_with_schemas
 
    import pandas as pd
    import pantab as pt
@@ -157,6 +164,7 @@ Reading and Writing Multiple Tables
 ``frames_to_hyper`` and ``frames_from_hyper`` can write and return a dictionary of DataFrames for Hyper extract, respectively.
 
 .. code-block:: python
+   :name: test_reading_writing_multiple_tables
 
    import pandas as pd
    import pantab as pt
@@ -183,6 +191,7 @@ Appending Data to Existing Tables
 By default, ``frame_to_hyper`` and ``frames_to_hyper`` will fully drop and reloaded targeted tables. However, you can also append records to existing tables by supplying ``table_mode="a"`` as a keyword argument.
 
 .. code-block:: python
+   :name: test_appending_data_to_existing_tables
 
    import pandas as pd
    import pantab as pt
@@ -208,6 +217,7 @@ Issuing SQL queries
 With ``frame_from_hyper_query``, one can execute SQL queries against a Hyper file and retrieve the resulting data as a DataFrame. This can be used, e.g. to retrieve only a part of the data (using a ``WHERE`` clause) or to offload computations to Hyper.
 
 .. code-block:: python
+   :name: test_issuing_sql_queries
 
    import pandas as pd
    import pantab as pt
@@ -248,6 +258,7 @@ Bring your own DataFrame
 When pantab was first created, pandas was the dominant DataFrame library. In the years since then, many competing libraries have cropped up which all provide different advantages. To give users the most flexibility, pantab provides first class support for exchanging `pandas <https://pandas.pydata.org/>`_, `polars <https://pola.rs/>`_ and `pyarrow <https://arrow.apache.org/docs/python/index.html>`_ DataFrames. To wit, all of the following code samples will produce an equivalent Hyper file:
 
 .. code-block:: python
+   :name: test_bring_your_own_dataframe
 
    import pantab as pt
 
@@ -266,6 +277,8 @@ When pantab was first created, pandas was the dominant DataFrame library. In the
 As far as reading is concerned, you can control the type of DataFrame you receive back via the ``return_type`` keyword. pandas remains the default
 
 .. code-block:: python
+
+   import pantab as pt
 
    >>> pt.frame_from_hyper("example.hyper", table="test")  # pandas by default
       col
