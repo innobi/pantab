@@ -108,7 +108,7 @@ jobs:
 
       - name: Build library
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+          cmake -S . -B build
           cmake --build build
 
       - name: Run doctests
