@@ -41,16 +41,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-13, macos-14]
+        os: [ubuntu-24.04, windows-2022, macos-14, macos-15-intel]
 
     steps:
       - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
 
       - name: Build wheels for ${{ matrix.os }}
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v3.4.0
         env:
           MACOSX_DEPLOYMENT_TARGET: "11.0"
 
@@ -60,16 +60,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2022, macos-13, macos-14]
+        os: [ubuntu-24.04, windows-2022, macos-14, macos-15-intel]
 
     steps:
       - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
 
       - name: Build wheels for ${{ matrix.os }}
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_TEST_REQUIRES: pytest pytest-xdist[psutil] pandas>=2.0.0 polars narwhals
           MACOSX_DEPLOYMENT_TARGET: "11.0"
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Used to host cibuildwheel
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
       - name: Install dependencies
         run: python -m pip install nanobind pytest pandas polars narwhals pytest-xdist[psutil] pyarrow
       - name: Build library
@@ -101,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
 
       - name: Install dependencies
         run: python -m pip install nanobind pytest pandas polars pytest-xdist[psutil] pytest-rst pyarrow tableauhyperapi
