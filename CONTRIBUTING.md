@@ -14,18 +14,18 @@ to set pantab as the upstream project locally.
 
 ## Setting up an Environment
 
-A conda environment file containing development dependencies is available in the root of the package, so simply run
+This project uses [pixi](https://pixi.sh) for dependency management. Install pixi, then from the project root run
 
 ```sh
-conda env create -f environment.yml
+pixi install
 # add our lints as part of your local git workflow
-pre-commit install
+pixi run pre-commit install
 ```
 
-The first time you work with the source code. Then activate your virtual environment any time you are working with the code
+The first time you work with the source code. After that, prefix commands with `pixi run` or start a shell with
 
 ```sh
-conda activate pantab-dev
+pixi shell
 ```
 
 ## Building and Modifying Documentation
@@ -50,14 +50,14 @@ git checkout -b a-new-branch
 
 ### Building the Project
 
-For an editable install of pantab you can simply run `pip install -ve .` from the project root.
+For an editable install of pantab you can simply run `pixi run install` (or `pip install -ve .` inside a `pixi shell`) from the project root.
 
 ### Creating tests and running the test suite
 
 Tests are required for new changes and no code will be accepted without them. You should first set up your test in the appropriate module in the `pantab/tests` directory. You can then run the test suite with
 
 ```sh
-pytest tests doc
+pixi run test
 ```
 
 For more advanced use cases where you may want to debug compiled extensions, you _may_ need to build the extension in the source tree and invoke pytest from the src folder. As an example:
@@ -78,7 +78,7 @@ pantab would love contributions to make this work *out of source* if it is possi
 Note that `pantab` uses `black`, `flake8` and `isort` to manage code style. Simply run pre-commit. If pre-commit modifies files, simply add them and run pre-commit again. Note, if you've already run `pre-commit install` it will automatically run before every commit regardless.
 
 ```sh
-pre-commit
+pixi run lint
 ```
 
 ### Annotations
@@ -86,7 +86,7 @@ pre-commit
 New code development should come bundled with type annotations. Be sure to check any new annotations with
 
 ```sh
-mypy src/
+pixi run typecheck
 ```
 
 ### Adding a whatsnew entry
@@ -109,7 +109,7 @@ git commit -m "<Message for your change>"
 For performance critical code or improvements, you may be asked to add benchmark(s). These can be found in the `benchmarks` folder. To run the suite, execute
 
 ```sh
-asv continuous upstream/main HEAD
+pixi run bench
 ```
 
 to compare results to the latest commit on your branch. Output should be copy/pasted into any pull request.

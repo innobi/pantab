@@ -1,0 +1,50 @@
+[workspace]
+name = "pantab-dev"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+
+[dependencies]
+python = ">=3.11"
+
+[feature.build.dependencies]
+nanobind = ">=2.2.0"
+scikit-build-core = "*"
+pip = "*"
+
+[feature.test.dependencies]
+pytest = "*"
+pandas = ">=2.0.0"
+pandas-stubs = "*"
+polars = "*"
+pyarrow = ">=14.0.0"
+narwhals = "*"
+
+[feature.lint.dependencies]
+black = "*"
+flake8 = "*"
+isort = "*"
+mypy = "*"
+pre-commit = "*"
+
+[feature.docs.dependencies]
+sphinx = "*"
+sphinx_rtd_theme = "*"
+sphinxext-opengraph = "*"
+sphinx-autodoc-typehints = "*"
+
+[feature.bench.dependencies]
+pip = "*"
+
+[feature.bench.pypi-dependencies]
+asv = "*"
+
+[environments]
+default = { features = ["build", "test", "lint", "docs", "bench"], solve-group = "default" }
+
+[tasks]
+install = "pip install -ve ."
+test = { cmd = "pytest tests doc", depends-on = ["install"] }
+lint = "pre-commit run --all-files"
+typecheck = { cmd = "mypy src/", depends-on = ["install"] }
+docs = { cmd = "make html", cwd = "doc" }
+bench = { cmd = "asv continuous upstream/main HEAD", depends-on = ["install"] }
