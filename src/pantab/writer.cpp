@@ -8,7 +8,6 @@
 #include <set>
 #include <span>
 #include <utility>
-#include <variant>
 
 static auto GetHyperTypeFromArrowSchema(struct ArrowSchema *schema,
                                         ArrowError *error)
@@ -429,17 +428,13 @@ public:
     }
 
     if (CheckNull(idx)) {
-      std::visit(
-          [&](auto P, auto S) {
-            if constexpr (S() <= P()) {
-              InsertNull<hyperapi::Numeric<P(), S()>>();
-              return;
-            } else {
-              throw "unreachable";
-            }
-          },
-          to_integral_variant<PrecisionLimit>(precision_),
-          to_integral_variant<PrecisionLimit>(scale_));
+      integral_dispatch<PrecisionLimit>(precision_, [&](auto P) {
+        integral_dispatch<PrecisionLimit>(scale_, [&](auto S) {
+          if constexpr (S() <= P()) {
+            InsertNull<hyperapi::Numeric<P(), S()>>();
+          }
+        });
+      });
       return;
     }
 
@@ -475,18 +470,14 @@ public:
       }
     }
 
-    std::visit(
-        [&](auto P, auto S) {
-          if constexpr (S() <= P()) {
-            const auto value = hyperapi::Numeric<P(), S()>{str};
-            InsertValue(std::move(value));
-            return;
-          } else {
-            throw "unreachable";
-          }
-        },
-        to_integral_variant<PrecisionLimit>(precision_),
-        to_integral_variant<PrecisionLimit>(scale_));
+    integral_dispatch<PrecisionLimit>(precision_, [&](auto P) {
+      integral_dispatch<PrecisionLimit>(scale_, [&](auto S) {
+        if constexpr (S() <= P()) {
+          const auto value = hyperapi::Numeric<P(), S()>{str};
+          InsertValue(std::move(value));
+        }
+      });
+    });
 
     ArrowBufferReset(&buffer);
   }

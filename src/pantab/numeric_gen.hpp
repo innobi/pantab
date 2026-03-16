@@ -3,16 +3,22 @@
 #include <array>
 #include <cstddef>
 #include <utility>
-#include <variant>
 
 // The Tableau Hyper API requires Numeric to be templated at compile time
-// but the values are only known at runtime. This solution is adopted from
-// https://stackoverflow.com/questions/78888913/creating-cartesian-product-from-integer-range-template-argument/78889229?noredirect=1#comment139097273_78889229
-template <std::size_t N> constexpr auto to_integral_variant(std::size_t n) {
-  return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    using ResType = std::variant<std::integral_constant<std::size_t, Is>...>;
-    std::array<ResType, N> all{
-        ResType{std::integral_constant<std::size_t, Is>{}}...};
-    return all[n];
-  }(std::make_index_sequence<N>());
+// but the values are only known at runtime. This dispatches a runtime index
+// n ∈ [0, N) to a compile-time integral_constant, calling f with it.
+//
+// Uses a function pointer table for O(1) dispatch. This replaces the previous
+// std::variant + std::visit approach which was extremely slow to compile due
+// to the cartesian product of two N-element variant visit dispatch tables.
+template <std::size_t N, typename F>
+constexpr void integral_dispatch(std::size_t n, F &&f) {
+  [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+    using FnPtr = void (*)(F &);
+    const std::array<FnPtr, N> table{
+        {static_cast<FnPtr>([](F &fn) {
+          fn(std::integral_constant<std::size_t, Is>{});
+        })...}};
+    table[n](f);
+  }(std::make_index_sequence<N>{});
 }
