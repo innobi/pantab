@@ -383,44 +383,14 @@ def roundtripped_pyarrow():
 
 
 def roundtripped_pandas():
-    """Roundtripped DataFrames should use arrow dtypes by default"""
-    df = basic_dataframe()
-    df = df.astype(
-        {
-            "int16": "int16[pyarrow]",
-            "int32": "int32[pyarrow]",
-            "int64": "int64[pyarrow]",
-            "Int16": "int16[pyarrow]",
-            "Int32": "int32[pyarrow]",
-            "Int64": "int64[pyarrow]",
-            "float32": "float[pyarrow]",
-            "float64": "double[pyarrow]",
-            "Float32": "float[pyarrow]",
-            "Float64": "double[pyarrow]",
-            "bool": "boolean[pyarrow]",
-            "boolean": "boolean[pyarrow]",
-            "datetime64": "timestamp[us][pyarrow]",
-            "datetime64_utc": "timestamp[us, UTC][pyarrow]",
-            "object": "large_string[pyarrow]",
-            "int16_limits": "int16[pyarrow]",
-            "int32_limits": "int32[pyarrow]",
-            "int64_limits": "int64[pyarrow]",
-            "float32_limits": "float[pyarrow]",
-            "float64_limits": "double[pyarrow]",
-            "oid": "uint32[pyarrow]",
-            "non-ascii": "large_string[pyarrow]",
-            "json": "large_string[pyarrow]",
-            "string": "large_string[pyarrow]",
-            "binary": "large_binary[pyarrow]",
-            # "interval": "month_day_nano_interval[pyarrow]",
-            "time64us": "time64[us][pyarrow]",
-            "geography": "large_binary[pyarrow]",
-            # "string_view": "string_view[pyarrow]",
-            # "binary_view": "binary_view[pyarrow]",
-            "categorical": "large_string[pyarrow]",
-        }
-    )
-    return df
+    """Roundtripped DataFrames should use arrow dtypes by default.
+
+    Derived from the roundtripped pyarrow table rather than basic_dataframe()
+    to work around https://github.com/pandas-dev/pandas/issues/64578.
+    """
+    tbl = roundtripped_pyarrow()
+    tbl = tbl.drop_columns(["interval", "string_view", "binary_view"])
+    return tbl.to_pandas(types_mapper=pd.ArrowDtype)
 
 
 def roundtripped_polars():
