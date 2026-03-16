@@ -1,80 +1,23 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   width="1200mm"
-   height="630mm"
-   viewBox="0 0 1200 630"
-   version="1.1"
-   id="svg5"
-   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
-   sodipodi:docname="pantab_logo.svg"
-   inkscape:export-filename="/home/willayd/clones/pantab/misc/pantab_logo.png"
-   inkscape:export-xdpi="25.4"
-   inkscape:export-ydpi="25.4"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview7"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:document-units="mm"
-     showgrid="false"
-     inkscape:snap-global="true"
-     inkscape:zoom="0.11784603"
-     inkscape:cx="3674.2858"
-     inkscape:cy="2460.8381"
-     inkscape:window-width="1920"
-     inkscape:window-height="1011"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer1"
-     width="180mm" />
-  <defs
-     id="defs2">
-    <rect
-       x="-765.36572"
-       y="-939.08948"
-       width="11232.877"
-       height="4940.2716"
-       id="rect13250" />
-  </defs>
-  <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="layer1">
-    <rect
-       style="fill:#ffffff;stroke-width:1.48952"
-       id="rect185"
-       width="1200"
-       height="630"
-       x="-2.7755576e-17"
-       y="-5.5511151e-17" />
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:299.861px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="66.677917"
-       y="397.72531"
-       id="text1551"><tspan
-         sodipodi:role="line"
-         id="tspan1549"
-         style="font-size:299.861px;fill:#002255;fill-opacity:1;stroke-width:0.264583"
-         x="66.677917"
-         y="397.72531"
-         dy="0">pan<tspan
-   style="font-size:299.861px;fill:#e86321;fill-opacity:1"
-   id="tspan2639">tab</tspan></tspan></text>
-    <text
-       xml:space="preserve"
-       transform="scale(0.26458333)"
-       id="text13248"
-       style="fill:black;fill-opacity:1;line-height:1.25;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:40px;white-space:pre;shape-inside:url(#rect13250)" />
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120">
+  <!-- Icon: 3x3 data grid representing tabular data -->
+  <g transform="translate(16, 12)">
+    <!-- Row 1 -->
+    <rect x="0"  y="0"  width="28" height="28" rx="5" fill="#002255"/>
+    <rect x="34" y="0"  width="28" height="28" rx="5" fill="#e86321"/>
+    <rect x="68" y="0"  width="28" height="28" rx="5" fill="#002255" opacity="0.4"/>
+    <!-- Row 2 -->
+    <rect x="0"  y="34" width="28" height="28" rx="5" fill="#e86321" opacity="0.4"/>
+    <rect x="34" y="34" width="28" height="28" rx="5" fill="#002255"/>
+    <rect x="68" y="34" width="28" height="28" rx="5" fill="#e86321"/>
+    <!-- Row 3 -->
+    <rect x="0"  y="68" width="28" height="28" rx="5" fill="#002255"/>
+    <rect x="34" y="68" width="28" height="28" rx="5" fill="#e86321" opacity="0.4"/>
+    <rect x="68" y="68" width="28" height="28" rx="5" fill="#002255"/>
   </g>
+
+  <!-- Wordmark -->
+  <text x="136" y="82" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="-1">
+    <tspan fill="#002255">pan</tspan><tspan fill="#e86321">tab</tspan>
+  </text>
 </svg>
