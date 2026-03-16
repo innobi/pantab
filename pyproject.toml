@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 keywords = ["tableau", "visualization", "pandas", "dataframe"]
 
@@ -65,7 +66,7 @@ multi_line_output = 3
 known_first_party = "pantab"
 
 [tool.cibuildwheel]
-build = "cp311-*64 cp312-*64 cp313-*64"
+build = "cp311-*64 cp312-*64 cp313-*64 cp314-*64 cp314t-*64"
 skip = "*musllinux*"
 manylinux-x86_64-image = "manylinux_2_28"
 
