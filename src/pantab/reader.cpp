@@ -2,7 +2,6 @@
 #include "numeric_gen.hpp"
 
 #include <span>
-#include <variant>
 #include <vector>
 
 #include <hyperapi/hyperapi.hpp>
@@ -296,18 +295,19 @@ public:
       throw nb::value_error("Numeric scale may not exceed 38!");
     }
 
-    const auto decimal_string = std::visit(
-        [&value](auto P, auto S) -> std::string {
+    const auto decimal_string = [&]() -> std::string {
+      std::string result;
+      integral_dispatch<PrecisionLimit>(precision_, [&](auto P) {
+        integral_dispatch<PrecisionLimit>(scale_, [&](auto S) {
           if constexpr (S() <= P()) {
             const auto decimal_value = value.get<hyperapi::Numeric<P(), S()>>();
-            auto value_string = decimal_value.toString();
-            std::erase(value_string, '.');
-            return value_string;
+            result = decimal_value.toString();
+            std::erase(result, '.');
           }
-          throw "unreachable";
-        },
-        to_integral_variant<PrecisionLimit>(precision_),
-        to_integral_variant<PrecisionLimit>(scale_));
+        });
+      });
+      return result;
+    }();
 
     const struct ArrowStringView sv {
       decimal_string.data(), static_cast<int64_t>(decimal_string.size())
