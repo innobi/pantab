@@ -1,4 +1,5 @@
 #include "writer.hpp"
+#include "hyper_process.hpp"
 #include "numeric_gen.hpp"
 
 #include <hyperapi/hyperapi.hpp>
@@ -7,6 +8,7 @@
 #include <chrono>
 #include <set>
 #include <span>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 
@@ -420,11 +422,10 @@ public:
         precision_(precision), scale_(scale) {}
 
   void InsertValueAtIndex(int64_t idx) override {
-    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
-    if (precision_ >= PrecisionLimit) {
+    if (precision_ > kMaxNumericPrecision) {
       throw nb::value_error("Numeric precision may not exceed 38!");
     }
-    if (scale_ >= PrecisionLimit) {
+    if (scale_ > kMaxNumericPrecision) {
       throw nb::value_error("Numeric scale may not exceed 38!");
     }
 
@@ -435,11 +436,11 @@ public:
               InsertNull<hyperapi::Numeric<P(), S()>>();
               return;
             } else {
-              throw "unreachable";
+              throw std::logic_error("unreachable: scale > precision");
             }
           },
-          to_integral_variant<PrecisionLimit>(precision_),
-          to_integral_variant<PrecisionLimit>(scale_));
+          to_integral_variant<kNumericVariantSize>(precision_),
+          to_integral_variant<kNumericVariantSize>(scale_));
       return;
     }
 
@@ -482,11 +483,11 @@ public:
             InsertValue(std::move(value));
             return;
           } else {
-            throw "unreachable";
+            throw std::logic_error("unreachable: scale > precision");
           }
         },
-        to_integral_variant<PrecisionLimit>(precision_),
-        to_integral_variant<PrecisionLimit>(scale_));
+        to_integral_variant<kNumericVariantSize>(precision_),
+        to_integral_variant<kNumericVariantSize>(scale_));
 
     ArrowBufferReset(&buffer);
   }
@@ -515,6 +516,21 @@ public:
     InsertValue(std::move(result));
   }
 };
+
+template <enum ArrowTimeUnit TU>
+static auto MakeTimestampInsertHelper(hyperapi::Inserter &inserter,
+                                      struct ArrowArray *chunk,
+                                      const struct ArrowSchema *child_schema,
+                                      struct ArrowError *error,
+                                      int64_t column_position, bool tz_aware)
+    -> std::unique_ptr<InsertHelper> {
+  if (tz_aware)
+    return std::make_unique<TimestampInsertHelper<TU, true>>(
+        inserter, chunk, child_schema, error, column_position);
+  else
+    return std::make_unique<TimestampInsertHelper<TU, false>>(
+        inserter, chunk, child_schema, error, column_position);
+}
 
 static auto MakeInsertHelper(hyperapi::Inserter &inserter,
                              struct ArrowArray *chunk,
@@ -563,51 +579,25 @@ static auto MakeInsertHelper(hyperapi::Inserter &inserter,
   case NANOARROW_TYPE_DATE32:
     return std::make_unique<Date32InsertHelper>(inserter, chunk, child_schema,
                                                 error, column_position);
-  case NANOARROW_TYPE_TIMESTAMP:
+  case NANOARROW_TYPE_TIMESTAMP: {
+    const bool tz_aware = std::strcmp("", schema_view.timezone);
     switch (schema_view.time_unit) {
     case NANOARROW_TIME_UNIT_SECOND:
-      if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, true>>(
-            inserter, chunk, child_schema, error, column_position);
-      } else {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND, false>>(
-            inserter, chunk, child_schema, error, column_position);
-      }
+      return MakeTimestampInsertHelper<NANOARROW_TIME_UNIT_SECOND>(
+          inserter, chunk, child_schema, error, column_position, tz_aware);
     case NANOARROW_TIME_UNIT_MILLI:
-      if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, true>>(
-            inserter, chunk, child_schema, error, column_position);
-      } else {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI, false>>(
-            inserter, chunk, child_schema, error, column_position);
-      }
+      return MakeTimestampInsertHelper<NANOARROW_TIME_UNIT_MILLI>(
+          inserter, chunk, child_schema, error, column_position, tz_aware);
     case NANOARROW_TIME_UNIT_MICRO:
-      if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, true>>(
-            inserter, chunk, child_schema, error, column_position);
-      } else {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO, false>>(
-            inserter, chunk, child_schema, error, column_position);
-      }
+      return MakeTimestampInsertHelper<NANOARROW_TIME_UNIT_MICRO>(
+          inserter, chunk, child_schema, error, column_position, tz_aware);
     case NANOARROW_TIME_UNIT_NANO:
-      if (std::strcmp("", schema_view.timezone)) {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, true>>(
-            inserter, chunk, child_schema, error, column_position);
-      } else {
-        return std::make_unique<
-            TimestampInsertHelper<NANOARROW_TIME_UNIT_NANO, false>>(
-            inserter, chunk, child_schema, error, column_position);
-      }
+      return MakeTimestampInsertHelper<NANOARROW_TIME_UNIT_NANO>(
+          inserter, chunk, child_schema, error, column_position, tz_aware);
     }
     throw std::runtime_error(
         "This code block should not be hit - contact a developer");
+  }
   case NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO:
     return std::make_unique<IntervalInsertHelper>(inserter, chunk, child_schema,
                                                   error, column_position);
@@ -743,17 +733,7 @@ void write_to_hyper(
     geo_set.insert(colstr);
   }
 
-  if (!process_params.count("log_config")) {
-    process_params["log_config"] = "";
-  } else {
-    process_params.erase("log_config");
-  }
-  if (!process_params.count("default_database_version"))
-    process_params["default_database_version"] = "2";
-
-  const hyperapi::HyperProcess hyper{
-      hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
-      std::move(process_params)};
+  auto hyper = MakeHyperProcess(std::move(process_params));
 
   // TODO: we don't have separate table / database create modes in the API
   // but probably should; for now we infer this from table mode

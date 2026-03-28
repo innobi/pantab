@@ -2,8 +2,12 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <variant>
+
+inline constexpr int32_t kMaxNumericPrecision = 38;
+inline constexpr int32_t kNumericVariantSize = kMaxNumericPrecision + 1; // 39
 
 // The Tableau Hyper API requires Numeric to be templated at compile time
 // but the values are only known at runtime. This solution is adopted from

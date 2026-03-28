@@ -4,6 +4,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/vector.h>
 
+#include "hyper_process.hpp"
 #include "reader.hpp"
 #include "writer.hpp"
 
@@ -22,11 +23,7 @@ NB_MODULE(libpantab, m) { // NOLINT
       .def(
           "get_table_names",
           [](const std::string &path) {
-            std::unordered_map<std::string, std::string> params{
-                {"log_config", ""}};
-            const hyperapi::HyperProcess hyper{
-                hyperapi::Telemetry::DoNotSendUsageDataToTableau, "",
-                std::move(params)};
+            auto hyper = MakeHyperProcess({});
             hyperapi::Connection connection(hyper.getEndpoint(), path);
 
             nb::list result;

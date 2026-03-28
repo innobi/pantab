@@ -1,7 +1,9 @@
 #include "reader.hpp"
+#include "hyper_process.hpp"
 #include "numeric_gen.hpp"
 
 #include <span>
+#include <stdexcept>
 #include <variant>
 #include <vector>
 
@@ -23,9 +25,19 @@ public:
   ReadHelper &operator=(ReadHelper &&) = delete;
 
   virtual ~ReadHelper() = default;
-  virtual auto Read(const hyperapi::Value &) -> void = 0;
+
+  auto Read(const hyperapi::Value &value) -> void {
+    if (value.isNull()) {
+      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
+        throw std::runtime_error("ArrowArrayAppendNull failed");
+      }
+      return;
+    }
+    ReadNonNull(value);
+  }
 
 protected:
+  virtual auto ReadNonNull(const hyperapi::Value &) -> void = 0;
   auto GetMutableArray() { return array_; }
 
 private:
@@ -35,13 +47,7 @@ private:
 template <typename T> class IntegralReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     if (ArrowArrayAppendInt(GetMutableArray(), value.get<T>())) {
       throw std::runtime_error("ArrowAppendInt failed");
     };
@@ -51,13 +57,7 @@ template <typename T> class IntegralReadHelper : public ReadHelper {
 class OidReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     if (ArrowArrayAppendUInt(GetMutableArray(), value.get<uint32_t>())) {
       throw std::runtime_error("ArrowAppendUInt failed");
     };
@@ -67,13 +67,7 @@ class OidReadHelper : public ReadHelper {
 template <typename T> class FloatReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     if (ArrowArrayAppendDouble(GetMutableArray(), value.get<T>())) {
       throw std::runtime_error("ArrowAppendDouble failed");
     };
@@ -83,13 +77,7 @@ template <typename T> class FloatReadHelper : public ReadHelper {
 class BooleanReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     if (ArrowArrayAppendInt(GetMutableArray(), value.get<bool>())) {
       throw std::runtime_error("ArrowAppendBool failed");
     };
@@ -99,14 +87,7 @@ class BooleanReadHelper : public ReadHelper {
 class BytesReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     // TODO: we can use the non-owning hyperapi::ByteSpan template type but
     // there is a bug in that header file that needs an upstream fix first
     const auto bytes = value.get<std::vector<uint8_t>>();
@@ -114,7 +95,7 @@ class BytesReadHelper : public ReadHelper {
                                             static_cast<int64_t>(bytes.size())};
 
     if (ArrowArrayAppendBytes(GetMutableArray(), arrow_buffer_view)) {
-      throw std::runtime_error("ArrowAppendString failed");
+      throw std::runtime_error("ArrowArrayAppendBytes failed");
     };
   }
 };
@@ -122,14 +103,7 @@ class BytesReadHelper : public ReadHelper {
 class StringReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
 #if defined(_WIN32) && defined(_MSC_VER)
     const auto strval = value.get<std::string>();
     const ArrowStringView arrow_string_view{
@@ -149,14 +123,7 @@ class StringReadHelper : public ReadHelper {
 class DateReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     // TODO: need some bounds /overflow checking
     // tableau uses uint32 but we have int32
     constexpr int32_t tableau_to_unix_days = 2440588;
@@ -181,14 +148,7 @@ class DateReadHelper : public ReadHelper {
 template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     using timestamp_t =
         typename std::conditional<TZAware, hyperapi::OffsetTimestamp,
                                   hyperapi::Timestamp>::type;
@@ -219,14 +179,7 @@ template <bool TZAware> class DatetimeReadHelper : public ReadHelper {
 class TimeReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     const auto time = value.get<hyperapi::Time>();
     const auto raw_value = time.getRaw();
     if (ArrowArrayAppendInt(GetMutableArray(),
@@ -239,14 +192,7 @@ class TimeReadHelper : public ReadHelper {
 class IntervalReadHelper : public ReadHelper {
   using ReadHelper::ReadHelper;
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     struct ArrowInterval arrow_interval {};
     ArrowIntervalInit(&arrow_interval, NANOARROW_TYPE_INTERVAL_MONTH_DAY_NANO);
     const auto interval_value = value.get<hyperapi::Interval>();
@@ -276,23 +222,15 @@ public:
                              int32_t scale)
       : ReadHelper(array), precision_(precision), scale_(scale) {}
 
-  auto Read(const hyperapi::Value &value) -> void override {
-    if (value.isNull()) {
-      if (ArrowArrayAppendNull(GetMutableArray(), 1)) {
-        throw std::runtime_error("ArrowAppendNull failed");
-      }
-      return;
-    }
-
+  auto ReadNonNull(const hyperapi::Value &value) -> void override {
     constexpr int32_t bitwidth = 128;
     struct ArrowDecimal decimal {};
     ArrowDecimalInit(&decimal, bitwidth, precision_, scale_);
 
-    constexpr auto PrecisionLimit = 39; // of-by-one error in solution?
-    if (precision_ >= PrecisionLimit) {
+    if (precision_ > kMaxNumericPrecision) {
       throw nb::value_error("Numeric precision may not exceed 38!");
     }
-    if (scale_ >= PrecisionLimit) {
+    if (scale_ > kMaxNumericPrecision) {
       throw nb::value_error("Numeric scale may not exceed 38!");
     }
 
@@ -304,10 +242,10 @@ public:
             std::erase(value_string, '.');
             return value_string;
           }
-          throw "unreachable";
+          throw std::logic_error("unreachable: scale > precision");
         },
-        to_integral_variant<PrecisionLimit>(precision_),
-        to_integral_variant<PrecisionLimit>(scale_));
+        to_integral_variant<kNumericVariantSize>(precision_),
+        to_integral_variant<kNumericVariantSize>(scale_));
 
     const struct ArrowStringView sv {
       decimal_string.data(), static_cast<int64_t>(decimal_string.size())
@@ -370,7 +308,7 @@ static auto MakeReadHelper(const ArrowSchemaView *schema_view,
         new DecimalReadHelper(array, precision, scale));
   }
   default:
-    throw nb::type_error("unknownn arrow type provided");
+    throw nb::type_error("unknown arrow type provided");
   }
 }
 
@@ -587,16 +525,7 @@ auto read_from_hyper_query(
     std::unordered_map<std::string, std::string> &&process_params,
     size_t chunk_size) -> nb::capsule {
 
-  if (!process_params.count("log_config")) {
-    process_params["log_config"] = "";
-  } else {
-    process_params.erase("log_config");
-  }
-  if (!process_params.count("default_database_version"))
-    process_params["default_database_version"] = "2";
-
-  hyperapi::HyperProcess hyper{hyperapi::Telemetry::DoNotSendUsageDataToTableau,
-                               "", std::move(process_params)};
+  auto hyper = MakeHyperProcess(std::move(process_params));
   hyperapi::Connection connection(hyper.getEndpoint(), path);
 
   if (chunk_size) {
