@@ -52,7 +52,7 @@ jobs:
       - name: Build wheels for ${{ matrix.os }}
         uses: pypa/cibuildwheel@v3.4.0
         env:
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
+          MACOSX_DEPLOYMENT_TARGET: "13.0"
 
   test_no_tableauhyperapi:
     name: Test wheels without tableauhyperapi on ${{ matrix.os }}
@@ -72,7 +72,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_TEST_REQUIRES: pytest pytest-xdist[psutil] pandas>=2.0.0 polars narwhals
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
+          MACOSX_DEPLOYMENT_TARGET: "13.0"
 
   test_sanitizers:
     name: ASAN/UBSAN test
