@@ -1,6 +1,16 @@
 Changelog
 ^^^^^^^^^
 
+Pantab 5.3.0 (2026-04-08)
+=========================
+
+Compatibility
+-------------
+
+- Added support for Python 3.14 free-threaded builds (#419)
+- Dropped support for Python 3.9 (#412)
+- Dropped support for Python 3.10 (#414)
+
 Pantab 5.2.2 (2025-05-15)
 =========================
 
